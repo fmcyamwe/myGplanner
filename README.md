@@ -1,6 +1,6 @@
 # My goal planner
 
-Did you know, on average one have 3400 weeks before going to meet our maker? :D
+Did you know, on average one has 3400 weeks before going to meet our maker? :D
 
 ### The Why
 
