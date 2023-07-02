@@ -641,14 +641,16 @@ export default defineComponent({
         return adding //dummy val for adding in parent...toReview**
       }else {
         console.log("no overlapping event dropped on?...", this.draggedItem) //make sure it's same
+        let newTime = addToDate(targetDrop.timestamp, { minute: 0 })
+
         //so exists already...change time...for now(should maybe ask about double booking of same event? tbd)
         if (sameNess && adding){
-          let newTime = addToDate(targetDrop.timestamp, { minute: 0 })  //this.draggedItem.duration >>duration adds it too far
+          //let newTime = addToDate(targetDrop.timestamp, { minute: 0 })  //this.draggedItem.duration >>duration adds it too far
 
           console.log("sameNess adding",newTime)
           //sameNess.time = newTime.time 
 
-          if (!sameNess.canMove){ //as for sure to move it
+          if (!sameNess.canMove){ //as for sure to move un-movable
             this.$q.dialog({
                 title: 'Alert',
               // position: 'bottom',
@@ -666,6 +668,11 @@ export default defineComponent({
           }
 
           return false //for changed timeslot
+        } else if (adding) {//so just schedule-add the event to selected time...
+           
+          this.draggedItem.time = targetDrop.timestamp.time //change timescheduled
+          this.events.push(this.draggedItem)
+
         }
         return adding //dummy val for adding in parent..toReview
       }
@@ -982,7 +989,7 @@ export default defineComponent({
       
       let add = this.checkOverlap(this.targetDrop, true) 
       if(add){//false means that the duplicate was changed time potentially...otherwise just wish to add new event
-        this.events.push(this.toAddE)
+       // this.events.push(this.toAddE)
       }
       this.reset()
     },
