@@ -31,15 +31,20 @@ export const useGoalStore = defineStore('allGoals', () => {
     //const getGoals = computed(() => goalList)
 
     //this works? nope...should it be a function instead?
-    const getMainGoals= computed(() => 
+    const getMainGoals = computed(() => 
     //let item = JSON.parse(localStorage.getItem(key))
-        JSON.parse($q.localStorage.getItem("mainGoals"))
+        doCopy(JSON.parse($q.localStorage.getItem("mainGoals")))
     )
     
-    const getSubGoals= computed(() => 
+    const getSubGoals = computed(() => 
     //let item = JSON.parse(localStorage.getItem(key))
-        JSON.parse($q.localStorage.getItem("subGoals"))
+        doCopy(JSON.parse($q.localStorage.getItem("subGoals"))) //?
+        //JSON.parse($q.localStorage.getItem("subGoals"))
     )
+
+    function doCopy(arr){  //copy >>this {...obj} is for objects
+        return [...arr]
+    }
 
     function addMainGoal(goal,details,color,priority) {
        
@@ -60,8 +65,14 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
 
         //let id = current !== null ? current.length + 1 : 0
+        let newID = current.length + 1
+
+        while (current.some(item => item.id === newID)) {
+            newID = Math.floor(Math.random() * 1000) //`${Math.floor(Math.random() * 1000)}`;
+            console.log("an item had the same id...using random", newID)
+        }
         current.unshift({
-            id: current.length + 1,
+            id: newID,
             title: goal.value,
             details: details.value,
             priority: priority.value,
@@ -69,7 +80,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             icon: 'fas fa-utensils' 
         })
 
-      $q.localStorage.set('mainGoals', JSON.stringify(current)) //does this overwrite? >>yup should
+      $q.localStorage.set('mainGoals', JSON.stringify(current))
 
       console.log("done adding mainGoal")
     }
@@ -93,8 +104,15 @@ export const useGoalStore = defineStore('allGoals', () => {
             return
         }
 
+        let newID = current.length + 1
+
+        while (current.some(item => item.id === newID)) {
+            newID = Math.floor(Math.random() * 1000) //`${Math.floor(Math.random() * 1000)}`;
+            console.log("an subgoal item had the same id...using random", newID)
+        }
+
         current.unshift({
-            id: current.length + 1,
+            id: newID,
             parentGoal:pGoal,
             title: title.value,
             score: score.value,
@@ -103,7 +121,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             canMove: canMove.value
         })
 
-        $q.localStorage.set('subGoals', JSON.stringify(current)) //does this overwrite? >>yup should
+        $q.localStorage.set('subGoals', JSON.stringify(current))
 
     }
     function resetMain() {
