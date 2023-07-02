@@ -76,7 +76,7 @@
                     :max="120"
                     v-model="duration"
                     show-value
-                    size="50px"
+                    size="75px"
                     :thickness="0.22"
                     color="teal"
                     track-color="grey-3"

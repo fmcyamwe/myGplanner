@@ -153,6 +153,27 @@
           </template>
         </q-calendar-day>
       </div>
+
+      <q-dialog v-model="showEventDialog" transition-show="rotate" transition-hide="rotate">
+       <!--class="q-gutter-md"-->
+       <q-card>
+          <q-card-section>
+            <div class="text-h3">Pick event</div>
+          </q-card-section>
+          <q-separator />
+          <q-select
+            clearable
+            v-model="toAddE" 
+            :options="store.getSubGoals"             
+            option-value="id"
+            option-label="title"
+            label="Sub Goal" />
+          <q-separator />
+          <q-card-actions align="right">
+            <q-btn flat label="Add" color="primary" @click="AddEvent"/>  <!--"Accept" with v-close-popup-->
+          </q-card-actions>         
+        </q-card>
+      </q-dialog> 
     
       <!--goalDialog below doesnt popup :(
 
@@ -252,7 +273,7 @@ export default defineComponent({
   //  })
   //},
   data () {
-    const draggedItem = ref('')
+    const draggedItem = ref(null)
     const targetDrop = ref(null) 
     const currentDate = ref(null)
     const currentTime = ref(null)
@@ -286,7 +307,9 @@ export default defineComponent({
       intervalId:ref(null),
       counter: 0,
 
-      showGoalForm: ref(false)
+      showGoalForm: ref(false),
+      showEventDialog:ref(false),
+      toAddE:ref(null)
     }
   },
   beforeMount() {
@@ -296,7 +319,7 @@ export default defineComponent({
     this.mobile = isMobile()  //--for drag for range selection...before with this.isMobile
     //locale.value = getLocale()
 
-    if (!e) { //|| !pMap
+    /*if (!e) { //|| !pMap
         console.log("no goals to schedule...")
         this.events = []
         //this.mobile = false 
@@ -314,11 +337,11 @@ export default defineComponent({
             obj.bgcolor = pgoal.bgcolor
             obj.details = "from:"+ pgoal.title
         }
-      })
+    })*/
 
-    console.log("onBeforeMount", e)//JSON.stringify(e)
+    console.log("beforeMount", e)//JSON.stringify(e)
     
-    this.events = e //does update!!
+    this.events = [...e] //does update!!
 
     //this.allEvents = e
     
@@ -375,13 +398,35 @@ export default defineComponent({
         //console.log('parentGoalsMap', map) //JSON.stringify(e)
         return map
     },
-    loadGoals () { 
-        //should add the parent's bgcolor for scheduling and other info here? prolly not...toREview
+    loadGoals () {
 
-      return this.store.getSubGoals //so should not invoke it as a function!!
-      //console.log('getSubGoals', JSON.stringify(e))
+      let subGoals = this.store.getSubGoals //so should not invoke it as a function!!
+      let pMap = this.parentGoalsMap
+
+      if (!subGoals) { //|| !pMap
+        console.log("no goals to schedule...")
+        //this.events = []
+        return []
+      }
+
+      //umm shouldnt spread here? toSee
+      subGoals.forEach((obj) => {
+        obj.date = today()
+        let pgoal = pMap.get(obj.parentGoal)
+        if(!pgoal){
+            console.log("no parent goal for:", obj)
+            obj.bgcolor = "red" //default for goals (could be ad-hoc goals)
+            obj.details = "unknown"
+        } else {
+            obj.bgcolor = pgoal.bgcolor
+            obj.details = "from:"+ pgoal.title
+        }
+      })
+
+      //console.log("loadGoals", subGoals)
       
-      //return e
+      return subGoals
+  
     },
     style () {  //style = computed(() => {
       return {
@@ -420,20 +465,62 @@ export default defineComponent({
     //})
   },
   methods: {
-    doSchedule() {
-      this.events = this.allEvents
-      /*this.$q.dialog({
-        title: 'Alert',
-       // position: 'bottom',
-        message: 'Schedule?'
-          }).onOk(() => {
-             this.events = this.allEvents
-          }).onCancel(() => {
-             console.log('Cancelled scheduling')
-          })//.onDismiss(() => {
-            // console.log('I am triggered on both OK and Cancel')
-          //})
-        */
+    adjustCurrentTime() {
+      const now = parseDate(new Date())
+      console.log("adjustin...",now, this.currentTime)
+      this.currentDate = now.date
+      this.currentTime = now.time
+      this.timeStartPos = this.$refs.calendar.timeStartPos(this.currentTime, false)
+    },
+    hasDate (days) {
+      return this.currentDate
+        ? days.find(day => day.date === this.currentDate)
+        : false
+    },
+    badgeClasses (event, type) {
+      const isHeader = type === 'header'
+      return {
+        [ `text-white bg-${ event.bgcolor.toLocaleLowerCase() }` ]: true, //adding toLocaleLowerCase() to account for colors with uppercased first letter
+        'full-width': !isHeader && (!event.side || event.side === 'full'),
+        'left-side': !isHeader && event.side === 'left',
+        'right-side': !isHeader && event.side === 'right',
+        'rounded-border': true
+      }
+    },
+    badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
+      const s = {}
+      if (timeStartPos && timeDurationHeight) {
+        s.top = timeStartPos(event.time) + 'px'
+        s.height = timeDurationHeight(event.duration) + 'px'
+      }
+      s[ 'align-items' ] = 'flex-start'
+      return s
+    },
+    getEvents (dt) {
+      // get all events for the specified date
+      const events = this.eventsMap[ dt ] || []
+      if (events.length === 1) {
+        events[ 0 ].side = 'full'
+      }
+      else if (events.length === 2) {
+        // this example does no more than 2 events per day
+        // check if the two events overlap and if so, select
+        // left or right side alignment to prevent overlap
+        const startTime = addToDate(parsed(events[ 0 ].date), { minute: parseTime(events[ 0 ].time) })
+        const endTime = addToDate(startTime, { minute: events[ 0 ].duration })
+        const startTime2 = addToDate(parsed(events[ 1 ].date), { minute: parseTime(events[ 1 ].time) })
+        const endTime2 = addToDate(startTime2, { minute: events[ 1 ].duration })
+        if (isBetweenDates(startTime2, startTime, endTime, true) || isBetweenDates(endTime2, startTime, endTime, true)) {
+          events[ 0 ].side = 'left'
+          events[ 1 ].side = 'right'
+        }
+        else {
+          events[ 0 ].side = 'full'
+          events[ 1 ].side = 'full'
+        }
+      }
+      //console.log("daEvents...",events)
+      return events
     },
     onDragStart(e, item) { 
         console.log("onDragStart", e, item)
@@ -487,22 +574,26 @@ export default defineComponent({
             //console.log("intervale with !!",this.targetDrop)
             //this.canEventBeMoved(this.targetDrop)
             //this.canEventBeMoved2(this.targetDrop)
-            this.checkOverlap(this.targetDrop)
+            this.checkOverlap(this.targetDrop, false)
           } else {
             console.log("Cannot drop here YO!!",e, type, scope) //shouldnt happen?
           }
         }
         
     },
-    checkOverlap(targetDrop){
+    checkOverlap(targetDrop, adding){
+      console.log("checkOverlap..timestamp:",targetDrop.timestamp) //just to see look
+
       let overlappingEvent = null
+      let sameNess = false
       
-      let targetStartAt = addToDate(targetDrop.timestamp,{ minute: 0 }) //start of dropped...have to use option{minute:1} >>check works with 0
+      let targetStartAt = addToDate(targetDrop.timestamp,{ minute: 1 }) //start of dropped...have to use option{minute:1} >>check works with 0
       let targetEndsAt = addToDate(targetStartAt, { minute: this.draggedItem.duration }) //end of dropped event
 
       this.events.forEach((obj) => {
          if (obj.id == this.draggedItem.id){ 
-            //console.log("skipping sameness", obj.title)
+            console.log("skipping sameness", obj.title)
+            sameNess = obj //true
             //continue; //not syntactic valid with forEach use smh
           }else {
             //check if obj is already present in the range
@@ -521,12 +612,14 @@ export default defineComponent({
               if (obj.canMove){
                 overlappingEvent = obj
               } else {
-                this.$q.notify({ // also see about using >> this.$q.dialog
+                this.doNotify(`${obj.title} Cannot be moved ...`)
+                /*this.$q.notify({ // also see about using >> this.$q.dialog
                         color: 'negative',
                         position: 'top', //see using 'bottom'
                         message: `${obj.title} Cannot be moved ...`,
                         icon: 'report_problem'
-                    })
+                    })*/
+                  return false
               }
             }
           }
@@ -542,13 +635,42 @@ export default defineComponent({
 
         console.log("checkOverlap",newTime)
         
-        overlappingEvent.time = newTime.time
+        overlappingEvent.time = newTime.time //move underneath 
 
-        this.draggedItem.time = targetDrop.timestamp.time
+        this.draggedItem.time = targetDrop.timestamp.time //change timescheduled
+        return adding //dummy val for adding in parent...toReview**
       }else {
-        console.log("no overlapping event dropped on...")
+        console.log("no overlapping event dropped on?...", this.draggedItem) //make sure it's same
+        //so exists already...change time...for now(should maybe ask about double booking of same event? tbd)
+        if (sameNess && adding){
+          let newTime = addToDate(targetDrop.timestamp, { minute: 0 })  //this.draggedItem.duration >>duration adds it too far
+
+          console.log("sameNess adding",newTime)
+          //sameNess.time = newTime.time 
+
+          if (!sameNess.canMove){ //as for sure to move it
+            this.$q.dialog({
+                title: 'Alert',
+              // position: 'bottom',
+                message: 'Sure to move event in today?'
+                  }).onOk(() => {
+                    sameNess.time = newTime.time
+                  }).onCancel(() => {
+                    //console.log('Cancelled Moviing')
+                    this.doNotify(`${obj.title} Cancelled moving ...`)
+                  })//.onDismiss(() => {
+                    // console.log('I am triggered on both OK and Cancel')
+                  //})
+          } else {
+            sameNess.time = newTime.time // just change the time of already scheduled event
+          }
+
+          return false //for changed timeslot
+        }
+        return adding //dummy val for adding in parent..toReview
       }
 
+      //this.reset() //reset but after scheduling event perhaps
     },
     canEventBeMoved2(targetDrop) { 
       let droppedOn = null
@@ -562,24 +684,27 @@ export default defineComponent({
 
       this.events.forEach((obj) => {
          if (obj.id == this.draggedItem.id){ 
-            //console.log("skipping sameness", obj.title)
+            console.log("skipping sameness", obj.title)
             //continue; //not syntactic valid with forEach use smh
           }else {
             //check if obj is already present in the range
             let objStart = addToDate(parsed(obj.date), { minute: parseTime(obj.time) })
             let objEnd = addToDate(objStart, { minute: obj.duration })
 
+            console.log("checking2", obj.title, objStart, objEnd) 
+
             if (isBetweenDates(targetStartAt, objStart, objEnd, true) || isBetweenDates(targetEndsAt, objStart, objEnd, true)) {
               console.log("WOAH dropping on top of?", obj.title, objStart, objEnd) //same as date above!
               if (obj.canMove){
                 droppedOn = obj
               } else {
-                this.$q.notify({ // also see about using >> this.$q.dialog
+                this.doNotify(`${obj.title} Cannot be moved ...`)
+                /*this.$q.notify({ // also see about using >> this.$q.dialog
                         color: 'negative',
                         position: 'top', //see using 'bottom'
                         message: `${obj.title} Cannot be moved ...`,
                         icon: 'report_problem'
-                    })
+                    })*/
                 }
             }
             //test to see if better to use the below function... 
@@ -662,12 +787,13 @@ export default defineComponent({
             if (obj.canMove){
               droppedOn = obj  //wonder if could change time here? or bad while doing iteration? prolly latter..toTry
             } else {
-              this.$q.notify({ // also see about using >> this.$q.dialog
+              this.doNotify('Cannot move this event where an unmovable event already is...')
+              /*this.$q.notify({ // also see about using >> this.$q.dialog
                         color: 'negative',
                         position: 'top', //see using 'bottom'
-                        message: 'Cannot move this event where an unmovable event already is...',
+                        message: "as above",
                         icon: 'report_problem'
-                    })
+                    })*/
             }
 
           } else {
@@ -691,7 +817,9 @@ export default defineComponent({
           droppedOn.time = newTime.time
 
           this.draggedItem.time = targetDrop.timestamp.time
-          //this.store.saveNewGTime(this.draggedItem.id, this.draggedItem.time)  //should just send whole event?
+          //this.store.saveNewGTime(this.draggedItem.id, this.draggedItem.time)  
+            //should just send whole event?
+            //also confirm that wants to save this time going forward via confirmation dialog perhaps(or just today?)
         } else {
           console.log("how did you end up here?!?") //shouldnt happen?
         }
@@ -704,7 +832,7 @@ export default defineComponent({
         console.log("onTouchStart", JSON.stringify(e))
         console.log("onTouchStart", JSON.stringify(item))
     },
-    doRemove (item) {
+    doRemove (item) { //also should just remove it from the current schedule...NOT delete it completely!!
       let currentSize = this.events.length
       for( var i = 0; i < currentSize; i++){ 
             if ( this.events[i].id === item.id) { 
@@ -815,78 +943,63 @@ export default defineComponent({
         this.otherTimestamp = scope.timestamp
       }
     },
-    adjustCurrentTime() {
-      const now = parseDate(new Date())
-      console.log("adjustin...",now, this.currentTime)
-      this.currentDate = now.date
-      this.currentTime = now.time
-      this.timeStartPos = this.$refs.calendar.timeStartPos(this.currentTime, false)
+    onClickDate (data) {
+      console.log('onClickDate', data)
     },
-    hasDate (days) {
-      return this.currentDate
-        ? days.find(day => day.date === this.currentDate)
-        : false
+    onClickTime (data) { 
+      //**ariko wont this affect the scrolling? or would it be notificeable in mobile? ToSee**
+      //tbd if shouldnt do this in clickInterval...
+      console.log('onClickTime..event', data)
+
+      console.log('onClickTime', data)
+      //so here propose selection to add an event to the schedule
+      //...dialog box to select from all subgoals
+       this.showEventDialog = true
+        
+       //save the data to use later when checking that it can be scheduled!
+       this.targetDrop = data.scope
     },
-    ///......
-    /*goalsData () { //this works 
-      //oldie >> let e = this.store.getStoredGoals  //mainGoals
+    onClickInterval (data) { //when clicking on interval of the time column(right side)
+      console.log('onClickInterval', data)
+    },
+    onClickHeadIntervals (data) {
+      console.log('onClickHeadIntervals', data)
+    },
+    onClickHeadDay (data) {
+      console.log('onClickHeadDay', data)
+    },
+    AddEvent() { //should prolly rename to "doSchedule" below
+      console.log('I be adding', this.toAddE)
+      //this.toAddE
+      this.showEventDialog = false
 
-      let e = this.loadGoals //store.getSubGoals 
+      //then add it to the map...after checking that it can be added...
+      //-making sure it doesnt overlap with other stuff already
+      //if it does..prolly .Notify
+      //if no prob ask whether to keep this time going forward?
 
-      e.forEach((obj) => {
-        obj.date = today()
-      })
-
-      console.log('goalsData today:', JSON.stringify(e))
-
-      this.events = e  
+      this.draggedItem = this.toAddE 
       
-      return e
-    },*/
-    badgeClasses (event, type) {
-      const isHeader = type === 'header'
-      return {
-        [ `text-white bg-${ event.bgcolor.toLocaleLowerCase() }` ]: true, //adding toLocaleLowerCase() to account for colors with uppercased first letter
-        'full-width': !isHeader && (!event.side || event.side === 'full'),
-        'left-side': !isHeader && event.side === 'left',
-        'right-side': !isHeader && event.side === 'right',
-        'rounded-border': true
+      let add = this.checkOverlap(this.targetDrop, true) 
+      if(add){//false means that the duplicate was changed time potentially...otherwise just wish to add new event
+        this.events.push(this.toAddE)
       }
+      this.reset()
     },
-    badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
-      const s = {}
-      if (timeStartPos && timeDurationHeight) {
-        s.top = timeStartPos(event.time) + 'px'
-        s.height = timeDurationHeight(event.duration) + 'px'
-      }
-      s[ 'align-items' ] = 'flex-start'
-      return s
-    },
-    getEvents (dt) {
-      // get all events for the specified date
-      const events = this.eventsMap[ dt ] || []
-      if (events.length === 1) {
-        events[ 0 ].side = 'full'
-      }
-      else if (events.length === 2) {
-        // this example does no more than 2 events per day
-        // check if the two events overlap and if so, select
-        // left or right side alignment to prevent overlap
-        const startTime = addToDate(parsed(events[ 0 ].date), { minute: parseTime(events[ 0 ].time) })
-        const endTime = addToDate(startTime, { minute: events[ 0 ].duration })
-        const startTime2 = addToDate(parsed(events[ 1 ].date), { minute: parseTime(events[ 1 ].time) })
-        const endTime2 = addToDate(startTime2, { minute: events[ 1 ].duration })
-        if (isBetweenDates(startTime2, startTime, endTime, true) || isBetweenDates(endTime2, startTime, endTime, true)) {
-          events[ 0 ].side = 'left'
-          events[ 1 ].side = 'right'
-        }
-        else {
-          events[ 0 ].side = 'full'
-          events[ 1 ].side = 'full'
-        }
-      }
-      //console.log("daEvents...",events)
-      return events
+    doSchedule() {
+      this.events = this.allEvents
+      /*this.$q.dialog({
+        title: 'Alert',
+       // position: 'bottom',
+        message: 'Schedule?'
+          }).onOk(() => {
+             this.events = this.allEvents
+          }).onCancel(() => {
+             console.log('Cancelled scheduling')
+          })//.onDismiss(() => {
+            // console.log('I am triggered on both OK and Cancel')
+          //})
+        */
     },
     scrollToEvent (event) {
       this.$refs.calendar.scrollToTime(event.time, 350)
@@ -911,20 +1024,17 @@ export default defineComponent({
     onChange (data) {
       console.log('onChange', data) 
     },
-    onClickDate (data) {
-      console.log('onClickDate', data)
+    reset() { //reset variable for next use 
+      this.draggedItem = null
+      this.targetDrop = null
     },
-    onClickTime (data) {
-      console.log('onClickTime', data)
-    },
-    onClickInterval (data) {
-      console.log('onClickInterval', data)
-    },
-    onClickHeadIntervals (data) {
-      console.log('onClickHeadIntervals', data)
-    },
-    onClickHeadDay (data) {
-      console.log('onClickHeadDay', data)
+    doNotify(messg){
+      this.$q.notify({ // also see about using >> this.$q.dialog
+                        color: 'negative',
+                        position: 'top', //see using 'bottom'
+                        message: messg,
+                        icon: 'report_problem'
+                    })
     },
     prompt () {
        //for dialog goal--works but not properly and throws a console error
