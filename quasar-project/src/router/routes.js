@@ -46,15 +46,19 @@ const routes = [
       /*{
         path: 'schedule', //'testAgenda'
         component: () => import('pages/planner/daySlot.vue') //planner/agendaTest.vue and scheduleTest.vue in scratch now
-      },*/
+      },
       {
         path: 'addGoal', 
         component: () => import('components/planner/addGoalDialog.vue') //pages/planner
-      },
+      },*/
       {
         path: 'viewGoals', 
         component: () => import('pages/planner/viewAllGoals.vue')
-      }
+      },
+      {
+        path: 'eventSummary',  //this should prolly be the 'weekViewPlanner' instead **todo
+        component: () => import('pages/planner/eventTask.vue')
+      }     
     ]
   },
 

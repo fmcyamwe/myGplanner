@@ -31,17 +31,17 @@
       />
     </div>
 
-    <div class="text-white text-center">
+    <!--<div class="text-white text-center">
      <q-btn
         class="q-mt-xl"
         color="white"
         text-color="blue"
         unelevated
         to="/planner/addGoal"
-        label="addTesty"
+        label="add Goal"
         no-caps
       /> 
-    </div>
+    </div> -->
     <div class="text-white text-center">
      <q-btn
         class="q-mt-xl"
@@ -49,10 +49,21 @@
         text-color="blue"
         unelevated
         to="/planner/viewGoals"
-        label="all Goals"
+        label="Goals"
         no-caps
       />
     </div>
+    <div class="text-white text-center">
+      <q-btn
+         class="q-mt-xl"
+         color="white"
+         text-color="blue"
+         unelevated
+         to="/planner/eventSummary"
+         label="Summary"
+         no-caps
+       />
+     </div>
 
     <div style="max-width: 800px; width: 100%;">
         <div class="row justify-center items-center">

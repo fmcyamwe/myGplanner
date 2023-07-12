@@ -33,18 +33,26 @@ export const useGoalStore = defineStore('allGoals', () => {
     //this works? nope...should it be a function instead?
     const getMainGoals = computed(() => 
     //let item = JSON.parse(localStorage.getItem(key))
-        doCopy(JSON.parse($q.localStorage.getItem("mainGoals")))
+        //doCopy(JSON.parse($q.localStorage.getItem("mainGoals")))
+        JSON.parse($q.localStorage.getItem("mainGoals"))
     )
     
     const getSubGoals = computed(() => 
     //let item = JSON.parse(localStorage.getItem(key))
-        doCopy(JSON.parse($q.localStorage.getItem("subGoals"))) //?
-        //JSON.parse($q.localStorage.getItem("subGoals"))
+        //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
+        JSON.parse($q.localStorage.getItem("subGoals"))
     )
 
     function doCopy(arr){  //copy >>this {...obj} is for objects
-        return [...arr]
+        return [...arr] //craps out when array is empty tho!!--toFix***
     }
+
+
+    //dummy dates for Task summary
+    const datesTest = ['2021-03-10', '2021-03-11','2021-03-08','2021-03-06','2021-03-05']
+
+    //dummy logged duration Task summary 
+    const loggedTest = [0.5, 2.0, 3.5, 4.0, 4.5, 1.0]
 
     function addMainGoal(goal,details,color,priority) {
        
@@ -124,14 +132,17 @@ export const useGoalStore = defineStore('allGoals', () => {
         $q.localStorage.set('subGoals', JSON.stringify(current))
 
     }
+
     function resetMain() {
         $q.localStorage.remove('mainGoals')
         console.log("removed all mainGoal")
     }
+
     function resetSub() {
         $q.localStorage.remove('subGoals')
         console.log("removed all subGoals")
     }
+
     function resetAll() {
         $q.localStorage.remove('subGoals')
         $q.localStorage.remove('mainGoals')
@@ -165,6 +176,103 @@ export const useGoalStore = defineStore('allGoals', () => {
         return current
     }
 
+    function removeMaingoal(goalId, clearSubToo) {
+        let current = this.getMainGoals
+        for( var i = 0; i < current.length; i++){ 
+            if ( current[i].id === goalId) { 
+                current.splice(i, 1); 
+                console.log("removeMaingoal spliced!")
+            }
+        }
+        $q.localStorage.set('mainGoals', JSON.stringify(current))
+
+        //here if 'clearSubToo', should also remove the subgoals--TODO**--
+        return current
+    }
+
+    /*function findSubGoals(parentID){
+        const map = []
+        let allSubGoals = this.getSubGoals
+        if(!allSubGoals) {
+            //console.log("No subgoals")
+            return map
+        }
+        allSubGoals.forEach(event => {
+            if (event.parentGoal == parentID) {
+                map.push(event)
+            }
+        })
+        return map  
+    }*/
+
+    function getRandomIndex(sizey){
+        return Math.floor(Math.random() * sizey) //array.length
+    }
+
+    function testTasks() { //massage data for testing Task summary 
+        let mains = this.getMainGoals
+        let subs =  this.getSubGoals
+        const datesS = datesTest.length
+        const loggedS = loggedTest.length
+
+        let tasks = []
+
+        let findSubGoals = parentID => {
+            let map = []
+            //let allSubGoals = this.getSubGoals
+            if(!subs) { //allSubGoals
+                //console.log("No subgoals")
+                return map
+            }
+            subs.forEach(event => {
+                if (event.parentGoal == parentID) {
+                    map.push(event)
+                }
+            })
+            return map  
+        }
+        let updateGoal = task => {
+            let aTask = {
+                children: [],
+                title: task.title,
+                key: task.id,
+                logged: [],
+                expanded:false //see if true works?
+            }
+
+            let loggedSize = getRandomIndex(3) //bon not more than 3 logged events--ToChange
+            do {
+                let loggedDate = datesTest[getRandomIndex(datesS)]
+                let loggedDuration = loggedTest[getRandomIndex(loggedS)]
+                aTask.logged.push({date: loggedDate, logged: loggedDuration})
+            } while (--loggedSize > 0)
+
+            return aTask
+        }
+      
+        mains.forEach(goal => {
+            let toAdd = updateGoal(goal)
+            let subG = findSubGoals(goal.id)
+            /*if (subG !== void 0) {
+                //toAdd.children = [...subG]
+                console.log("aMainSubs",subG)
+                //toAdd.children.forEach(child => { updateGoal(child) }) //oldie with bug as didnt assign it back!
+            } else {
+                console.log("No subgoals for",goal.title)
+            }*/
+            for (let i = 0; i < subG.length; i++) { //if(toAdd.children.length > 0) {
+                let uSub = updateGoal(subG[i])
+                toAdd.children.push(uSub)
+            }
+
+            tasks.push(toAdd)
+        })
+
+        //console.log("testTasks",tasks) //JSON.stringify(tasks)
+
+        return tasks
+    }
+
     return {
         headers, 
         headerRefs, 
@@ -177,6 +285,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         resetSub,
         resetMain,
         resetAll,
-        removeSubgoal
+        removeSubgoal,
+        removeMaingoal,
+        testTasks
     }
 })
