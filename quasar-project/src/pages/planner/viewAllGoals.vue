@@ -14,14 +14,11 @@
     </div>
 
     <div>
-        <q-form
-        @submit="onSubmit"
-        class="q-gutter-md"
-        >
-        <div class="q-gutter-sm">
-            <q-radio v-model="goalType" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
-            <q-radio v-model="goalType" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
-        </div>
+        <q-form @submit="onSubmit" class="q-gutter-md" >
+            <div class="q-gutter-sm">
+                <q-radio v-model="goalType" @click="reset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
+                <q-radio v-model="goalType" @click="reset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
+            </div>
 
             <q-input
                 filled
@@ -33,7 +30,7 @@
 
             <div v-if="showSubG" class="q-gutter-md">
                 <q-select 
-                 v-model="pGoal" 
+                 v-model="pGoal"
                  :options="mainGoals"
                  option-value="id"
                  option-label="title"
@@ -64,24 +61,22 @@
 
             <div v-if="showSubG" class="q-gutter-sm">
                 <q-input v-model="time" filled type="time" hint="Default time" />
-                <q-input
-                    filled
-                    v-model="score"
-                    label="Score"
-                    hint="format: #on#"
-                />
+                <q-input v-model="score" filled label="Score" hint="format: #on#" />
+
                 Duration
                 <q-knob
                     :min="15"
                     :max="120"
-                    v-model="duration"
+                    :thickness="0.22"
+                    :step="5"
+                    :model-value=duration
                     show-value
                     size="75px"
-                    :thickness="0.22"
                     color="teal"
                     track-color="grey-3"
                     class="q-ma-md"
-                />
+                /><!--v-model="duration"  
+                    :model-value=duration -->
                 <br>
                 <q-toggle
                     v-model="canMove"
@@ -92,8 +87,8 @@
             </div>
 
             <div>
-            <q-btn label="Submit" type="submit" color="primary"/>
-            <!--<q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" /> -->
+            <q-btn :label="buttonLabel" type="submit" color="primary" class="q-ml-sm" align="between" />
+            <!--<q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />  label="Submit"-->
             </div>
         </q-form>
     </div>
@@ -118,10 +113,10 @@
           <!--<q-card-section>
             {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}} 
           </q-card-section> -->
-          <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)">
-            <!--<template v-slot:left> and no need for @left="onLeft" in q-slide-item above
-            Left
-            </template>-->
+          <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
+            <template v-slot:left> <!--had no need for @left="onLeft" in q-slide-item above BUT using it to edit here -->
+            Edit
+            </template>
             <template v-slot:right>
             Delete
             </template>
@@ -188,13 +183,15 @@ export default {
         const duration = ref(30) //min of 30
         const score = ref('')
         const canMove = ref(false)
-        const goalType = ref('line')
+        const goalType = ref('line') //so nothing is selected at first
         const pGoal = ref(null)
 
         const mainGoals = ref(null) //computed(() => store.getMainGoals) //works except that reload cannot occur since these are read-only!
         const subGoals = ref(null) //computed(() => store.getSubGoals)
         
         const expanded = ref({})//ref(false)
+
+        const buttonLabel = ref('Submit')
         
         //----
         const $q = useQuasar()
@@ -202,13 +199,14 @@ export default {
 
         //const timer = ref(null)
         let timer 
+        let updatingSubG = null //to keep track of subgoalID when editing
 
         const hRefs = computed(() => store.headerRefs) //tosee if works
         const headers = computed(() => store.getHeaders) //ditto as above
 
         const showSubG = computed(() => goalType.value ==='main' ? false : true )
 
-        const allGoals = computed(() => {
+        const allGoals = computed(() => {  //what is the point of this again? toRemove**
             let map = new Map()
             if(!mainGoals.value){//try to use store.getMainGoals to see if updates on delete! >>nope
                 console.log("mainGoals be empty?")
@@ -239,10 +237,11 @@ export default {
         onMounted(() => {
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
-        
-            mainGoals.value.forEach(item => {
-                expanded[item.id] = false
-            })
+            if(mainGoals.value){
+                mainGoals.value.forEach(item => {
+                    expanded[item.id] = false
+                })
+            }
             console.log(`the component is now mounted.`)
         })
 
@@ -286,8 +285,32 @@ export default {
                     return
                 }
                 let pId = pGoal.value
-                console.log("Subgoal Goal added for parent:",pId.title)
-                store.addSubGoal(pId.id,goalTitle,score,time, duration,canMove)
+                if(buttonLabel.value === "Edit"){
+                    editSuGoal()
+                    expanded.value[pId.id] = false //just so that it can be updated!
+
+                    buttonLabel.value = "Submit"
+                } else{
+                    store.addSubGoal(pId.id,goalTitle,score,time, duration,canMove)
+                    console.log("Subgoal Goal added for parent:",pId.title)
+                }
+                
+
+            }
+            reset() //reset variables
+        }
+        function editSuGoal(){
+            if(updatingSubG){
+                store.editSubGoal(updatingSubG,goalTitle,score,time, duration,canMove) 
+                //bon no need to pass parentGoal in case it has changed(should add this later as would involve more work to change both stored maps!!)
+
+            }else{
+                $q.notify({
+                    color: 'negative',
+                    position: 'top',
+                    message: `ERROR: No subgoalId to edit found!`,
+                    icon: 'report_problem'
+                })
             }
         }
 
@@ -328,14 +351,42 @@ export default {
     
             //e.reset() //just reset how things looked--not helpful
         }
-        function onLeft ({ reset }) {
-            $q.notify('Left action triggered. Resetting in 1 second.')
-            //finalize(reset)
-        }
+        function onLeftEdit ({reset},subId, pID) {
 
-        function onRight ({ reset }) {
-            $q.notify('Right action triggered. Resetting in 1 second.')
-            //finalize(reset)
+            console.log(`Editing subgoal ${subId} and ${pID}...`)
+
+            let subby = subGoals.value.filter(element => element.id == subId) //remember that filter returns an array!!
+            let pGoally = mainGoals.value.filter(element => element.id == pID)
+
+            console.log("subgoal be with parent", subby[0],pGoally[0])
+
+            if (subby && pGoally) {
+                buttonLabel.value = "Edit"
+
+                goalType.value = 'sub' //updates
+
+                goalTitle.value = subby[0].title
+                pGoal.value = pGoally[0]
+                time.value = subby[0].time 
+                score.value = subby[0].score
+                duration.value = subby[0].duration
+                canMove.value = subby[0].canMove
+
+                updatingSubG = subId  //keep track of this for submit
+
+            }else {
+                $q.notify({
+                    color: 'negative',
+                    position: 'top',
+                    message: `ERROR during edit action for ${subId} and ${pID}...not found!`,
+                    icon: 'report_problem'
+                })
+            
+                console.log(`ERROR could not find all info for ${subId} and ${pID}`)
+            }
+
+            finalize(reset) //umm use this or below? prolly both really
+            expanded.value[pID] = true
         }
 
         function reload() { //reload variables with stuff from storage...doesnt update the slide though smh
@@ -348,17 +399,30 @@ export default {
             console.log("reloadin...", subGoals.value)
         }
 
+        function reset(){
+            goalTitle.value = ' ' //subvert the rule check with space tho...toReview
+            priority.value = 3
+            score.value = ''
+            time.value = ''
+            duration.value = 30
+            //goalType.value = '' //huh make it unselectable smh
+
+            updatingSubG = null
+        }
+
         return {
             showSubG,
             mainGoals,
             subGoals,
             daRefs:hRefs,
-            expanded, //test to see if can trigger close
+            expanded, //see if can trigger close >>does!
+            buttonLabel,
             allGoals,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,
             doPrint,
             onSubmit,doReset,getSubGoals,
-            onRightDelete,reload
+            onRightDelete,onLeftEdit,reset
+            //, reload
         }
     }
 }

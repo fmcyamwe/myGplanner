@@ -133,6 +133,22 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     }
 
+    function editSubGoal(goalId, title,score,time, duration, canMove){
+        let current = this.getSubGoals
+        //console.log("subGoal time change with ",goalId, time, current)
+         current.forEach((obj) => {  //make this better instead of having to walk the whole map! todo***
+             if(obj.id === goalId){
+                obj.title = title.value,
+                obj.score= score.value,
+                obj.time = time.value,//'19:00',
+                obj.duration = duration.value, //60,
+                obj.canMove = canMove.value
+                console.log("editSubGoal for",obj)
+             }
+         })
+         $q.localStorage.set('subGoals', JSON.stringify(current))
+    }
+
     function resetMain() {
         $q.localStorage.remove('mainGoals')
         console.log("removed all mainGoal")
@@ -160,10 +176,9 @@ export const useGoalStore = defineStore('allGoals', () => {
                 console.log("subGoal time change for",obj) //.title +"to" + obj.time
             }
         })
-
         $q.localStorage.set('subGoals', JSON.stringify(current))
-        
     }
+
     function removeSubgoal(goalId) {
         let current = this.getSubGoals
         for( var i = 0; i < current.length; i++){ 
@@ -188,6 +203,10 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         //here if 'clearSubToo', should also remove the subgoals--TODO**--
         return current
+    }
+
+    function saveDailySchedule(Adate, events){ //saves map of events that were completed...for summary retrieval
+
     }
 
     /*function findSubGoals(parentID){
@@ -281,6 +300,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         getSubGoals,
         addMainGoal,
         addSubGoal,
+        editSubGoal,
         saveNewGTime,
         resetSub,
         resetMain,
