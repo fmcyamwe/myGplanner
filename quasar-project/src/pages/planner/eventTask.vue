@@ -123,8 +123,8 @@
         startDate: today(),
         endDate: today(),
         store: useGoalStore(),
-        tasks: [ //bon test...to see if loads massaged data from goalStorage
-          {
+        tasks: [],
+ /*         {
             title: 'Task 1',
             key: 'TSK-584',
             logged: [
@@ -225,7 +225,7 @@
               { date: '2021-03-30', logged: 1.0 }
             ]
           }
-        ],
+        ],*/
         footerTasks: [
           { title: 'TOTALS' }
         ]

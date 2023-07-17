@@ -25,23 +25,11 @@
         color="white"
         text-color="blue"
         unelevated
-        to="/planner/scheduleDrag"
+        to="/planner/daySchedule"
         label="Schedule"
         no-caps
       />
     </div>
-
-    <!--<div class="text-white text-center">
-     <q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="blue"
-        unelevated
-        to="/planner/addGoal"
-        label="add Goal"
-        no-caps
-      /> 
-    </div> -->
     <div class="text-white text-center">
      <q-btn
         class="q-mt-xl"

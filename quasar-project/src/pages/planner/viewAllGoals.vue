@@ -261,7 +261,7 @@ export default {
         }
         function doReset () {
             if (goalType.value ==='main') {
-                store.resetMain()
+                store.resetMain() //shoulg confirm AND also remove the subgoals!!
             } else if(goalType.value ==='sub') {
                 store.resetSub()
             } else {
@@ -406,6 +406,8 @@ export default {
             time.value = ''
             duration.value = 30
             //goalType.value = '' //huh make it unselectable smh
+            details.value = ''
+            bgcolor.value = ''
 
             updatingSubG = null
         }

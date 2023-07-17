@@ -40,8 +40,8 @@ const routes = [
         component: () => import('pages/planner/weekViewPlanner.vue')
       },
       {
-        path: 'scheduleDrag', 
-        component: () => import('pages/planner/scheduleDrag.vue')
+        path: 'daySchedule', 
+        component: () => import('pages/planner/daySchedule.vue') //scheduleDrag.vue in scratch
       },
       /*{
         path: 'schedule', //'testAgenda'
