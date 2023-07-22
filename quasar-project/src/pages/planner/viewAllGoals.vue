@@ -109,6 +109,8 @@
     <q-list bordered> <!--v-mutation="reload" but triggers too much-->
       <q-expansion-item v-for="goal in mainGoals" :key="goal.id" v-model="expanded[goal.id]" class="q-my-sm" :label="goal.title"
         :caption="goal.details" clickable v-ripple>
+        <!--<template v-slot:header></template> -->
+        
         <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a card works?>>huh not without adding >>:key="event.id" -->
           <!--<q-card-section>
             {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}} 
@@ -125,6 +127,10 @@
             <q-item-section>{{subGoal.title}} >> at {{subGoal.time}} :: {{subGoal.score}} :: Move?{{subGoal.canMove}}</q-item-section>
             </q-item>
           </q-slide-item>
+        </q-card>
+
+        <q-card v-if="!hasSubG(goal.id)">
+            <q-btn label="Delete?" type="reset" color="primary" flat class="q-ml-sm"  @click.prevent="(e) => onClickDelete(e, goal.id)" />
         </q-card>
       </q-expansion-item>
     </q-list>
@@ -206,6 +212,12 @@ export default {
 
         const showSubG = computed(() => goalType.value ==='main' ? false : true )
 
+        /*const hasSubG = computed((id) => {
+            let euh = getSubGoals(id) //works?
+            //console.log("mainGoals be empty?")
+            return euh.length > 0
+        }) //getSubGoals(id) false : true */
+
         const allGoals = computed(() => {  //what is the point of this again? toRemove**
             let map = new Map()
             if(!mainGoals.value){//try to use store.getMainGoals to see if updates on delete! >>nope
@@ -227,6 +239,11 @@ export default {
             console.log("allGoals be",map.entries()) //JSON.stringify(allGoals,null,1)
             return map
         })
+
+        /*const subbyGoals = computed((id) => {
+            //if(!subGoals.value) return []
+            return subGoals.value.filter(event => event.parentGoal == id)
+        })*/
 
         //see if these two below can be used?toTest
         //const addMainG = () => store.addMainGoal() // use action..also that ';' be problem? nope
@@ -314,6 +331,11 @@ export default {
             }
         }
 
+        function hasSubG(parentID){
+            let euh = this.getSubGoals(parentID) //works? >>yups!!
+            return euh.length > 0
+        }
+
         function getSubGoals(parentID){
             const map = []
             if(!subGoals.value) {
@@ -388,6 +410,13 @@ export default {
             finalize(reset) //umm use this or below? prolly both really
             expanded.value[pID] = true
         }
+        function onClickDelete(e, id){
+            console.log(`onClickDelete ${id}`, e )
+
+            store.removeMaingoal(id, false)
+            //then what?
+            //this.$emit('update:model-value', !this.modelValue)
+        }
 
         function reload() { //reload variables with stuff from storage...doesnt update the slide though smh
             //console.log("reloadin...")
@@ -416,14 +445,16 @@ export default {
             showSubG,
             mainGoals,
             subGoals,
+            //subbyGoals, //test >>nope
             daRefs:hRefs,
             expanded, //see if can trigger close >>does!
             buttonLabel,
             allGoals,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,
+            hasSubG,
             doPrint,
             onSubmit,doReset,getSubGoals,
-            onRightDelete,onLeftEdit,reset
+            onRightDelete,onLeftEdit,reset,onClickDelete,
             //, reload
         }
     }

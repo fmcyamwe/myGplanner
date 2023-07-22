@@ -191,7 +191,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         return current
     }
 
-    function removeMaingoal(goalId, clearSubToo) {
+    function removeMaingoal(goalId, clearSubToo) {// if 'clearSubToo', should also remove the subgoals--TODO**--
         let current = this.getMainGoals
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) { 
@@ -201,7 +201,6 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
         $q.localStorage.set('mainGoals', JSON.stringify(current))
 
-        //here if 'clearSubToo', should also remove the subgoals--TODO**--
         return current
     }
 
