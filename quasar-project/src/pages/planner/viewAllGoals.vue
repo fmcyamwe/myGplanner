@@ -69,7 +69,7 @@
                     :max="120"
                     :thickness="0.22"
                     :step="5"
-                    :model-value=duration
+                    v-model="duration"
                     show-value
                     size="75px"
                     color="teal"
@@ -339,7 +339,7 @@ export default {
         function getSubGoals(parentID){
             const map = []
             if(!subGoals.value) {
-                console.log("No subgoals")
+                //console.log("No subgoals")
                 return map
             }
             subGoals.value.forEach(event => {
@@ -391,7 +391,7 @@ export default {
                 pGoal.value = pGoally[0]
                 time.value = subby[0].time 
                 score.value = subby[0].score
-                duration.value = subby[0].duration
+                duration.value = parseInt(subby[0].duration)
                 canMove.value = subby[0].canMove
 
                 updatingSubG = subId  //keep track of this for submit
@@ -429,7 +429,7 @@ export default {
         }
 
         function reset(){
-            goalTitle.value = ' ' //subvert the rule check with space tho...toReview
+            goalTitle.value = ' ' //subvert the rule check with space tho and add an extra space in beginnin..toReview***
             priority.value = 3
             score.value = ''
             time.value = ''

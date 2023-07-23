@@ -31,20 +31,30 @@ export const useGoalStore = defineStore('allGoals', () => {
     //const getGoals = computed(() => goalList)
 
     //this works? nope...should it be a function instead?
-    const getMainGoals = computed(() => 
+    const getMainGoals = computed(() => {
     //let item = JSON.parse(localStorage.getItem(key))
         //doCopy(JSON.parse($q.localStorage.getItem("mainGoals")))
-        JSON.parse($q.localStorage.getItem("mainGoals"))
-    )
+        let item = JSON.parse($q.localStorage.getItem("mainGoals"))
+        return doCopy(item)
+    })
     
-    const getSubGoals = computed(() => 
+    const getSubGoals = computed(() => {
     //let item = JSON.parse(localStorage.getItem(key))
         //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
-        JSON.parse($q.localStorage.getItem("subGoals"))
+        let item = JSON.parse($q.localStorage.getItem("subGoals"))
+        return doCopy(item)
+    })
+
+    const getAllDates = computed(() => 
+    //let item = JSON.parse(localStorage.getItem(key))
+        //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
+        JSON.parse($q.localStorage.getItem("AllDates"))
     )
 
     function doCopy(arr){  //copy >>this {...obj} is for objects
-        return [...arr] //craps out when array is empty tho!!--toFix***
+        if(arr.length > 0) return [...arr]
+        return []//[...arr] //craps out when array is empty tho!!--toSee if line above works...nope just does a 'shallow' copy smh
+        //const json = JSON.parse(JSON.stringify(original)); //quick and dirty way to copy apparently...bof dont seem to work even!
     }
 
 
@@ -204,8 +214,26 @@ export const useGoalStore = defineStore('allGoals', () => {
         return current
     }
 
-    function saveDailySchedule(Adate, events){ //saves map of events that were completed...for summary retrieval
+    //saves map of events that were completed...for summary retrieval
+    //First adds date to AllDates key and then store the events by that date.
+    function saveDailySchedule(Adate, events){
+        let current = this.getAllDates
 
+        if (!current){
+            ///$q.localStorage.getItem("AllDates"))
+            console.log("saveDailySchedule was Empty!?!--Adding new")
+            $q.localStorage.set("AllDates", JSON.stringify([Adate]))
+        }else{
+            current.push(Adate) //unshift
+            $q.localStorage.set("AllDates", JSON.stringify(current))
+            //make sure it's not already present before pushing it!--todo**
+        }
+
+        $q.localStorage.set(`${Adate}`, JSON.stringify(events)) //this is what grabs events per day
+    }
+
+    function getEvents(Adate){//get by date or all of them in one go? tbd--todo
+        return JSON.parse($q.localStorage.getItem(`${Adate}`))
     }
 
     /*function findSubGoals(parentID){
@@ -297,15 +325,18 @@ export const useGoalStore = defineStore('allGoals', () => {
         getHeaders, 
         getMainGoals,
         getSubGoals,
+        getAllDates,
         addMainGoal,
         addSubGoal,
         editSubGoal,
         saveNewGTime,
+        saveDailySchedule,
         resetSub,
         resetMain,
         resetAll,
         removeSubgoal,
         removeMaingoal,
+        getEvents,
         testTasks
     }
 })

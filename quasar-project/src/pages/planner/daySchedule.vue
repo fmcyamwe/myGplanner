@@ -123,11 +123,11 @@
                >
                 <div class="title q-calendar__ellipsis">
                   {{ event.title }}
-                  <q-tooltip>{{ event.time + ' - ' + event.details }}</q-tooltip>
-                  <!-- meh interfere with removing...Tosee if can enable it later somehow... 
-                    <q-popup-edit v-model="event.score" auto-save v-slot="scope">
+                  <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip>
+                  <!-- meh interfere with dhouble click for removing...Tosee if can enable it later somehow... -->
+                  <q-popup-edit v-model="event.score" auto-save v-slot="scope" :disable="disabledScoreEvts[event.id]">
                     <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
-                  </q-popup-edit>-->
+                  </q-popup-edit>
                   
                   <!--<goal-item
                     :modelValue="true"
@@ -175,8 +175,8 @@
         color="Green"
         text-color="blue"
         elevated
-        label="ShowForm"
-        @click="showGoalForm = !showGoalForm"
+        label="SaveSchedule"
+        @click="doSaveSchedule"
         no-caps
     />
     <q-btn
@@ -184,8 +184,8 @@
         color=""
         text-color="green"
         elevated
-        label="Schedule"
-        @click="doSchedule"
+        label="ShowForm"
+        @click="showGoalForm = !showGoalForm"
         no-caps
     />
 </template>
@@ -235,9 +235,9 @@ export default defineComponent({
     const currentDate = ref(null)
     const currentTime = ref(null)
 
-    const endTimesArray = ref([]) //oldie >> allEvents
+    const endTimesSet = ref(null) //oldie >> allEvents
     const scheduledEvents = ref(null)  //shall replace daily scheduled and be source of truth for currently viewed day
-    const startEndMap = ref(null) //umm map of start-end for scheduled events for easier overlapp lookup...toSee
+    //const startEndMap = ref(null) //umm map of start-end for scheduled events for easier overlapp lookup...toSee
 
     const $q = useQuasar()
     let intervalId = null
@@ -257,7 +257,8 @@ export default defineComponent({
 
       showGoalForm: ref(false), //showing addGoal form
       showEventDialog:ref(false),
-      toAddE:ref(null)
+      toAddE:ref(null),
+      disabledScoreEvts:ref({}),
     }
   },
   beforeMount() {
@@ -265,7 +266,7 @@ export default defineComponent({
 
     this.mobile = isMobile()  //--for drag for range selection.
    
-    this.events = [...e] //does update!!
+    this.events =  [...e] //does update!!
 
     this.saveCurrentSchedule() //bon seem doesnt like putting this in loadGoals as it's computed!
     
@@ -275,7 +276,6 @@ export default defineComponent({
   },
   mounted() {
     this.adjustCurrentTime()
-    
     // adjust the time every minute
     this.intervalId = setInterval(() => {
         this.adjustCurrentTime()
@@ -321,7 +321,9 @@ export default defineComponent({
         return map
     },
     loadGoals() {
-      let subGoals = [...this.store.getSubGoals] //copy so that changes dont go back in storage...toTest***
+      let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals)) //[...this.store.getSubGoals]
+      //copy so that changes dont go back in storage... the JSON above seems to work at least
+      //or use let arrCopy = Object.assign([], arr) //is also a 'shallow' copy smh
       let pMap = this.parentGoalsMap
 
       if (!subGoals) { //|| !pMap
@@ -330,8 +332,8 @@ export default defineComponent({
         return []
       }
      
-      subGoals.forEach((obj) => {
-        obj.date = today()
+      subGoals.forEach((obj) => {  //like here...the changes shouldnt go back into storage!!
+        obj.date = today() //"date": "2023-07-22"
         let pgoal = pMap.get(obj.parentGoal)
         if(!pgoal){
             console.log("no parent goal for:", obj)
@@ -363,7 +365,7 @@ export default defineComponent({
           dates.push(getDateTime(this.otherTimestamp), getDateTime(this.anchorTimestamp))
         }
       }
-      console.log("startEndTimes", dates)
+      //console.log("startEndTimes", dates)
       return dates
     },
     anchorDayTimeIdentifier() {
@@ -388,35 +390,40 @@ export default defineComponent({
       return false
     },
     //save 
-    saveCurrentSchedule() { //save in single map variable >>TODO**
+    saveCurrentSchedule() {
       const map = new Map()
-      const startEnd = new Map()
-      let endTimes = []
+      //const startsEnds = new Map()
+      let endTimes = new Set() //[]
     
       this.events.forEach(event => { 
-          map.set(event.id, {
-            on: event.date,
-            at: event.time,
-            for: event.duration
-          })
+          //map.set(event.id, {
+          //  on: event.date,
+          //  at: event.time,
+          //  for: event.duration
+         // })
           
           const startTime = addToDate(parsed(event.date), { minute: parseTime(event.time) })
           const endTime = addToDate(startTime, { minute: event.duration })
-          startEnd.set(event.id, {
+          map.set(event.id, { //startsEnds
             start: startTime,
-            end: endTime
+            end: endTime,
+            on: event.date,
+            at: event.time,
+            for: event.duration
             }
           )
-          endTimes.push(endTime.time) //for checking when adjustCurrentTime()**toTest
+          //endTimes.push(endTime.time) //for checking when adjustCurrentTime()
+          endTimes.add(endTime.time)
+
+          this.disabledScoreEvts[event.id] = true //for enabling score edit after end of event!
         })
 
         this.scheduledEvents = map
-        //console.log("done saveCurrentSchedule",this.scheduledEvents )
 
-        this.startEndMap = startEnd
-        console.log("done saveCurrentSchedule",this.startEndMap, endTimes)
+        //this.startEndMap = startsEnds
+        this.endTimesSet = endTimes
+        console.log("done saveCurrentSchedule",this.scheduledEvents, endTimes)
 
-        this.endTimesArray = endTimes
     },   
     overlapOtherEvent(evID, targetTimestamp, duration) {
       const mappy = []//{}
@@ -432,9 +439,9 @@ export default defineComponent({
         return mappy
       }
 
-      this.startEndMap.forEach( (value, key, map) => {
+      this.scheduledEvents.forEach( (value, key, map) => { // startEndMap
         if (key == evID){ 
-            console.log("skipping sameness overlapOtherEvent", evID, value)
+            console.log("skipping sameness overlapOtherEvent", evID, value) //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
         }else {
           let eStart = this.getTimeNumber(value.start)
           let eEnd = this.getTimeNumber(value.end)
@@ -453,7 +460,80 @@ export default defineComponent({
         }
       });
       return mappy
-    },    
+    },
+    recurChangeTime(overlappingEvt, tEvt, targetTimestamp) {
+        //let sizey = overlappingEvts.length
+        
+        //function?
+        //for(let i = 0; i < sizey; i++) {
+            let overlappedEvt = this.scheduledEvents.get(overlappingEvt) //overlappingEvt[i]
+            if (overlappedEvt){
+                    console.log(`dragDirection...target>>${targetTimestamp.timestamp.time}, oldie at>>${tEvt.time}`, overlappedEvt)
+                    //direction of drag(up or down) >>either - or + 
+                    let dragDirection = parseTime(targetTimestamp.timestamp.time) - parseTime(tEvt.time)
+                   
+                    console.log(`dragDirection...${dragDirection > 0 ? "goign down": "going up"}`)
+
+                    //when dragDirection > 0 (going down)...otherwise going up...prolly
+                    let overlappedEvtNew = dragDirection > 0 ? addToDate(targetTimestamp.timestamp, { minute: parseInt(tEvt.duration) + 10 }) //parseInt(overlappedEvt.for) 
+                                                    : addToDate(targetTimestamp.timestamp, { minute: -(parseInt(tEvt.duration)) - 10 }) //overlappedEvt.for
+                    
+                        //umm should keep same time interval between the two events?!? meh but to explore latee**
+                    
+                    //test that newTime doesnt overlap with existing event--toDO** in recursive manner!
+                    let anyOtherOverlap = this.overlapOtherEvent(overlappingEvt, overlappedEvtNew, overlappedEvt.for) //overlappingEvts[i]
+                    if(anyOtherOverlap.length > 0) {
+                        console.log("There ARE other overlaps...BREAK!?!",anyOtherOverlap)
+                        //should call recurChangeTime(overlappingEvt, evt, targetTimestamp) with anyOtherOverlap[i] and whicher overlapped evt that will be moved **todo and return
+                        /*
+                            console.log("overlapp!", anyOverlap)
+                            let i = 0
+
+                            do {
+                                this.recurChangeTime(anyOverlap[i], this.draggedItem, this.targetDrop) //sizey
+                            } while (++i < sizey)
+                        */
+                    }
+
+                    let changed = this.changeEventSchedule(overlappingEvt, overlappedEvtNew) //overlappingEvts[i]
+                    console.log("overlappedEvtNew..",changed, overlappedEvtNew)
+
+                    //test that newTime doesnt overlap with existing event--toDO** in recursive manner!
+                    //let anyOtherOverlap = this.overlapOtherEvent(anyOverlap[0], overlappedEvtNew, overlappedEvt.for)
+                    //if(anyOtherOverlap.length > 0) {console.log("There ARE other overlaps...",anyOtherOverlap)}
+                    
+                    let w = this.updateScheduleMaps(overlappingEvt, overlappedEvtNew) //overlappingEvts[i]
+                    if (!w) {console.log("umm ERROR updateScheduleMaps failed?",overlappingEvt) } //overlappingEvts[i]
+
+                    //umm targetDrop should stays the same here!!--for dragging up keep interval of 10 minutes? prolly better for separation?
+                    let draggedNewTime = dragDirection > 0 ? addToDate(targetTimestamp.timestamp, { minute: 0 })
+                                                    : addToDate(targetTimestamp.timestamp, { minute: 0 }) 
+                    
+                    let worked = this.changeEventSchedule(tEvt.id, draggedNewTime)
+                    console.log("recurChangeTime complete",worked, draggedNewTime)
+
+                    let e = this.updateScheduleMaps(tEvt.id, draggedNewTime)
+                    if (!e) {console.log("umm ERROR updateScheduleMaps failed?",tEvt.id) }
+                
+                }else{console.log("ERROR overlapped event not found!", overlappingEvt)}
+
+        //}
+
+    },
+    changeEditScore(timeEnd) { //enables the editing of score after event has passed.
+        //search for corresponding eventID and enable that one only
+
+        //this.disabledScoreEvts[0] = false
+        //this.disabledScoreEvts[3] = false 
+        for (let {entry, val} of this.scheduledEvents) {
+            console.log("changeEditScore", entry, val)
+            if (val == timeEnd){ //.end.time   dont work...toReview***
+                console.log("changeEditScore...FOUND", entry, val)
+                this.disabledScoreEvts[entry] = false //toTest if works***
+            }
+        }
+
+    },
     adjustCurrentTime() {
       const now = parseDate(new Date())
     
@@ -466,10 +546,13 @@ export default defineComponent({
       
       //could check map of end times(keys) to see if reached end of an event? 
         //--not expensive? maybe if save only endTimes?
-     if(this.endTimesArray[now.time]) {
-        console.log("should got a notif?...")
+     if(this.endTimesSet.has(now.time)) { //this.endTimesArray[now.time]
+        console.log("should got a notif?...",now.time)
+        this.changeEditScore(now.time)
         this.doNotify("WOOO at end of a scheduled event", "positive")
-     }
+     }//else {
+      //  console.log("nothin...",this.endTimesSet)
+     //}
     },
     hasDate (days) { //see if this updates for adjustCurrentTime() above **
       return this.currentDate
@@ -539,25 +622,32 @@ export default defineComponent({
 
     },*/
     updateScheduleMaps(evID, timeyStart){
-        if(this.scheduledEvents.has(evID) && this.startEndMap.has(evID)){
+        if(this.scheduledEvents.has(evID)){ //&& this.startEndMap.has(evID)
             let forsy = this.scheduledEvents.get(evID).for //umm would this work?
+            
             this.scheduledEvents.set(evID, {
                 on: timeyStart.date,
                 at: timeyStart.time,
-                for: forsy
-            })
-
-            this.startEndMap.set(evID, {
+                for: forsy,
                 start: timeyStart,
                 end: addToDate(timeyStart, { minute: forsy })
             })
+
+            //this.startEndMap.set(evID, {
+            //    start: timeyStart,
+            //    end: addToDate(timeyStart, { minute: forsy })
+            //})
             return true
-        }else return false  
+        }else{
+            console.log("updateScheduleMaps--euh not found?",evID, timeyStart ) 
+            return false 
+        }  
         
     },
     changeEventSchedule(evID, timeyStart) {
-        let worked = false
-        this.events.forEach((obj) => { // return doesnt work in forEach...huh should optimize with for loop! todo**
+        //let worked = false
+        for(let i = 0; i < this.events.length; i++) {
+            let obj = this.events[i] //will changes stick ahubwo?!? seems so...but break doesnt return true? or seems to be evaluated earlier than dialog close?!?
             if (obj.id === evID){
                 if (!obj.canMove){ //as for sure to move un-movable
                     this.$q.dialog({
@@ -566,25 +656,31 @@ export default defineComponent({
                         message: `Sure to move event ${obj.title} around?`
                         }).onOk(() => {
                             //sameNess.time = newTime.time
+                            console.log('changeEventSchedule Moviing')
                             obj.time = timeyStart.time
-                            worked = true
+                            //return true
+                            //worked = true
                         }).onCancel(() => {
                             //console.log('Cancelled Moviing')
                             this.doNotify(`${obj.title} Cancelled moving ...`)
                         })//.onDismiss(() => {
                             // console.log('I am triggered on both OK and Cancel')
                         //})
+                    //break
                 } else {
                     //do change to new time
                     obj.time = timeyStart.time
                     //console.log(`changeEventSchedule of ${evID}`, timeyStart)
-                    worked = true
+                    //return true
+                    //worked = true
+                    //break
                 }
+                return true //here work? yup
             }
-        })
-        return worked
+        }
+        return false 
     },
-    checkOverlap(targetDrop, adding){ //to be replaced by overlapOtherEvent() >>todo***
+    /*checkOverlap(targetDrop, adding){ // replaced by overlapOtherEvent() >>toREmove
       console.log("checkOverlap..timestamp:",targetDrop.timestamp)
 
       let overlappingEvent = null
@@ -616,12 +712,12 @@ export default defineComponent({
                 overlappingEvent = obj
               } else {
                 this.doNotify(`${obj.title} Cannot be moved ...`)
-                /*this.$q.notify({ // also see about using >> this.$q.dialog
+                this.$q.notify({ // also see about using >> this.$q.dialog
                         color: 'negative',
                         position: 'top', //see using 'bottom'
                         message: `${obj.title} Cannot be moved ...`,
                         icon: 'report_problem'
-                    })*/
+                    })
                   return false
               }
             }
@@ -681,7 +777,7 @@ export default defineComponent({
       }
 
       //this.reset() //reset but after scheduling event perhaps
-    },
+    },*/
     AddEvent() {
       console.log('I be adding', this.toAddE, this.targetDrop.timestamp)
       //this.toAddE
@@ -702,26 +798,66 @@ export default defineComponent({
       let anyOverlap = this.overlapOtherEvent(this.toAddE.id, this.targetDrop.timestamp, this.toAddE.duration)
 
       console.log("anyOverlap", anyOverlap)
-      
-      let add = this.checkOverlap(this.targetDrop, true) 
-      if(add){//false means that the duplicate was changed time potentially...otherwise just wish to add new event
-       // this.events.push(this.toAddE) //no need as added in 'checkOverlap'(should rename**)
-       console.log("prolly added? lol")
+      let sizey = anyOverlap.length
+      if(sizey > 0) { //anyOverlap.length
+        //this.recurChangeTime(anyOverlap, this.toAddE, this.targetDrop) //umm would this work for an unscheduled event?toTest** 
+        let i = 0
+    
+        do {
+            this.recurChangeTime(anyOverlap[i], this.toAddE, this.targetDrop) //umm would this work for an unscheduled event?toTest** 
+        } while (++i < sizey)
+
       } else {
-        console.log("umm not added")
+        //just add event to the schedule...or //change timescheduled
+        //this.draggedItem.time = this.targetDrop.timestamp.time 
+        //this.events.push(this.draggedItem) 
+        
+        //so already there...just change it
+        if(this.scheduledEvents.has(this.toAddE.id)){ //&& this.startEndMap.has(this.toAddE.id)
+            let worked = this.changeEventSchedule(this.toAddE.id, this.targetDrop.timestamp)
+            console.log("AddEvent that was there complete",worked, this.targetDrop.timestamp)
+
+            let e = this.updateScheduleMaps(this.toAddE.id, this.targetDrop.timestamp)
+            if (!e) {console.log("umm ERROR updateScheduleMaps failed?",this.toAddE.id) }
+        } else { 
+            //not there...add new event to schedule
+            console.log('New event and be pushing with current events as', this.events)
+
+            this.events.push(this.toAddE)
+
+            console.log('New events as now',this.events) // this.toAddE, 
+
+            this.saveCurrentSchedule() //see if works better?  >>seems so!
+            
+            /*let worked = this.changeEventSchedule(this.toAddE.id, this.targetDrop.timestamp)
+            console.log("AddEvent NEW complete",worked, this.targetDrop.timestamp)
+
+            let e = this.updateScheduleMaps(this.toAddE.id, this.targetDrop.timestamp)
+            if (!e) {console.log("umm ERROR updateScheduleMaps failed?",this.toAddE.id) }
+            */
+        }
+       
+        
+        console.log("AddEvent...got added eh", this.toAddE)
       }
+      
+      //let add = this.checkOverlap(this.targetDrop, true)
       this.reset()
     },
-    doSchedule() { //toRemove**
-      //this.events = this.allEvents
-      console.log("nothing to do")
+    doSaveSchedule() {
+        console.log("nothing to do...for now")
     },
     doRemove (item) { //also should just remove it from the current schedule...NOT delete it completely!!
       let currentSize = this.events.length
       for( var i = 0; i < currentSize; i++){ 
             if ( this.events[i].id === item.id) { 
                 this.events.splice(i, 1)
-                console.log("removed spliced!", item)
+                console.log("removed event spliced!", item)
+
+                if(this.scheduledEvents.has(item.id)){ // && this.startEndMap.has(item.id)
+                    this.scheduledEvents.delete(item.id)
+                    //this.startEndMap.delete(item.id)
+                }else{console.log("ERROR doRemove has no suck item?@? ", item)}
                 return //important to return esti
             }
       }
@@ -729,6 +865,8 @@ export default defineComponent({
     reset() { //reset variable for next use 
       this.draggedItem = null
       this.targetDrop = null
+      //
+      this.toAddE = null //?!?
     },
     doNotify(messg, colorNotif = undefined){
       this.$q.notify({ // also see about using >> this.$q.dialog
@@ -751,7 +889,7 @@ export default defineComponent({
         console.log('onDragEnter..goal-item',e, scope) // scope is undefined here hence saving it below
         e.preventDefault()
       } else {
-        console.log('onDragEnter...calendar', e, scope) //e,type,scope 
+        //console.log('onDragEnter...calendar', e, scope) //e,type,scope 
         this.targetDrop = scope //ABSO necessary to save this as it's the last position before potential overlap with goal-item!  
         e.preventDefault()
       }
@@ -759,13 +897,13 @@ export default defineComponent({
       return true
     },
     onDragOver (e, type, scope) { // needed for onDrop but nothing to do and fires A LOT
-      //console.log('onDragOver', scope)
+      //console.log('onDragOver', scope, type)
       e.preventDefault() //to allow drop
 
       return true
     },
     onDragLeave (e, type, scope) {
-      //console.log('onDragLeave', scope)
+      //console.log('onDragLeave', scope, type)
       return false
     },
     onDragEnd (e) {
@@ -777,72 +915,62 @@ export default defineComponent({
       if (curColEl) {
         curColEl.classList.remove('drag-over')
       }*/
-      //console.log('onDragEnd', this.scheduledEvents, this.startEndMap) 
+      console.log('onDragEnd', this.scheduledEvents) //.values()
     },
     onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above
         console.log("onDrop", e, type, scope)//JSON.stringify(item)
         if (type === 'interval') { //when dragged to head, it would be a whole day event
             console.log("onDrop...normal move", scope)
-            //this.canEventBeMoved(scope) //no need for this and should just drop event..
-            this.draggedItem.time = scope.timestamp.time
+          
+            let anyOverlap = this.overlapOtherEvent(this.draggedItem.id, scope.timestamp, this.draggedItem.duration)
+            let sizey = anyOverlap.length
 
-            //also update maps
-            let w = this.updateScheduleMaps(this.draggedItem.id, scope.timestamp)
-            if (!w) {console.log("umm ERROR normal updateScheduleMaps failed?",this.draggedItem) }
-            //this.store.saveNewGTime(this.draggedItem.id, this.draggedItem.time)  //should just send whole event?
+            if(sizey > 0) {
+                console.log("WOAH WOAH onDrop...normal move overlapp!", anyOverlap)
+                let i = 0
+                do {
+                    this.recurChangeTime(anyOverlap[i], this.draggedItem, scope)
+                } while (++i < sizey)
+            } else { //so no overlapp, just change dragged event time
+                //oldie >> this.draggedItem.time = scope.timestamp.time
+                let worked = this.changeEventSchedule(this.draggedItem.id, scope.timestamp)
+                console.log("onDrop normal complete",worked, scope.timestamp)
+
+                //also update maps
+                let w = this.updateScheduleMaps(this.draggedItem.id, scope.timestamp)
+                if (!w) {console.log("umm ERROR normal updateScheduleMaps failed?",this.draggedItem) }
+                //this.store.saveNewGTime(this.draggedItem.id, this.draggedItem.time)  //should just send whole event?
+            }
         } else {
-          if(type === 'goal-item'){
+          if(type === 'goal-item' && this.targetDrop){ //check targetDrop in case didnt drag much and still in same
             console.log("Dropping goal-item!!",e, type, this.targetDrop.timestamp) //scope is undefined here
             //console.log("intervale with !!",this.targetDrop)
             //this.canEventBeMoved(this.targetDrop)
             //this.canEventBeMoved2(this.targetDrop)
 
             let anyOverlap = this.overlapOtherEvent(this.draggedItem.id, this.targetDrop.timestamp, this.draggedItem.duration)
-            
-            if(anyOverlap.length > 0) {
-                console.log("overlapp!", anyOverlap) 
-                let overlappedEvt = this.scheduledEvents.get(anyOverlap[0]) //should be one element...ToReview as could be multiple*** maybe put into a callable function that can be recursed on....
-                if (overlappedEvt){
-                    console.log(`dragDirection...target>>${this.targetDrop.timestamp.time}, underneath>>${overlappedEvt.at}, dragged>>${this.draggedItem.time}`)
-                    //direction of drag(up or down) >>either - or + 
-                    let dragDirection = parseTime(this.targetDrop.timestamp.time) - parseTime(this.draggedItem.time)
-                   
-                    console.log(`dragDirection...${dragDirection > 0 ? "goign down": "going up"}`)
+            let sizey = anyOverlap.length
 
-                    //when dragDirection > 0 (going down)...otherwise going up...prolly
-                    let overlappedEvtNew = dragDirection > 0 ? addToDate(this.targetDrop.timestamp, { minute: overlappedEvt.for + 10 }) //to review the adding of 10 minutes
-                                                    : addToDate(this.targetDrop.timestamp, { minute: -(overlappedEvt.for) - 10 }) //toTest** 
-                    
-                        //umm should keep same time interval between the two events?!? meh
+            if(sizey > 0) {
+                console.log("overlapp!", anyOverlap)
+                let i = 0
 
-                    let changed = this.changeEventSchedule(anyOverlap[0], overlappedEvtNew)
-                    console.log("overlappedEvtNew..",changed, overlappedEvtNew)
-
-                    //test that newTime doesnt overlap with existing event--toDO** in recursive manner!
-                    let anyOtherOverlap = this.overlapOtherEvent(anyOverlap[0], overlappedEvtNew, overlappedEvt.for)
-                    if(anyOtherOverlap.length > 0) {console.log("There ARE other overlaps...",anyOtherOverlap)}
-                    
-                    let w = this.updateScheduleMaps(anyOverlap[0], overlappedEvtNew)
-                    if (!w) {console.log("umm ERROR updateScheduleMaps failed?",anyOverlap[0]) }
-
-                    //umm targetDrop should stays the same here!!--for dragging up keep interval of 10 minutes? 
-                    let draggedNewTime = dragDirection > 0 ? addToDate(this.targetDrop.timestamp, { minute: 0 })
-                                                    : addToDate(this.targetDrop.timestamp, { minute: 10 }) 
-                    
-                    let worked = this.changeEventSchedule(this.draggedItem.id, draggedNewTime)
-                    console.log("onDrop overlapp complete",worked, draggedNewTime)
-
-                    let e = this.updateScheduleMaps(this.draggedItem.id, draggedNewTime)
-                    if (!e) {console.log("umm ERROR updateScheduleMaps failed?",this.draggedItem.id) }
+                do {
+                    this.recurChangeTime(anyOverlap[i], this.draggedItem, this.targetDrop) //sizey
+                } while (++i < sizey)
                 
-                }else{console.log("ERROR overlapped event not found!",anyOverlap)}
-            }
+                //this.recurChangeTime(anyOverlap, this.draggedItem, this.targetDrop)
+
+            }else{console.log("umm no drag overlap?!? ERROR?")}
 
             //this.checkOverlap(this.targetDrop, false)
+
+            //this.reset() //umm just reset....
           } else {
-            console.log("Cannot drop here YO!!",e, type, scope) //shouldnt happen?
+            console.log("Cannot drop here YO!!",e, type, scope, this.targetDrop) //shouldnt happen? could!
           }
         }
+        this.reset() //umm just reset....
         
     },
     onDblClickEvent(e, event) {
@@ -867,7 +995,6 @@ export default defineComponent({
       //tbd if shouldnt do this in clickInterval...
       console.log('onClickTime..event', data)
 
-      console.log('onClickTime', data)
       //so here propose selection to add an event to the schedule
       //...dialog box to select from all subgoals
        this.showEventDialog = true
@@ -960,13 +1087,28 @@ export default defineComponent({
     onMoved (data) {
       console.log('onMoved to', data.date) //only here can access .date
 
+      //runs after calendar's Next(), Prev, today() and right before onChange() below when changing calendar days
+
       //console.log(JSON.stringify(data))  // better looking mais bon
       this.events.forEach((obj) => {
         obj.date = data.date //today()
       })
     },
     onChange (data) {
-      console.log('onChange', data) 
+      console.log('onChange', data) // JSON.stringify(data)
+      //then have to also do the same thing as onMoved..
+      
+      //this is what runs first after loading/reload > right after beforeMount() and before mounted()
+      /*
+      {"start":"2023-07-22","end":"2023-07-22",
+      "days":[
+        {"date":"2023-07-22",
+        "time":"00:00","year":2023,
+        "month":7,"day":22,"hour":0,"minute":0,
+        "weekday":6,"doy":203,"workweek":29,"hasDay":true,
+        "hasTime":true,"past":false,"current":true,"future":false,
+        "disabled":false,"currentWeekday":true}]}
+      */
     },
   }
 })
