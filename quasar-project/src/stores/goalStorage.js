@@ -216,24 +216,62 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     //saves map of events that were completed...for summary retrieval
     //First adds date to AllDates key and then store the events by that date.
-    function saveDailySchedule(Adate, events){
+    function saveDailySchedule(aDate, events){
         let current = this.getAllDates
 
         if (!current){
             ///$q.localStorage.getItem("AllDates"))
-            console.log("saveDailySchedule was Empty!?!--Adding new")
-            $q.localStorage.set("AllDates", JSON.stringify([Adate]))
+            console.log("saveDailySchedule was Empty--Adding new")
+            current = {}
+            current[`${aDate}`] = events //umm to see if no need to put {}  or do push? //aDate
+            $q.localStorage.set("AllDates", JSON.stringify(current)) //[aDate]
         }else{
-            current.push(Adate) //unshift
+            //current.push(aDate) //unshift ...
+            ////map[ event.date ].push(event)
+            current[`${aDate}`] = events //hopefully doesnt overwrite?!? or use the .push
             $q.localStorage.set("AllDates", JSON.stringify(current))
-            //make sure it's not already present before pushing it!--todo**
         }
 
-        $q.localStorage.set(`${Adate}`, JSON.stringify(events)) //this is what grabs events per day
+        //$q.localStorage.set(`${aDate}`, JSON.stringify(events)) //this is what grabs events per day
     }
 
-    function getEvents(Adate){//get by date or all of them in one go? tbd--todo
-        return JSON.parse($q.localStorage.getItem(`${Adate}`))
+    function getEventsForDate(aDate){//get by date or all of them in one go? tbd--todo
+        //return JSON.parse($q.localStorage.getItem(`${aDate}`))
+        let savedDates = this.getAllDates
+        if (savedDates) {return savedDates[`${aDate}`]} //bon see if this works....
+    }
+
+    function hasEventsForDate(aDate){ 
+        //check if has date events 
+        //also double check if supposed to be in with check in AllDates?
+       // console.log(`hasEventsForDate check for ${aDate}`)
+
+        let savedDates = this.getAllDates
+        if(!savedDates){return [false, false]}
+        if (savedDates[`${aDate}`]){return [true, true]} //for testing
+        return [false, false]
+
+        /*
+        if (savedDates[`${aDate}`]){
+            let hasSome= this.getEventsForDate(aDate)
+            console.log(`hasEventsForDate hasSome for ${aDate}`, hasSome) //(typeof hasSome)  hasSome[6]
+            return [true, hasSome != null] //.size > 0 but it's an object now...Or should just grab em? 
+        } else {console.log(`hasEventsForDate No hasSome ${aDate}`, savedDates[`${aDate}`])}
+
+        /*for( var i = 0; i < savedDates.length; i++){ //oldie
+            if ( savedDates[i] == `${aDate}`) {
+                let hasSome= this.getEventsForDate(aDate)
+                console.log(`hasEventsForDate hasSome for ${aDate}`, hasSome) //(typeof hasSome)  hasSome[6]
+                return [true, hasSome != null] //.size > 0 but it's an object now...Or should just grab em? 
+            } else {console.log(`hasEventsForDate No hasSome ${aDate}`, savedDates[i])}
+        }*/
+        /*
+        let hasSome= this.getEventsForDate(aDate) //just double check just to make sure? toReview if needed esti as have to check null too much
+        if(!hasSome){return [false, false]}
+
+        return [false, hasSome] //.size > 0  ..should just return true, true?//so not in AllDates but *could* be saved as normal?
+        */
+
     }
 
     /*function findSubGoals(parentID){
@@ -336,7 +374,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         resetAll,
         removeSubgoal,
         removeMaingoal,
-        getEvents,
+        getEventsForDate,
+        hasEventsForDate,
         testTasks
     }
 })

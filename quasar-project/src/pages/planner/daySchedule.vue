@@ -14,17 +14,17 @@
       <div style="display: flex; max-width: 800px; width: 100%; height: 400px;">
         <q-calendar-day
           ref="calendar"
-          v-model="currentDate"
           view="day"
+          v-model="currentDate"
           :drag-enter-func="onDragEnter"
           :drag-over-func="onDragOver"
           :drag-leave-func="onDragLeave"
           :drop-func="onDrop"
           animated
           bordered
+          no-active-date
           transition-next="slide-left"
           transition-prev="slide-right"
-          no-active-date
           time-clicks-clamped
           :interval-minutes="15"
           :interval-count="96"
@@ -144,17 +144,21 @@
       </div>
 
       <q-dialog v-model="showEventDialog" transition-show="rotate" transition-hide="rotate">
-       <q-card>
+       <q-card> <!--style="padding: 2px 2px;"-->
           <q-card-section>
             <div class="text-h3">Pick event</div>
           </q-card-section>
           <q-separator />
-          <q-select
+          <div >
+            <q-select
             v-model="toAddE" 
             :options="storedEvents"             
             option-value="id"
             option-label="title"
-            label="Sub Goal" />
+            label="Sub Goal"
+            class="q-pa-sm event-select"
+            /><!--bon todo** align items inside to be better viewed-->
+          </div>
           <q-separator />
           <q-card-actions align="right">
             <q-btn flat label="Add" color="primary" @click="AddEvent"/>
@@ -170,24 +174,27 @@
         </div>
     </div>
   </div>
-    <q-btn
-        class="q-mt-xl"
-        color="Green"
-        text-color="blue"
-        elevated
-        label="SaveSchedule"
-        @click="doSaveSchedule"
-        no-caps
-    />
-    <q-btn
-        class="q-mt-xl"
-        color=""
-        text-color="green"
-        elevated
-        label="ShowForm"
-        @click="showGoalForm = !showGoalForm"
-        no-caps
-    />
+  <div class="row justify-center" style="padding: 60px;">
+        <q-btn
+            class="q-mt-xl"
+            color="Green"
+            text-color="blue"
+            elevated
+            label="SaveSchedule"
+            :disable="doDisableSaveSchedule"
+            @click="doSaveSchedule"
+            no-caps
+        /> <!--wonder if will work..otherwise use variable straight up-->
+        <q-btn
+            class="q-mt-xl"
+            color=""
+            text-color="green"
+            elevated
+            label="ShowForm"
+            @click="showGoalForm = !showGoalForm"
+            no-caps
+        />
+    </div>
 </template>
 <script>
 import {
@@ -232,7 +239,7 @@ export default defineComponent({
   data () {
     const draggedItem = ref(null)
     const targetDrop = ref(null) 
-    const currentDate = ref(null)
+    //const currentDate = ref(null)
     const currentTime = ref(null)
 
     const endTimesSet = ref(null) //set of end times for scheduled events for lookup when adjusting time!
@@ -240,17 +247,20 @@ export default defineComponent({
     const allEvents = ref(null)  //bring up all subgoals from storage by default
     const dailyScheduled = ref(null) //shall be the daily scheduled and be source of truth for currently viewed day--toUse**
 
+    //const hasDateEvts = ref(false) //default to load subGoals events...
+
     const $q = useQuasar()
     let intervalId = null
 
     return {
-      currentDate: ref(today()), //rename to currentDate**
+      currentDate: ref(today()), //is this what's causing jump? or the adjustCurrentTime()?
+      //nowDate: ref(this.currentDate), //addToDate(parseTimestamp(today()), { day: 1 }).date 
       events: [],
       calendar: ref(null), //umm wasnt here...any diff? with moving and update now? >>nope
       store:useGoalStore(),
 
       anchorTimestamp: ref(null), //start time for range
-      otherTimestamp: ref(null),   //end time for range...diff with anchorTimestamp should be duration**
+      otherTimestamp: ref(null),   //end time for range...
       mouseDown: ref(false),
       mobile: ref(true),
       //intervalId:ref(null), ////for showing current time >>nope
@@ -260,6 +270,9 @@ export default defineComponent({
       showEventDialog:ref(false),
       toAddE:ref(null),
       disabledScoreEvts:ref({}),
+
+      disableSaveSchedule:ref(true),
+      skipReload:ref(false) 
     }
   },
   beforeMount() {
@@ -268,9 +281,9 @@ export default defineComponent({
 
     this.mobile = isMobile()  //--for drag for range selection.
    
-    this.events =  [...e] //does update!!
+    this.events =  [...e] //does update!
 
-    this.saveCurrentSchedule() //bon seem doesnt like putting this in loadGoals as it's computed!
+    this.saveCurrentSchedule() //bon seem doesnt like putting this in loadGoals as it's computed! same way cant assignt events from loadGoals smh
     
   },
   beforeUnmount() {
@@ -285,6 +298,9 @@ export default defineComponent({
   },
   computed: {
     showForm() {return this.showGoalForm},
+    doDisableSaveSchedule(){ //umm was no need for this!?! smh but works well...maybe could do other calc here?
+        return this.disableSaveSchedule
+    },
 
     // convert the events into a map of lists keyed by date
     eventsMap () {
@@ -295,6 +311,7 @@ export default defineComponent({
         }
         map[ event.date ].push(event)
         if (event.days) {
+            console.log(`eventsMap multiple days? event for ${event.date}`, event.days) //when this happens? could happen if add #days--except start from the event.date + #days---meh to see about useing
           let timestamp = parseTimestamp(event.date)
           let days = event.days
           do {
@@ -323,10 +340,11 @@ export default defineComponent({
         return map
     },
     storedEvents(){
-        let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals))
+        //let subGoals = 
+        return JSON.parse(JSON.stringify(this.store.getSubGoals))
 
         //umm no massaging? TBD but maybe to add .date?!? 
-        return subGoals
+        //return subGoals
     },
     loadGoals() {
       //let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals)) //[...this.store.getSubGoals]
@@ -354,7 +372,7 @@ export default defineComponent({
             obj.details = "from:"+ pgoal.title
         }
       })
-      
+
       return subGoals
   
     },
@@ -422,8 +440,9 @@ export default defineComponent({
                 start: startTime,
                 end: endTime,
                 on: toAdd.date,
-                at: toAdd.time,
+                originalAt: toAdd.time,
                 for: toAdd.duration
+                //score?
             })
         
         this.endTimesSet.add(endTime.time)
@@ -444,8 +463,9 @@ export default defineComponent({
                 start: startTime,
                 end: endTime,
                 on: event.date,
-                at: event.time, //original scheduled time...rename properly?
-                for: event.duration
+                originalAt: event.time,
+                for: event.duration,
+                score:event.score
             })
           //endTimes.push(endTime.time) //for checking when adjustCurrentTime()
           endTimes.add(endTime.time)
@@ -466,129 +486,25 @@ export default defineComponent({
 
         this.endTimesSet = endTimes
         
-        console.log("done saveCurrentSchedule",this.endTimesSet) //this.allEvents, 
-
-    },   
-    overlapOtherEvent(evID, targetTimestamp, duration) {
-      const mappy = []//{}
-      let targetStartAt = addToDate(targetTimestamp,{ minute: 0}) 
-      let targetEndsAt = addToDate(targetStartAt, { minute: duration}) //end of dropped event
-
-      console.log("overlapOtherEvent...targetTimes",targetStartAt.time,targetEndsAt.time)
-      let tStart = this.getTimeNumber(targetStartAt)
-      let tEnd = this.getTimeNumber(targetEndsAt)
-      
-      if (tStart === false || tEnd === false) {
-        console.log("ERROR... overlapOtherEvent targetTimestamp error",targetTimestamp)
-        return mappy
-      }
-
-      this.allEvents.forEach( (value, key, map) => {
-        if (key == evID){ 
-            console.log("skipping sameness overlapOtherEvent")//, evID, value //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
-        }else {
-          let eStart = this.getTimeNumber(value.start)
-          let eEnd = this.getTimeNumber(value.end)
-
-          if (eStart !== false && eEnd !== false){
-
-          //target overlap with event (at start OR end) >>could prolly just have used 'isOverlappingDates' smh 
-          let isTwix = (tStart >= eStart && tStart < eEnd) || (tEnd >= eStart && tEnd <= eEnd) //umm what if it's just at the line though? >>gets included...so removing '=' for endTime..prolly others too but ToReview!!
-          let totalOverlap = (eStart >= tStart && tEnd >= eEnd) //totalOverlap as it's larger event
-
-            if (isTwix || totalOverlap) {
-              console.log(`${key} overlapOtherEvent added`, isTwix,totalOverlap)
-              mappy.push(key)
-            } //else {console.log(`${key} overlapOtherEvent Good`)}
-          } else {console.log("ERROR... overlapOtherEvent eventTimestamp error",value)}
-        }
-      });
-      return mappy
-    },
-    recurChangeTime(overlappingEvtID, tEvt, targetTimestamp) { //add flag for drag/drop vs scheduleEvent for dragDirection--todo**
-  
-        let overlappedEvt = this.allEvents.get(overlappingEvtID)
-        if (overlappedEvt){                
-            console.log(`dragDirection...target>>${targetTimestamp.time}, oldie at`,tEvt, overlappedEvt) //does tEvt has .time?
-            //direction of drag(up or down) >>either - or + 
-            let dragDirection = parseTime(targetTimestamp.time) - parseTime(tEvt.time)
-                   
-            console.log(`dragDirection...${dragDirection > 0 ? "goign down": "going up"}`)
-
-            //when dragDirection > 0 (going down)...otherwise going up...prolly
-            let overlappedEvtNew = dragDirection > 0 ? addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) //parseInt(overlappedEvt.for) 
-                                                    : addToDate(targetTimestamp, { minute: -(parseInt(tEvt.duration) + 10) }) //remove instead of add...
-                    
-             //umm should keep same time interval between the two events?!? meh but to explore latee**
-                    
-            
-            let anyOtherOverlap = this.overlapOtherEvent(overlappingEvtID, overlappedEvtNew, overlappedEvt.for) //overlappingEvts[i]
-            if(anyOtherOverlap.length > 0) {
-                console.log("WARNING...There ARE overlaps",anyOtherOverlap, overlappedEvtNew)
-                
-                let i = 0
-                let sizey = anyOtherOverlap.length
-                let draggy = this.getAnEvent(overlappingEvtID)
-                
-                do {
-                    console.log("recurChangeTime for anyOtherOverlap",anyOtherOverlap[i], overlappedEvtNew, draggy)
-                    this.recurChangeTime(anyOtherOverlap[i], draggy, overlappedEvtNew)
-                            
-                    } while (++i < sizey)
-            }
-                    
-            let [change, work] = this.changeEvtSchedule(overlappingEvtID, overlappedEvtNew)
-            console.log("overlappedEvtNew..",change,work, overlappingEvtID, overlappedEvtNew)
-
-
-            //umm targetDrop should stays the same here!!--for dragging up keep interval of 10 minutes? prolly better for separation?
-            let draggedNewTime = dragDirection > 0 ? addToDate(targetTimestamp, { minute: 0 })
-                                                    : addToDate(targetTimestamp, { minute: 0 }) 
-                    
-            let [changed, worked] = this.changeEvtSchedule(tEvt.id, draggedNewTime)
-            
-            //let worked = this.changeEventSchedule(tEvt.id, draggedNewTime)
-            console.log("recurChangeTime complete",changed, worked, tEvt.id, draggedNewTime)
-
-                    //let e = this.updateScheduleMaps(tEvt.id, draggedNewTime)
-                    //if (!e) {console.log("umm ERROR updateScheduleMaps failed?",tEvt.id) }
-                
-        }else{console.log("ERROR overlapped event not found!", overlappingEvtID)}
-
-        //}
-
-    },
-    changeEvtSchedule(evtID, timey){
-        let changed = this.changeEventSchedule(evtID, timey)
-
-        let worked = this.updateScheduleMaps(evtID, timey)
-        
-        return [changed, worked] //works when using array
-    },
-    changeEditScore(timeEnd) { //enables the editing of score after event has passed.
-        //search for corresponding eventID and enable that one only
-
-        //this.disabledScoreEvts[0] = false
-        //this.disabledScoreEvts[3] = false 
-        
-        for (let [entry, val] of this.allEvents) {
-            console.log("changeEditScore", entry, val)
-            if (val.end.time == timeEnd){ //toTest if works***
-                console.log("changeEditScore...FOUND", entry, val)
-                this.disabledScoreEvts[entry] = false //toTest if works***
-            }
-        }
+        console.log("done saveCurrentSchedule",this.endTimesSet, this.allEvents, this.events)
 
     },
     adjustCurrentTime() {
       const now = parseDate(new Date())
+
+      //console.log("adjustin...", this.currentDate, now.date)
+      if (this.currentDate !== now.date){  //caused a jump back to current day smh
+        console.log("Not adjustin...", this.currentDate, now.date)
+        this.timeStartPos = -10 //when null, doesnt change smh and 0 still shows...toMonitor if need to remove interval
+        this.currentTime = ''
+        return
+      }
     
-      this.currentDate = now.date
+      this.currentDate = now.date 
       this.currentTime = now.time //'00:52'
       this.timeStartPos = this.$refs.calendar.timeStartPos(this.currentTime, false)  
       //the above dont update in view >>cause was not in return!!
 
-      //console.log("adjustin...", this.timeStartPos, this.currentTime)
       
       //could check map of end times(keys) to see if reached end of an event? 
         //--not expensive? maybe if save only endTimes?
@@ -600,7 +516,7 @@ export default defineComponent({
       //  console.log("nothin...",this.endTimesSet)
      //}
     },
-    hasDate (days) { //see if this updates for adjustCurrentTime() above **
+    hasDate (days) {
       return this.currentDate
         ? days.find(day => day.date === this.currentDate)
         : false
@@ -650,14 +566,125 @@ export default defineComponent({
       //console.log("daEvents...",events)
       return events
     },
+    overlapOtherEvent(evID, targetTimestamp, duration) {
+      const mappy = []//{}
+      let targetStartAt = addToDate(targetTimestamp,{ minute: 0}) 
+      let targetEndsAt = addToDate(targetStartAt, { minute: duration}) //end of dropped event
+
+      console.log("overlapOtherEvent...targetTimes",targetStartAt.time,targetEndsAt.time)
+      let tStart = this.getTimeNumber(targetStartAt)
+      let tEnd = this.getTimeNumber(targetEndsAt)
+      
+      if (tStart === false || tEnd === false) {
+        console.log("ERROR... overlapOtherEvent targetTimestamp error",targetTimestamp)
+        return mappy
+      }
+
+      this.allEvents.forEach( (value, key, map) => {
+        if (key == evID){ 
+            console.log("skipping sameness overlapOtherEvent")//, evID, value //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
+        }else {
+          let eStart = this.getTimeNumber(value.start)
+          let eEnd = this.getTimeNumber(value.end)
+
+          if (eStart !== false && eEnd !== false){
+
+          //target overlap with event (at start OR end) >>could prolly just have used 'isOverlappingDates' smh 
+          let isTwix = (tStart >= eStart && tStart < eEnd) || (tEnd >= eStart && tEnd <= eEnd) //umm what if it's just at the line though? >>gets included...so removing '=' for endTime..prolly others too but ToReview!!
+          let totalOverlap = (eStart >= tStart && tEnd >= eEnd) //totalOverlap as it's larger event
+
+            if (isTwix || totalOverlap) {
+              console.log(`${key} overlapOtherEvent added`, isTwix,totalOverlap)
+              mappy.push(key)
+            } //else {console.log(`${key} overlapOtherEvent Good`)}
+          } else {console.log("ERROR... overlapOtherEvent eventTimestamp error",value)}
+        }
+      });
+      return mappy
+    },
+    recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false) { //add flag for drag/drop vs scheduleEvent for dragDirection? -- 
+  
+        let overlappedEvt = this.allEvents.get(overlappingEvtID)
+        if (overlappedEvt){                
+            console.log(`dragDirection...target>>${targetTimestamp.time}, oldie at`,tEvt, overlappedEvt) //does tEvt has .time?
+            //direction of drag(up or down) >>either - or + 
+            let dragDirection = parseTime(targetTimestamp.time) - parseTime(tEvt.time)
+                   
+            console.log(`dragDirection...${dragDirection > 0 ? "goign down": "going up"}`)
+
+            //when dragDirection > 0 (going down)...otherwise going up...prolly
+            let overlappedEvtNew = dragDirection > 0 ? addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) //parseInt(overlappedEvt.for) 
+                                                    : addToDate(targetTimestamp, { minute: -(parseInt(tEvt.duration) + 10) }) //remove instead of add...
+                    
+             //umm should keep same time interval between the two events?!? meh but to explore latee**
+                    
+            
+            let anyOtherOverlap = this.overlapOtherEvent(overlappingEvtID, overlappedEvtNew, overlappedEvt.for) //overlappingEvts[i]
+            if(anyOtherOverlap.length > 0) {
+                console.log("WARNING...There ARE overlaps",anyOtherOverlap, overlappedEvtNew)
+                
+                let i = 0
+                let sizey = anyOtherOverlap.length
+                let draggy = this.getAnEvent(overlappingEvtID)
+                
+                do {
+                    console.log("recurChangeTime for anyOtherOverlap",anyOtherOverlap[i], overlappedEvtNew, draggy)
+                    this.recurChangeTime(anyOtherOverlap[i], draggy, overlappedEvtNew, goForward)            
+                } while (++i < sizey)
+            }
+                    
+            let [change, work] = this.changeEvtSchedule(overlappingEvtID, overlappedEvtNew)
+            console.log("overlappedEvtNew..",change,work, overlappingEvtID, overlappedEvtNew)
+
+
+            //umm targetDrop should stays the same here!!--for dragging up keep interval of 10 minutes? prolly better for separation?
+            let draggedNewTime = dragDirection > 0 ? addToDate(targetTimestamp, { minute: 0 })
+                                                    : addToDate(targetTimestamp, { minute: 0 }) 
+                    
+            let [changed, worked] = this.changeEvtSchedule(tEvt.id, draggedNewTime)
+            
+            //let worked = this.changeEventSchedule(tEvt.id, draggedNewTime)
+            console.log("recurChangeTime complete",changed, worked, tEvt.id, draggedNewTime)
+
+                    //let e = this.updateScheduleMaps(tEvt.id, draggedNewTime)
+                    //if (!e) {console.log("umm ERROR updateScheduleMaps failed?",tEvt.id) }
+                
+        }else{console.log("ERROR overlapped event not found!", overlappingEvtID)}
+
+        //}
+
+    },
+    changeEvtSchedule(evtID, timey){
+        let changed = this.changeEventSchedule(evtID, timey)
+
+        let worked = this.updateScheduleMaps(evtID, timey)
+        
+        return [changed, worked] //works when using array
+    },
+    changeEditScore(timeEnd) { //enables the editing of score after event has passed.
+        //search for corresponding eventID and enable that one only
+
+        //this.disabledScoreEvts[0] = false
+        //this.disabledScoreEvts[3] = false 
+        
+        for (let [entry, val] of this.allEvents) {
+            console.log("changeEditScore", entry, val)
+            if (val.end.time == timeEnd){
+                console.log("changeEditScore...FOUND", entry, val)
+                this.disabledScoreEvts[entry] = false //actually works!
+            }
+        }
+
+    },
     updateScheduleMaps(evID, timeyStart){
         if(this.allEvents.has(evID)){ //&& this.startEndMap.has(evID)
             let forsy = this.allEvents.get(evID).for //umm would this work?
+            let oAt = this.allEvents.get(evID).originalAt
             let oldEnd = this.allEvents.get(evID).end
             let newEndy = addToDate(timeyStart, { minute: forsy })
             this.allEvents.set(evID, {
                 on: timeyStart.date,
-                at: timeyStart.time,
+                originalAt: oAt, //timeyStart.time, >>keep origin time
                 for: forsy,
                 start: timeyStart,
                 end: newEndy
@@ -739,7 +766,7 @@ export default defineComponent({
         let i = 0
     
         do {
-            this.recurChangeTime(anyOverlap[i],addy, this.targetDrop.timestamp) // this.toAddE
+            this.recurChangeTime(anyOverlap[i],addy, this.targetDrop.timestamp, true) // flag to push down overlapping evts as it's more natural
         } while (++i < sizey)
 
       } else {
@@ -767,12 +794,45 @@ export default defineComponent({
         }
        
         console.log("AddEvent...got added eh", this.toAddE)
+        this.disableSaveSchedule = false //for saving schedule on change for this day...
       }
       
       this.reset()
     },
-    doSaveSchedule() {
-        console.log("nothing to do...for now")
+    doSaveSchedule() { //save the current schedule into localStorage
+        console.log("doSaveSchedule for", this.currentDate)
+        //const toSave = []
+        const toSave = {} //better as could look up by ID later and can also have array for multiple ids for multiple subGoal per day as below example!
+        //if (!map[ event.date ]) {  
+        //    map[ event.date ] = []   //toUse
+        //}
+
+        this.allEvents.forEach( (value, key, map) => {
+            toSave[key] = {  //also use push in case of multiple same subGoals--todo prolly!
+                //id: key,
+                date: value.on,
+                duration: value.for,
+                time: value.start.time, //hopefully this present and got the current (perhaps changed) timestart...add guardrail though to set to default originalAt?**Tbd
+                originalAt: value.originalAt,
+                atScore: value.score
+            }
+            /*toSave.push({
+                id: key,
+                date: value.on,
+                duration: value.for,
+                time: value.start.time //hopefully this present and got the current (perhaps changed) timestart...add guardrail though to set to default originalAt?**Tbd
+                //score? that is updated?toSee** maybe do actually!
+            })*/
+
+        })
+    
+        //minimum to save instead of duplicate stuff
+            //oh id to link it afterwards
+            //date(on)
+            //time, >actual start(not original)
+            //duration(in case changes prolly)
+            //score?maybe
+       this.store.saveDailySchedule(this.currentDate, toSave) 
     },
     doRemove (item) { //also should just remove it from the current schedule...NOT delete it completely!!
       let currentSize = this.events.length
@@ -789,6 +849,29 @@ export default defineComponent({
                 return //important to return esti
             }
       }
+    },
+    loadSavedEvents(date, wannaChange){ //loads a date saved events...or changes the current events to the passed date
+        if (wannaChange){
+            let evts = this.store.getEventsForDate(date)
+            if (!evts) {console.log(`ERROR no evts found for ${date}...`, evts); return}
+            
+            this.events.forEach((obj) => {
+                let sav = evts[obj.id]
+                if (sav){
+                    obj.date = sav.date, //today()
+                    //obj.originalAt =  obj.time, //umm but adding this property where it shouldnt!!
+                    obj.time = sav.time, //save.time is what it was changed to...
+                    obj.duration = sav.duration,
+                    obj.score = sav.atScore
+
+                }else{console.log('hasDateEvts NOT found?!?', obj.id)} //shouldnt happen?!?
+            }) 
+        }else {
+            this.events.forEach((obj) => {
+                obj.date = date //data.start //today()
+            })
+        }
+        this.saveCurrentSchedule() //refresh schedule still...prolly
     },
     reset() { //reset variable for next use 
       this.draggedItem = null
@@ -849,7 +932,7 @@ export default defineComponent({
     },
     onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above
         console.log("onDrop", e, type, scope)//JSON.stringify(item)
-        let draggy = this.getAnEvent(this.draggedItem.id) //bon grab whole event..toTest if edit sticks***
+        let draggy = this.getAnEvent(this.draggedItem.id) //bon grab whole event..
 
         if (!draggy) {console.log("onDrop ERROR", draggy,this.draggedItem ); return}
 
@@ -894,6 +977,7 @@ export default defineComponent({
             
             //this.store.saveNewGTime(this.draggedItem.id, this.draggedItem.time)  //should just send whole event?
         }
+        this.disableSaveSchedule = false //save schedule?
 
         this.reset() //umm just reset....
         
@@ -1011,34 +1095,114 @@ export default defineComponent({
       this.$refs.calendar.next()
     },
     onMoved (data) {
-      console.log('onMoved to', data.date) //only here can access .date
+      //console.log('onMoved to', data.date) //only here can access .date
 
-      //runs after calendar's Next(), Prev, today() and right before onChange() below when changing calendar days
+      //runs after calendar's Next(), Prev()right before onChange() below when changing calendar days
+      //doenst run for  today() tho?!? smh
 
-      //console.log(JSON.stringify(data))  // better looking mais bon
-      this.events.forEach((obj) => {
-        obj.date = data.date //today()
-      })
+      let isToday = today()
+
+      //so check if current date is in storage
+      let [inDates, maybe] = this.store.hasEventsForDate(data.date) 
+     
+
+      console.log('onMoved to date', data.date,this.currentDate, isToday, inDates, maybe)
+
+      this.disableSaveSchedule = true //should be?....prolly but toREview
+
+      if (inDates && maybe){
+        this.$q.dialog({ //maybe ask user, onCancel, just keep same order
+            title: 'Alert',
+        // position: 'bottom',
+            message: 'Some saved schedule found, load it up?'
+            }).onOk(() => {
+                this.loadSavedEvents(data.date, true)
+            }).onCancel(() => {
+                console.log('Cancelled loading...')
+                this.loadSavedEvents(data.date, false)
+          })
+      }else { 
+        console.log('onMoved NO DateEvts :(', inDates, maybe)//make sure they same!!
+        //this.loadSavedEvents(data.date, false)
+        let e = this.loadGoals
+        this.events = [...e] //reload default...could check date perhaps?
+        this.saveCurrentSchedule()
+      }
+      this.skipReload = true //to not redo all this in onChange below
+      //this.events.forEach((obj) => {
+      //  obj.date = data.date //today()
+      //})
     },
-    onChange (data) {
-      console.log('onChange', data) // JSON.stringify(data)
-      //then have to also do the same thing as onMoved..
-      
-      //this is what runs first after loading/reload > right after beforeMount() and before mounted()
-      this.events.forEach((obj) => {
-        obj.date = data.start //today()
-      })
+    onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
 
-      /*
-      {"start":"2023-07-22","end":"2023-07-22",
-      "days":[
-        {"date":"2023-07-22",
-        "time":"00:00","year":2023,
-        "month":7,"day":22,"hour":0,"minute":0,
-        "weekday":6,"doy":203,"workweek":29,"hasDay":true,
-        "hasTime":true,"past":false,"current":true,"future":false,
-        "disabled":false,"currentWeekday":true}]}
-      */
+      //console.log('onChange', data, this.currentDate) // JSON.stringify(data)
+      
+      //bof always at whichever day in calendar view--but shouldnt change but does automatically smh!
+
+      let [inDates, maybe] = this.store.hasEventsForDate(this.currentDate)
+      let isToday = today()
+
+      console.log('onChange', data, this.currentDate, isToday, inDates, maybe)
+
+      if(this.skipReload){
+        console.log("umm after onMoved?..skipping reload!")
+        this.skipReload = false //reset though?!?toREview
+        return
+      }
+
+      
+      if (inDates && maybe){ //remove one of these perhaps---toReview**
+        //let evts = this.store.getEventsForDate(data.start)
+        console.log('onChange and has hasDateEvts!!..should CHANGE!')
+        //let wannaChange = false //confirm("Are you the boss?");//could use confirm but it's ugly and whole page is blank!
+        
+        this.$q.dialog({ //maybe ask user
+        title: 'Alert',
+       // position: 'bottom',
+        message: 'Some saved schedule found, load it up?'
+          }).onOk(() => {
+            this.loadSavedEvents(data.start, true)
+          }).onCancel(() => {
+             console.log('Cancelled loading...')
+             this.loadSavedEvents(data.start, false)
+          })//.onDismiss(() => {
+            // console.log('I am triggered on both OK and Cancel')
+          //})
+        
+        //problem that below also changes the time to saved time when should still use old?
+        //and adding originalAt would be bad--see below....
+        
+        /*if(wannaChange){
+            this.events.forEach((obj) => {
+                let sav = evts[obj.id]
+                if (sav){
+                    obj.date = sav.date, //today()
+                    //obj.originalAt =  obj.time, //umm but adding this property where it shouldnt!!
+                    obj.time =  obj.time,//sav.time, //save.time is what it was changed to...
+                    obj.duration = sav.duration
+                }else{console.log('hasDateEvts NOT found?!?', obj.id)} //shouldnt happen?!?
+            })
+
+            this.saveCurrentSchedule()
+            return //to not keep going below....
+        }else{console.log('Cancelled didnt wanna change :(')} */
+ 
+      } else { 
+        console.log('onChange NO DateEvts :(', inDates, maybe)//make sure they same!!
+        //this.loadSavedEvents(data.start, false)
+        let e = this.loadGoals
+        this.events = [...e] //reload default...could check date perhaps?
+        this.saveCurrentSchedule()
+    } 
+    
+    //then have to also do the same thing as onMoved..
+      //or replace this.events in case there is some events for this day?prolly when changing days...
+      //def shouldnt do this again when it's viewing current day!!--mais bon have to...especially when moving back and forth between days!
+      
+      //this.events.forEach((obj) => {
+      //  obj.date = data.start //today()
+      //})
+
     },
   }
 })
@@ -1101,4 +1265,11 @@ export default defineComponent({
   left: 5px
   border-top: rgba(0, 0, 255, .5) 2px solid
   width: calc(100% - 5px)
+
+.event-select
+  display: flex
+  flex-direction: column
+  justify-content: center
+  width: 100%
+  padding: 2px
 </style>
