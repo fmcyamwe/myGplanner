@@ -247,9 +247,9 @@ export const useGoalStore = defineStore('allGoals', () => {
        // console.log(`hasEventsForDate check for ${aDate}`)
 
         let savedDates = this.getAllDates
-        if(!savedDates){return [false, false]}
-        if (savedDates[`${aDate}`]){return [true, true]} //for testing
-        return [false, false]
+        if(!savedDates){return false} //[false, false]
+        if (savedDates[`${aDate}`]){return true}
+        return false //[false, false]
 
         /*
         if (savedDates[`${aDate}`]){

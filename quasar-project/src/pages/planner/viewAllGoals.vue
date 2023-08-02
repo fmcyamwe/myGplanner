@@ -29,7 +29,7 @@
             />
 
             <div v-if="showSubG" class="q-gutter-md">
-                <q-select 
+                <q-select class="q-pl-md"
                  v-model="pGoal"
                  :options="mainGoals"
                  option-value="id"

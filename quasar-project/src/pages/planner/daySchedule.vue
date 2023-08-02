@@ -31,7 +31,6 @@
           :interval-height="28"
           :selected-start-end-dates="startEndTimes"
           @change="onChange"
-          @moved="onMoved"
           @click-date="onClickDate"
           @click-time="onClickTime"
           @click-interval="onClickInterval"
@@ -60,6 +59,9 @@
 
           see if touch-...events fire--TODO
           also diff between event-time or event-day?
+
+          also remove one of onMoved or onChange as fires twice and have to redundant handle both**
+          @moved="onMoved"
           -->
           <template #head-day-event="{ scope: { timestamp } }">
             <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
@@ -125,8 +127,9 @@
                   {{ event.title }}
                   <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip>
                   <!-- meh interfere with dhouble click for removing...Tosee if can enable it later somehow... -->
-                  <q-popup-edit v-model="event.score" auto-save v-slot="scope" :disable="disabledScoreEvts[event.id]">
-                    <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
+                  <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
+                  <q-popup-edit v-model="event.score" auto-save v-slot="scope" :disable="disabledScoreEvts[event.id]" @save="(e)=>saveScore(e,event.id)">
+                    <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set" /> <!--counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...-->
                   </q-popup-edit>
                   
                   <!--<goal-item
@@ -167,9 +170,9 @@
       </q-dialog>
     
     </div>
-    <br><!-- in store.getSubGoals-->
+    <br><!-- in store.getSubGoals ...oldie >> storedEvents but allEvents also accessible when not returned? -->
     <div class="scroll overflow-auto" style="height: 360px; width: 100%;">
-        <div v-for="(event, index) in storedEvents" :key="index" class="col-12" style="font-size: 10px; line-height: 10px; max-height: 14px; min-height: 14px; padding: 2px 2px; white-space: nowrap;">
+        <div v-for="(event, index) in events" :key="index" class="col-12" style="font-size: 10px; line-height: 10px; max-height: 14px; min-height: 14px; padding: 2px 2px; white-space: nowrap;">
           {{ event }}
         </div>
     </div>
@@ -253,9 +256,10 @@ export default defineComponent({
     let intervalId = null
 
     return {
-      currentDate: ref(today()), //is this what's causing jump? or the adjustCurrentTime()?
+      currentDate: ref(today()),
       //nowDate: ref(this.currentDate), //addToDate(parseTimestamp(today()), { day: 1 }).date 
       events: [],
+      //allEvents:ref(null), //just to access in template for test--
       calendar: ref(null), //umm wasnt here...any diff? with moving and update now? >>nope
       store:useGoalStore(),
 
@@ -285,6 +289,8 @@ export default defineComponent({
 
     this.saveCurrentSchedule() //bon seem doesnt like putting this in loadGoals as it's computed! same way cant assignt events from loadGoals smh
     
+    //this.skipReload = true //for the onChange....but nope
+    
   },
   beforeUnmount() {
     clearInterval(this.intervalId)
@@ -299,7 +305,7 @@ export default defineComponent({
   computed: {
     showForm() {return this.showGoalForm},
     doDisableSaveSchedule(){ //umm was no need for this!?! smh but works well...maybe could do other calc here?
-        return this.disableSaveSchedule
+        return this.disableSaveSchedule 
     },
 
     // convert the events into a map of lists keyed by date
@@ -340,11 +346,10 @@ export default defineComponent({
         return map
     },
     storedEvents(){
-        //let subGoals = 
-        return JSON.parse(JSON.stringify(this.store.getSubGoals))
+        let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals))
 
         //umm no massaging? TBD but maybe to add .date?!? 
-        //return subGoals
+        return subGoals
     },
     loadGoals() {
       //let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals)) //[...this.store.getSubGoals]
@@ -410,6 +415,17 @@ export default defineComponent({
     },
   },
   methods: {
+    saveScore(newVal, id){
+      
+      let ev = this.allEvents.get(id)
+      if (ev){
+        console.log(`oooh saveScore from ${ev.score}`,newVal, id)
+        ev.score = newVal
+        this.disableSaveSchedule = false //to save schedule--toReview placing it here**
+      }else {
+        console.log(`ERROR could not find event ${id}?!?`) //this would be baaad! 
+      }
+    },
     //numeric date and time identifier for timestamp comparison
     getTimeNumber(timey) {
       if (timey !== null) {
@@ -470,16 +486,16 @@ export default defineComponent({
           //endTimes.push(endTime.time) //for checking when adjustCurrentTime()
           endTimes.add(endTime.time)
 
-          this.disabledScoreEvts[event.id] = true  //toRe-enable after fixing drag/drop***
+          //this.disabledScoreEvts[event.id] = true  //uncomment when doing drag/drop stuff
 
-          /*let diffy = diffTimestamp(now, endTime) //endTimes < now would be that evt hasnt ended!
+          let diffy = diffTimestamp(now, endTime) //endTimes < now would be that evt hasnt ended!
           if(diffy > 0){//auto-enable for already completed events here by comparing with currentTime
             //console.log("diffy positive so evt has NOT ended",diffy, event.id)
             this.disabledScoreEvts[event.id] = true //for enabling score edit after end of event!
           }//else {
            // console.log("diffy negative so evt has ended",diffy, event.id)
            // this.disabledScoreEvts[event.id] = true //default is false prolly
-          //}*/
+          //}
         })
 
         this.allEvents = mappy 
@@ -509,9 +525,9 @@ export default defineComponent({
       //could check map of end times(keys) to see if reached end of an event? 
         //--not expensive? maybe if save only endTimes?
      if(this.endTimesSet.has(now.time)) { //this.endTimesArray[now.time]
-        console.log("should got a notif?...",now.time)
+        //console.log("should got a notif?...",now.time)
         this.changeEditScore(now.time)
-        this.doNotify("WOOO at end of a scheduled event", "positive")
+        this.doNotify(`WOOO at end of a scheduled event ${now.time}`, "positive")
      }//else {
       //  console.log("nothin...",this.endTimesSet)
      //}
@@ -602,20 +618,26 @@ export default defineComponent({
       });
       return mappy
     },
-    recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false) { //add flag for drag/drop vs scheduleEvent for dragDirection? -- 
+    recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false) { //add flag for drag/drop vs scheduleEvent for dragDirection
   
         let overlappedEvt = this.allEvents.get(overlappingEvtID)
         if (overlappedEvt){                
-            console.log(`dragDirection...target>>${targetTimestamp.time}, oldie at`,tEvt, overlappedEvt) //does tEvt has .time?
+            console.log(`dragDirection...target>>${targetTimestamp.time}, oldie at`,tEvt, overlappedEvt)
             //direction of drag(up or down) >>either - or + 
             let dragDirection = parseTime(targetTimestamp.time) - parseTime(tEvt.time)
                    
             console.log(`dragDirection...${dragDirection > 0 ? "goign down": "going up"}`)
 
             //when dragDirection > 0 (going down)...otherwise going up...prolly
-            let overlappedEvtNew = dragDirection > 0 ? addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) //parseInt(overlappedEvt.for) 
-                                                    : addToDate(targetTimestamp, { minute: -(parseInt(tEvt.duration) + 10) }) //remove instead of add...
-                    
+            //let overlappedEvtNew = dragDirection > 0 ? addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) //parseInt(overlappedEvt.for) 
+            //                                        : addToDate(targetTimestamp, { minute: -(parseInt(tEvt.duration) + 10) }) 
+                 
+            let overlappedEvtNew = null
+            if (dragDirection > 0 || goForward) { //toTest goForward!--especially for multiple overlapps!***
+              overlappedEvtNew = addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) 
+            } else {
+              overlappedEvtNew = addToDate(targetTimestamp, { minute: -(parseInt(tEvt.duration) + 10) }) //remove instead of add...
+            }
              //umm should keep same time interval between the two events?!? meh but to explore latee**
                     
             
@@ -662,19 +684,15 @@ export default defineComponent({
         return [changed, worked] //works when using array
     },
     changeEditScore(timeEnd) { //enables the editing of score after event has passed.
-        //search for corresponding eventID and enable that one only
-
-        //this.disabledScoreEvts[0] = false
-        //this.disabledScoreEvts[3] = false 
+        //search for corresponding eventID and enable that one only //this.disabledScoreEvts[0] = false
         
         for (let [entry, val] of this.allEvents) {
-            console.log("changeEditScore", entry, val)
+            //console.log("changeEditScore", entry, val)
             if (val.end.time == timeEnd){
                 console.log("changeEditScore...FOUND", entry, val)
                 this.disabledScoreEvts[entry] = false //actually works!
             }
         }
-
     },
     updateScheduleMaps(evID, timeyStart){
         if(this.allEvents.has(evID)){ //&& this.startEndMap.has(evID)
@@ -711,6 +729,7 @@ export default defineComponent({
                 if (!obj.canMove){ //as for sure to move un-movable
                     this.$q.dialog({
                         title: 'Alert',
+                        cancel: true, //to have cancel button
                     // position: 'bottom',
                         message: `Sure to move event ${obj.title} around?`
                         }).onOk(() => {
@@ -986,6 +1005,7 @@ export default defineComponent({
        console.log("double click eh...", e, event)
        this.$q.dialog({
         title: 'Alert',
+        cancel: true,
        // position: 'bottom',
         message: 'Sure to remove event from today?'
           }).onOk(() => {
@@ -1094,7 +1114,7 @@ export default defineComponent({
     onNext () {
       this.$refs.calendar.next()
     },
-    onMoved (data) {
+    onMoved (data) { //bon removing this as redundant with onChange below!--ToMonitor and remove!--yup onChange is better!
       //console.log('onMoved to', data.date) //only here can access .date
 
       //runs after calendar's Next(), Prev()right before onChange() below when changing calendar days
@@ -1103,16 +1123,17 @@ export default defineComponent({
       let isToday = today()
 
       //so check if current date is in storage
-      let [inDates, maybe] = this.store.hasEventsForDate(data.date) 
+      let  inDates = this.store.hasEventsForDate(data.date)  //[inDates, maybe]
      
 
-      console.log('onMoved to date', data.date,this.currentDate, isToday, inDates, maybe)
+      console.log('onMoved to date', data.date,this.currentDate, isToday, inDates)
 
       this.disableSaveSchedule = true //should be?....prolly but toREview
 
-      if (inDates && maybe){
-        this.$q.dialog({ //maybe ask user, onCancel, just keep same order
+      if (inDates){
+        /*this.$q.dialog({ //maybe ask user, onCancel, just keep same order
             title: 'Alert',
+            cancel: true,
         // position: 'bottom',
             message: 'Some saved schedule found, load it up?'
             }).onOk(() => {
@@ -1120,15 +1141,23 @@ export default defineComponent({
             }).onCancel(() => {
                 console.log('Cancelled loading...')
                 this.loadSavedEvents(data.date, false)
-          })
+          })*/
+          this.askUser(data.date)  //toBeware with the skipReload below!
+
+          this.skipReload = true //to not redo all this in onChange below
       }else { 
-        console.log('onMoved NO DateEvts :(', inDates, maybe)//make sure they same!!
+        console.log('onMoved NO DateEvts :(', inDates)
         //this.loadSavedEvents(data.date, false)
-        let e = this.loadGoals
-        this.events = [...e] //reload default...could check date perhaps?
-        this.saveCurrentSchedule()
+
+        if(this.skipReload){ //to not redo it...
+          let e = this.loadGoals
+          this.events = [...e] //reload default...could check date perhaps?
+          this.saveCurrentSchedule()
+
+          this.skipReload = false //**To see effect of this for below when moving between dates!
+        }
       }
-      this.skipReload = true //to not redo all this in onChange below
+     
       //this.events.forEach((obj) => {
       //  obj.date = data.date //today()
       //})
@@ -1139,36 +1168,19 @@ export default defineComponent({
       
       //bof always at whichever day in calendar view--but shouldnt change but does automatically smh!
 
-      let [inDates, maybe] = this.store.hasEventsForDate(this.currentDate)
+      //let [inDates, maybe] = this.store.hasEventsForDate(this.currentDate) //oldie
+      let inDates = this.store.hasEventsForDate(this.currentDate)
+
       let isToday = today()
 
-      console.log('onChange', data, this.currentDate, isToday, inDates, maybe)
-
-      if(this.skipReload){
-        console.log("umm after onMoved?..skipping reload!")
-        this.skipReload = false //reset though?!?toREview
-        return
-      }
+      console.log('onChange', data, this.currentDate, isToday, inDates)
 
       
-      if (inDates && maybe){ //remove one of these perhaps---toReview**
+      if (inDates){ // && maybe
         //let evts = this.store.getEventsForDate(data.start)
         console.log('onChange and has hasDateEvts!!..should CHANGE!')
-        //let wannaChange = false //confirm("Are you the boss?");//could use confirm but it's ugly and whole page is blank!
-        
-        this.$q.dialog({ //maybe ask user
-        title: 'Alert',
-       // position: 'bottom',
-        message: 'Some saved schedule found, load it up?'
-          }).onOk(() => {
-            this.loadSavedEvents(data.start, true)
-          }).onCancel(() => {
-             console.log('Cancelled loading...')
-             this.loadSavedEvents(data.start, false)
-          })//.onDismiss(() => {
-            // console.log('I am triggered on both OK and Cancel')
-          //})
-        
+        this.askUser(data.start)
+
         //problem that below also changes the time to saved time when should still use old?
         //and adding originalAt would be bad--see below....
         
@@ -1187,13 +1199,25 @@ export default defineComponent({
             return //to not keep going below....
         }else{console.log('Cancelled didnt wanna change :(')} */
  
-      } else { 
-        console.log('onChange NO DateEvts :(', inDates, maybe)//make sure they same!!
+      } else {
+        console.log('onChange NO DateEvts :(', inDates)
         //this.loadSavedEvents(data.start, false)
-        let e = this.loadGoals
-        this.events = [...e] //reload default...could check date perhaps?
-        this.saveCurrentSchedule()
-    } 
+        if(this.skipReload){
+          console.log("umm onChange after onMoved?..skipping reload!")
+          this.skipReload = false //reset though?!?toREview
+          return
+        }
+
+        //just change to new date...
+        //toReview though as doesnt actually reload defaults but just changes date for events already present***
+        this.loadSavedEvents(data.start, false)
+
+        //let e = this.loadGoals
+        //this.events = [...e] //reload default...doesnt seem to update? >>yup as it assigns today's date smh
+        //console.log("umm onChange...about to reload!")
+        //this.saveCurrentSchedule()
+      }
+  
     
     //then have to also do the same thing as onMoved..
       //or replace this.events in case there is some events for this day?prolly when changing days...
@@ -1204,6 +1228,21 @@ export default defineComponent({
       //})
 
     },
+    askUser(aDate){
+      this.$q.dialog({ //maybe ask user
+        title: 'Alert',
+        cancel: true,
+       // position: 'bottom',
+        message: 'Some saved schedule found, load it up?'
+          }).onOk(() => {
+            this.loadSavedEvents(aDate, true) //data.start
+          }).onCancel(() => {
+             console.log('Cancelled loading...')
+             this.loadSavedEvents(aDate, false)
+          })//.onDismiss(() => {
+            // console.log('I am triggered on both OK and Cancel')
+          //})
+    }
   }
 })
 
