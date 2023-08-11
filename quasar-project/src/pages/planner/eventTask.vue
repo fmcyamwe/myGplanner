@@ -51,6 +51,7 @@
                 <div class="header ellipsis">
                   <div class="issue ellipsis">
                     {{ scope.task.title }}
+                    <!--here for child, try to indent somehow...toDO**-->
                   </div>
                   <div class="key">{{ scope.task.key }}</div>
                   <div class="logged">{{ sum(scope.start, scope.end, scope.task) }}</div>

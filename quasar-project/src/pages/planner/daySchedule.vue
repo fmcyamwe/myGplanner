@@ -9,7 +9,41 @@
       @prev="onPrev"
       @next="onNext"
     />
-
+    <div class="float-right"> <!--to do proper placing on the right-->
+        <div v-if="reloadSaved">         
+            <q-btn
+              class="q-mt-xl"
+              color=""
+              text-color="green"
+              elevated
+              label="Load Saved"
+              @click="doReloadSaved"
+              no-caps 
+            />
+        </div>
+        <div v-if="loadDefault">
+          <q-btn
+            class="q-mt-xl"
+            color=""
+            text-color="blue"
+            elevated
+            label="Defaults"
+            @click="doLoadDefault"
+            no-caps
+          />
+        </div>
+        <div v-if="doSchedule"> <!--this could be a dropdown with a few choices of scheduling logic Todo properly**-->
+          <q-btn
+            class="q-mt-xl"
+            color=""
+            text-color="teal"
+            elevated
+            label="Schedule"
+            @click="showGoalForm = !showGoalForm"
+            no-caps
+          />
+        </div>
+    </div>
     <div class="row justify-center">
       <div style="display: flex; max-width: 800px; width: 100%; height: 400px;">
         <q-calendar-day
@@ -87,7 +121,7 @@
                   style="margin: 1px; width: 10px; max-width: 10px; height: 10px; max-height: 10px; cursor: pointer"
                   @click="scrollToEvent(event)"
                 >
-                  <q-tooltip>{{ event.time + ' - ' + event.details }}</q-tooltip>
+                  <q-tooltip>{{ event.time + ' - ' + event.title }}</q-tooltip>
                 </q-badge>
               </template>
             </div>
@@ -177,7 +211,7 @@
         </div>
     </div>
   </div>
-  <div class="row justify-center" style="padding: 60px;">
+  <div class="row justify-center" style="padding:60px;">
         <q-btn
             class="q-mt-xl"
             color="Green"
@@ -187,7 +221,7 @@
             :disable="doDisableSaveSchedule"
             @click="doSaveSchedule"
             no-caps
-        /> <!--wonder if will work..otherwise use variable straight up-->
+        />
         <q-btn
             class="q-mt-xl"
             color=""
@@ -250,8 +284,6 @@ export default defineComponent({
     const allEvents = ref(null)  //bring up all subgoals from storage by default
     const dailyScheduled = ref(null) //shall be the daily scheduled and be source of truth for currently viewed day--toUse**
 
-    //const hasDateEvts = ref(false) //default to load subGoals events...
-
     const $q = useQuasar()
     let intervalId = null
 
@@ -259,7 +291,6 @@ export default defineComponent({
       currentDate: ref(today()),
       //nowDate: ref(this.currentDate), //addToDate(parseTimestamp(today()), { day: 1 }).date 
       events: [],
-      //allEvents:ref(null), //just to access in template for test--
       calendar: ref(null), //umm wasnt here...any diff? with moving and update now? >>nope
       store:useGoalStore(),
 
@@ -276,7 +307,10 @@ export default defineComponent({
       disabledScoreEvts:ref({}),
 
       disableSaveSchedule:ref(true),
-      skipReload:ref(false) 
+      //skipReload:ref(false),  //not used
+      reloadSaved:ref(false), //when date has saved events that are not default
+      loadDefault:ref(true), //reload default events...
+      doSchedule:ref(false), //toReview usage..should be for schedule from a particular logic...
     }
   },
   beforeMount() {
@@ -287,7 +321,7 @@ export default defineComponent({
    
     this.events =  [...e] //does update!
 
-    this.saveCurrentSchedule() //bon seem doesnt like putting this in loadGoals as it's computed! same way cant assignt events from loadGoals smh
+    //this.saveCurrentSchedule() //bon seem doesnt like putting this in loadGoals as it's computed! same way cant assignt events from loadGoals smh
     
     //this.skipReload = true //for the onChange....but nope
     
@@ -356,7 +390,8 @@ export default defineComponent({
       //copy so that changes dont go back in storage... the JSON above seems to work at least
       //or use let arrCopy = Object.assign([], arr) //is also a 'shallow' copy smh
 
-      let subGoals = this.storedEvents
+      return this.colisTest()
+      /*let subGoals = this.storedEvents
       let pMap = this.parentGoalsMap
 
       if (!subGoals) { //|| !pMap
@@ -366,19 +401,19 @@ export default defineComponent({
       }
      
       subGoals.forEach((obj) => {
-        obj.date = today() //"date": "2023-07-22"
+        obj.date = null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
         let pgoal = pMap.get(obj.parentGoal)
         if(!pgoal){
             console.log("no parent goal for:", obj)
             obj.bgcolor = "red" //default for goals (could be ad-hoc goals)
             obj.details = "unknown"
         } else {
-            obj.bgcolor = pgoal.bgcolor
+            obj.bgcolor = pgoal.bgcolor  //for weird colors, becomes transparent--beware**
             obj.details = "from:"+ pgoal.title
         }
       })
 
-      return subGoals
+      return subGoals */
   
     },
     style () {
@@ -415,6 +450,33 @@ export default defineComponent({
     },
   },
   methods: {
+    colisTest(d = null){
+      let subGoals = this.storedEvents
+      let pMap = this.parentGoalsMap
+
+      if (!subGoals) { //|| !pMap
+        //console.log("no goals to schedule...")
+        this.doNotify("no goals to schedule...")
+        return []
+      }
+     
+      subGoals.forEach((obj) => {
+        obj.date = d != null ? d : null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
+        let pgoal = pMap.get(obj.parentGoal)
+        if(!pgoal){
+            console.log("no parent goal for:", obj)
+            obj.bgcolor = "red" //default for goals (could be ad-hoc goals)
+            obj.details = "unknown"
+        } else {
+            obj.bgcolor = pgoal.bgcolor  //for weird colors, becomes transparent--beware**
+            obj.details = "from:"+ pgoal.title
+        }
+      })
+
+      console.log("colisTest", d, subGoals)  //colis can i get back original stuff?!? smh
+      return subGoals
+
+    },
     saveScore(newVal, id){
       
       let ev = this.allEvents.get(id)
@@ -440,7 +502,7 @@ export default defineComponent({
         return null
     },
     addAnEvent(toAdd){
-        console.log("oooh addAnEvent..orig",toAdd)
+        console.log("oooh addAnEvent..ORIG",toAdd)
         let e = {...toAdd, date: today()} //would this work? seems so..but date already present?
         
         let d = today()
@@ -457,8 +519,8 @@ export default defineComponent({
                 end: endTime,
                 on: toAdd.date,
                 originalAt: toAdd.time,
-                for: toAdd.duration
-                //score?
+                for: toAdd.duration,
+                score:toAdd.score
             })
         
         this.endTimesSet.add(endTime.time)
@@ -502,7 +564,7 @@ export default defineComponent({
 
         this.endTimesSet = endTimes
         
-        console.log("done saveCurrentSchedule",this.endTimesSet, this.allEvents, this.events)
+        console.log("done saveCurrentSchedule") //,this.endTimesSet, this.allEvents, this.events
 
     },
     adjustCurrentTime() {
@@ -618,7 +680,7 @@ export default defineComponent({
       });
       return mappy
     },
-    recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false) { //add flag for drag/drop vs scheduleEvent for dragDirection
+    recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false) { // goForward to push down overlapping evts as it's more natural
   
         let overlappedEvt = this.allEvents.get(overlappingEvtID)
         if (overlappedEvt){                
@@ -695,17 +757,19 @@ export default defineComponent({
         }
     },
     updateScheduleMaps(evID, timeyStart){
-        if(this.allEvents.has(evID)){ //&& this.startEndMap.has(evID)
-            let forsy = this.allEvents.get(evID).for //umm would this work?
+        if(this.allEvents.has(evID)){
+            let forsy = this.allEvents.get(evID).for
             let oAt = this.allEvents.get(evID).originalAt
             let oldEnd = this.allEvents.get(evID).end
             let newEndy = addToDate(timeyStart, { minute: forsy })
+            let scorey = this.allEvents.get(evID).score
             this.allEvents.set(evID, {
                 on: timeyStart.date,
                 originalAt: oAt, //timeyStart.time, >>keep origin time
                 for: forsy,
                 start: timeyStart,
-                end: newEndy
+                end: newEndy,
+                score: scorey  //gaah dont leave stuff or think they take the original value smh
             })
 
             let hadEnd = this.endTimesSet.delete(oldEnd.time)
@@ -771,7 +835,7 @@ export default defineComponent({
 
       let addy = this.getAnEvent(this.toAddE.id)
       if (!addy){
-        console.log("AddEvent ERROR? or new new?", addy, this.toAddE); 
+        console.log("AddEvent ERROR? or...new?", addy, this.toAddE); 
         addy = this.toAddE
         //bon have to add it and then continue...
         this.addAnEvent(this.toAddE)
@@ -785,7 +849,7 @@ export default defineComponent({
         let i = 0
     
         do {
-            this.recurChangeTime(anyOverlap[i],addy, this.targetDrop.timestamp, true) // flag to push down overlapping evts as it's more natural
+            this.recurChangeTime(anyOverlap[i],addy, this.targetDrop.timestamp, true)
         } while (++i < sizey)
 
       } else {
@@ -870,6 +934,8 @@ export default defineComponent({
       }
     },
     loadSavedEvents(date, wannaChange){ //loads a date saved events...or changes the current events to the passed date
+        console.log(`loadSavedEvents for ${date}...`)
+
         if (wannaChange){
             let evts = this.store.getEventsForDate(date)
             if (!evts) {console.log(`ERROR no evts found for ${date}...`, evts); return}
@@ -906,6 +972,22 @@ export default defineComponent({
                         icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
                     })
     },
+    askUser(aDate){//maybe ask user
+      this.$q.dialog({ 
+        title: 'Alert',
+        cancel: true,
+       // position: 'bottom',
+        message: 'Some saved schedule found, load it up?'
+          }).onOk(() => {
+            this.loadSavedEvents(aDate, true) //data.start
+          }).onCancel(() => {
+             console.log('Cancelled loading...')
+             this.loadSavedEvents(aDate, false)
+          })//.onDismiss(() => {
+            // console.log('I am triggered on both OK and Cancel')
+          //})
+    },
+
     /////////////////////////////// EVENT HANDLERS //////////////////////////
     onDragStart(e, item) { 
         console.log("onDragStart", e, item) //.clientY to determine if going up or down? >>meh no need
@@ -947,7 +1029,7 @@ export default defineComponent({
       if (curColEl) {
         curColEl.classList.remove('drag-over')
       }*/
-      console.log('onDragEnd', this.allEvents, this.endTimesSet) //.values()
+      console.log('onDragEnd', this.allEvents, this.endTimesSet, this.events) //.values()
     },
     onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above
         console.log("onDrop", e, type, scope)//JSON.stringify(item)
@@ -1114,54 +1196,6 @@ export default defineComponent({
     onNext () {
       this.$refs.calendar.next()
     },
-    onMoved (data) { //bon removing this as redundant with onChange below!--ToMonitor and remove!--yup onChange is better!
-      //console.log('onMoved to', data.date) //only here can access .date
-
-      //runs after calendar's Next(), Prev()right before onChange() below when changing calendar days
-      //doenst run for  today() tho?!? smh
-
-      let isToday = today()
-
-      //so check if current date is in storage
-      let  inDates = this.store.hasEventsForDate(data.date)  //[inDates, maybe]
-     
-
-      console.log('onMoved to date', data.date,this.currentDate, isToday, inDates)
-
-      this.disableSaveSchedule = true //should be?....prolly but toREview
-
-      if (inDates){
-        /*this.$q.dialog({ //maybe ask user, onCancel, just keep same order
-            title: 'Alert',
-            cancel: true,
-        // position: 'bottom',
-            message: 'Some saved schedule found, load it up?'
-            }).onOk(() => {
-                this.loadSavedEvents(data.date, true)
-            }).onCancel(() => {
-                console.log('Cancelled loading...')
-                this.loadSavedEvents(data.date, false)
-          })*/
-          this.askUser(data.date)  //toBeware with the skipReload below!
-
-          this.skipReload = true //to not redo all this in onChange below
-      }else { 
-        console.log('onMoved NO DateEvts :(', inDates)
-        //this.loadSavedEvents(data.date, false)
-
-        if(this.skipReload){ //to not redo it...
-          let e = this.loadGoals
-          this.events = [...e] //reload default...could check date perhaps?
-          this.saveCurrentSchedule()
-
-          this.skipReload = false //**To see effect of this for below when moving between dates!
-        }
-      }
-     
-      //this.events.forEach((obj) => {
-      //  obj.date = data.date //today()
-      //})
-    },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
 
       //console.log('onChange', data, this.currentDate) // JSON.stringify(data)
@@ -1173,16 +1207,30 @@ export default defineComponent({
 
       let isToday = today()
 
-      console.log('onChange', data, this.currentDate, isToday, inDates)
+      //console.log('onChange', data, this.currentDate, isToday, inDates)
+      if (data.start == this.currentDate && this.currentDate == isToday){
+        console.log('onChange and all dates are alike!')
 
+        this.loadSavedEvents(data.start, false) //bon just to have stuff on load...merge with else as it's same...todo**
+
+      } else{
+        console.log('onChange..something is different?', data, this.currentDate, isToday, inDates)
+         //toReview though as doesnt actually reload defaults but just changes date for events already present***
+         this.loadSavedEvents(data.start, false)
+
+         this.updateButtons(false,null,true) //toSee--cannot load saved, default?, also choose a schedule prolly...
+
+      }
       
-      if (inDates){ // && maybe
-        //let evts = this.store.getEventsForDate(data.start)
-        console.log('onChange and has hasDateEvts!!..should CHANGE!')
-        this.askUser(data.start)
+      if (inDates){
+        console.log('onChange and has saved DateEvts!!..should CHANGE!')
+        //this.reloadSaved = true //show button to reload saved event
+        this.updateButtons(true, true)
+
+        //oldie >> this.askUser(data.start)
 
         //problem that below also changes the time to saved time when should still use old?
-        //and adding originalAt would be bad--see below....
+        //and adding originalAt would be bad
         
         /*if(wannaChange){
             this.events.forEach((obj) => {
@@ -1200,25 +1248,27 @@ export default defineComponent({
         }else{console.log('Cancelled didnt wanna change :(')} */
  
       } else {
-        console.log('onChange NO DateEvts :(', inDates)
-        //this.loadSavedEvents(data.start, false)
-        if(this.skipReload){
-          console.log("umm onChange after onMoved?..skipping reload!")
-          this.skipReload = false //reset though?!?toREview
-          return
-        }
-
-        //just change to new date...
-        //toReview though as doesnt actually reload defaults but just changes date for events already present***
+        console.log('onChange NO saved DateEvts', inDates)
         this.loadSavedEvents(data.start, false)
+
+        this.updateButtons(false, true, true)
+
+        //if(this.skipReload){
+        //  console.log("umm onChange after onMoved?..skipping reload!")
+        //  this.skipReload = false //reset though?!?toREview
+        //  return
+        //}
+
+        //just change to new date..
+        //toReview though as doesnt actually reload defaults but just changes date for events already present***
+        //this.loadSavedEvents(data.start, false)
 
         //let e = this.loadGoals
         //this.events = [...e] //reload default...doesnt seem to update? >>yup as it assigns today's date smh
         //console.log("umm onChange...about to reload!")
         //this.saveCurrentSchedule()
       }
-  
-    
+
     //then have to also do the same thing as onMoved..
       //or replace this.events in case there is some events for this day?prolly when changing days...
       //def shouldnt do this again when it's viewing current day!!--mais bon have to...especially when moving back and forth between days!
@@ -1228,21 +1278,86 @@ export default defineComponent({
       //})
 
     },
-    askUser(aDate){
-      this.$q.dialog({ //maybe ask user
-        title: 'Alert',
-        cancel: true,
-       // position: 'bottom',
-        message: 'Some saved schedule found, load it up?'
-          }).onOk(() => {
-            this.loadSavedEvents(aDate, true) //data.start
-          }).onCancel(() => {
-             console.log('Cancelled loading...')
-             this.loadSavedEvents(aDate, false)
-          })//.onDismiss(() => {
-            // console.log('I am triggered on both OK and Cancel')
-          //})
-    }
+    updateButtons(reloadBool=null,defaultBool=null, scheduleBool=null){ //omitting the first values would work?->gotta assign null!
+      if (reloadBool != null) {
+        this.reloadSaved = reloadBool
+      }
+      if (defaultBool != null) { //sheesh dont check for falsy vals holmes!!
+        this.loadDefault = defaultBool  
+      }
+      if (scheduleBool != null) {
+        this.doSchedule = scheduleBool
+      }
+    },
+    doReloadSaved(){
+      console.log('doReloadSaved:',this.currentDate) //toTest it's the current viewed day***
+
+      this.askUser(this.currentDate) //no need for this here....toRemove later***
+    },
+    doLoadDefault(){
+      console.log('doLoadDefault:',this.currentDate,this.events)
+      this.events = null
+      let e = this.colisTest(this.currentDate) //oldie >> this.loadGoals 
+      this.events =  [...e]  //also this doesnt bring back the original time smdh...i.e: when clicked after a reload FML
+      
+      //console.log('doLoadDefault:',this.currentDate, this.events)
+      
+      this.loadSavedEvents(this.currentDate, false)  ////umm no point to pass currentDate above as changed here**toReview
+      
+      //this.saveCurrentSchedule()
+
+      this.updateButtons(false,false,true)
+    },
+
+    //obsolete but kept for reference....tbd
+    /*onMoved (data) { //bon removing this as redundant with onChange below!--ToMonitor and remove!--yup onChange is better!
+      //console.log('onMoved to', data.date) //only here can access .date
+
+      //runs after calendar's Next(), Prev()right before onChange() below when changing calendar days
+      //doenst run for  today() tho?!? smh
+
+      let isToday = today()
+
+      //so check if current date is in storage
+      let  inDates = this.store.hasEventsForDate(data.date)  //[inDates, maybe]
+     
+
+      console.log('onMoved to date', data.date,this.currentDate, isToday, inDates)
+
+      this.disableSaveSchedule = true //should be?....prolly but toREview
+
+      if (inDates){
+        this.$q.dialog({ //maybe ask user, onCancel, just keep same order
+            title: 'Alert',
+            cancel: true,
+        // position: 'bottom',
+            message: 'Some saved schedule found, load it up?'
+            }).onOk(() => {
+                this.loadSavedEvents(data.date, true)
+            }).onCancel(() => {
+                console.log('Cancelled loading...')
+                this.loadSavedEvents(data.date, false)
+          })
+          this.askUser(data.date)  //toBeware with the skipReload below!
+
+          //this.skipReload = true //to not redo all this in onChange below
+      }else { 
+        console.log('onMoved NO DateEvts :(', inDates)
+        //this.loadSavedEvents(data.date, false)
+
+        if(this.skipReload){ //to not redo it...
+          let e = this.loadGoals
+          this.events = [...e] //reload default...could check date perhaps?
+          this.saveCurrentSchedule()
+
+          this.skipReload = false //**To see effect of this for below when moving between dates!
+        }
+      }
+     
+      //this.events.forEach((obj) => {
+      //  obj.date = data.date //today()
+      //})
+    },*/
   }
 })
 

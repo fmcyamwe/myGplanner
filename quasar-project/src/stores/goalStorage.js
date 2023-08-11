@@ -52,7 +52,7 @@ export const useGoalStore = defineStore('allGoals', () => {
     )
 
     function doCopy(arr){  //copy >>this {...obj} is for objects
-        if(arr.length > 0) return [...arr]
+        if(arr) return [...arr]  //oldie that crap out when arr is null >> arr.length > 0
         return []//[...arr] //craps out when array is empty tho!!--toSee if line above works...nope just does a 'shallow' copy smh
         //const json = JSON.parse(JSON.stringify(original)); //quick and dirty way to copy apparently...bof dont seem to work even!
     }
@@ -87,7 +87,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         while (current.some(item => item.id === newID)) {
             newID = Math.floor(Math.random() * 1000) //`${Math.floor(Math.random() * 1000)}`;
-            console.log("an item had the same id...using random", newID)
+            //console.log("an item had the same id...using random", newID)
         }
         current.unshift({
             id: newID,
@@ -126,7 +126,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         while (current.some(item => item.id === newID)) {
             newID = Math.floor(Math.random() * 1000) //`${Math.floor(Math.random() * 1000)}`;
-            console.log("an subgoal item had the same id...using random", newID)
+            //console.log("an subgoal item had the same id...using random", newID)
         }
 
         current.unshift({
@@ -221,7 +221,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         if (!current){
             ///$q.localStorage.getItem("AllDates"))
-            console.log("saveDailySchedule was Empty--Adding new")
+            console.log(`Adding new schedule for ${aDate}`)
             current = {}
             current[`${aDate}`] = events //umm to see if no need to put {}  or do push? //aDate
             $q.localStorage.set("AllDates", JSON.stringify(current)) //[aDate]
