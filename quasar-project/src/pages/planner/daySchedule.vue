@@ -39,7 +39,7 @@
             text-color="teal"
             elevated
             label="Schedule"
-            @click="showGoalForm = !showGoalForm"
+            @click="bringScorey"
             no-caps
           />
         </div>
@@ -314,7 +314,7 @@ export default defineComponent({
     }
   },
   beforeMount() {
-    let e = this.loadGoals
+    let e = this.loadEventsWithDate() //this.loadGoals
     //console.log('After loadGoals', e)
 
     this.mobile = isMobile()  //--for drag for range selection.
@@ -380,18 +380,22 @@ export default defineComponent({
         return map
     },
     storedEvents(){
-        let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals))
+        //let subGoals = 
+        //return JSON.parse(JSON.stringify(this.store.getSubGoals))
+        return this.store.getSubGoals
 
         //umm no massaging? TBD but maybe to add .date?!? 
-        return subGoals
+        //return subGoals
     },
-    loadGoals() {
+    //loadGoals() {
       //let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals)) //[...this.store.getSubGoals]
       //copy so that changes dont go back in storage... the JSON above seems to work at least
       //or use let arrCopy = Object.assign([], arr) //is also a 'shallow' copy smh
 
-      return this.colisTest()
-      /*let subGoals = this.storedEvents
+    //  return this.loadEventsWithDate()
+
+      /* moved in `loadEventsWithDate`
+      let subGoals = this.storedEvents
       let pMap = this.parentGoalsMap
 
       if (!subGoals) { //|| !pMap
@@ -415,7 +419,7 @@ export default defineComponent({
 
       return subGoals */
   
-    },
+    //},
     style () {
       return {
         top: this.timeStartPos + 'px'
@@ -450,8 +454,8 @@ export default defineComponent({
     },
   },
   methods: {
-    colisTest(d = null){
-      let subGoals = this.storedEvents
+    loadEventsWithDate(d = null){
+      let subGoals = this.deepCopy(this.storedEvents)  //toSee deepCopy of this...
       let pMap = this.parentGoalsMap
 
       if (!subGoals) { //|| !pMap
@@ -473,7 +477,7 @@ export default defineComponent({
         }
       })
 
-      console.log("colisTest", d, subGoals)  //colis can i get back original stuff?!? smh
+      console.log("loadEventsWithDate", d, subGoals, typeof subGoals) 
       return subGoals
 
     },
@@ -564,7 +568,7 @@ export default defineComponent({
 
         this.endTimesSet = endTimes
         
-        console.log("done saveCurrentSchedule") //,this.endTimesSet, this.allEvents, this.events
+        console.log("done saveCurrentSchedule") //,this.endTimesSet, this.allEvents, this.events, typeof this.endTimesSet)
 
     },
     adjustCurrentTime() {
@@ -949,20 +953,21 @@ export default defineComponent({
                     obj.duration = sav.duration,
                     obj.score = sav.atScore
 
-                }else{console.log('hasDateEvts NOT found?!?', obj.id)} //shouldnt happen?!?
+                }else{console.log('ERROR...hasDateEvts NOT found?!?', obj.id)} //shouldnt happen?!?
             }) 
         }else {
             this.events.forEach((obj) => {
                 obj.date = date //data.start //today()
             })
         }
+
         this.saveCurrentSchedule() //refresh schedule still...prolly
     },
     reset() { //reset variable for next use 
       this.draggedItem = null
       this.targetDrop = null
       //
-      this.toAddE = null //?!?
+      this.toAddE = null
     },
     doNotify(messg, colorNotif = undefined){
       this.$q.notify({ // also see about using >> this.$q.dialog
@@ -1207,25 +1212,32 @@ export default defineComponent({
 
       let isToday = today()
 
+      
+
+      this.loadSavedEvents(data.start, false)
+      this.updateButtons(false,true,true)
+
+
+
       //console.log('onChange', data, this.currentDate, isToday, inDates)
       if (data.start == this.currentDate && this.currentDate == isToday){
         console.log('onChange and all dates are alike!')
 
-        this.loadSavedEvents(data.start, false) //bon just to have stuff on load...merge with else as it's same...todo**
+       // this.loadSavedEvents(data.start, false) //bon just to have stuff on load...merge with else as it's same...todo**
 
       } else{
         console.log('onChange..something is different?', data, this.currentDate, isToday, inDates)
          //toReview though as doesnt actually reload defaults but just changes date for events already present***
-         this.loadSavedEvents(data.start, false)
+        // this.loadSavedEvents(data.start, false)
 
-         this.updateButtons(false,null,true) //toSee--cannot load saved, default?, also choose a schedule prolly...
+         this.updateButtons(false,true,true)
 
       }
       
       if (inDates){
         console.log('onChange and has saved DateEvts!!..should CHANGE!')
         //this.reloadSaved = true //show button to reload saved event
-        this.updateButtons(true, true)
+        this.updateButtons(true, true, false)
 
         //oldie >> this.askUser(data.start)
 
@@ -1249,9 +1261,9 @@ export default defineComponent({
  
       } else {
         console.log('onChange NO saved DateEvts', inDates)
-        this.loadSavedEvents(data.start, false)
+        //this.loadSavedEvents(data.start, false)
 
-        this.updateButtons(false, true, true)
+        this.updateButtons(false, false, true)
 
         //if(this.skipReload){
         //  console.log("umm onChange after onMoved?..skipping reload!")
@@ -1268,14 +1280,6 @@ export default defineComponent({
         //console.log("umm onChange...about to reload!")
         //this.saveCurrentSchedule()
       }
-
-    //then have to also do the same thing as onMoved..
-      //or replace this.events in case there is some events for this day?prolly when changing days...
-      //def shouldnt do this again when it's viewing current day!!--mais bon have to...especially when moving back and forth between days!
-      
-      //this.events.forEach((obj) => {
-      //  obj.date = data.start //today()
-      //})
 
     },
     updateButtons(reloadBool=null,defaultBool=null, scheduleBool=null){ //omitting the first values would work?->gotta assign null!
@@ -1297,18 +1301,43 @@ export default defineComponent({
     doLoadDefault(){
       console.log('doLoadDefault:',this.currentDate,this.events)
       this.events = null
-      let e = this.colisTest(this.currentDate) //oldie >> this.loadGoals 
-      this.events =  [...e]  //also this doesnt bring back the original time smdh...i.e: when clicked after a reload FML
+      //let e = this.colisTest(this.currentDate) // umm no point to pass currentDate above as changed below //oldie >> this.loadGoals 
+      this.events = this.loadEventsWithDate(this.currentDate) //try to pass in the proper date **toReview**
+      //[...e]  //also this doesnt bring back the original time smdh...i.e: when clicked after a reload FML
       
       //console.log('doLoadDefault:',this.currentDate, this.events)
       
-      this.loadSavedEvents(this.currentDate, false)  ////umm no point to pass currentDate above as changed here**toReview
+      //this.loadSavedEvents(this.currentDate, false)  
       
-      //this.saveCurrentSchedule()
+      this.saveCurrentSchedule()
 
       this.updateButtons(false,false,true)
     },
+    bringScorey(){ //to use a value picked by user--TODO
+      let e = this.store.fetchGoalsWithMinScore(3)
 
+      //now assign this to events---todo**
+      console.log('bringScorey:',e)
+
+    },
+    deepCopy(obj){ //deep copy object
+      if (obj === null || typeof obj !== "object") {
+        return obj;
+      }
+
+      if (Array.isArray(obj)) {
+        return obj.map(item => this.deepCopy(item));
+      }
+
+      const copied = {};
+      for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          copied[key] = this.deepCopy(obj[key]);
+        }
+      }
+
+      return copied;
+    },
     //obsolete but kept for reference....tbd
     /*onMoved (data) { //bon removing this as redundant with onChange below!--ToMonitor and remove!--yup onChange is better!
       //console.log('onMoved to', data.date) //only here can access .date

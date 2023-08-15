@@ -149,7 +149,7 @@ export const useGoalStore = defineStore('allGoals', () => {
          current.forEach((obj) => {  //make this better instead of having to walk the whole map! todo***
              if(obj.id === goalId){
                 obj.title = title.value,
-                obj.score= score.value,
+                obj.score = score.value,
                 obj.time = time.value,//'19:00',
                 obj.duration = duration.value, //60,
                 obj.canMove = canMove.value
@@ -274,20 +274,48 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     }
 
-    /*function findSubGoals(parentID){
+    function fetchGoalsWithMinScore(scorey){  //of scorey minimum 
         const map = []
+        //const tokenRegex = /^[0-9]{1,2}on[0-9]{1,2}$/g; //toREview....
+
+        let parseScore = function(t){ //parses score and returns the difference btween the interval
+            //const tokens = []
+            //let match
+            //while ((match = tokenRegex.exec(t)) !== null) {
+            //    console.log(`euh ${t}`,match[1])
+            //    tokens.push(match[1]);
+            //}
+            const tokens = t.split(/on/)
+            if (tokens.length != 2) {//should be at most two variables....
+                console.log(`parseScore error?${t}`, tokens)
+                return -1
+            }
+            //console.log(`parseScore for ${t}`, tokens)
+            return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!**to add guardrails...
+        }
+
         let allSubGoals = this.getSubGoals
         if(!allSubGoals) {
             //console.log("No subgoals")
             return map
         }
+
         allSubGoals.forEach(event => {
-            if (event.parentGoal == parentID) {
+            if (event.score == ""){ //ben add those without score...toReview
+                console.log(`no score event added: ${event.title}`,event.score)
                 map.push(event)
+            }else{
+                let parsey = parseScore(event.score)
+                if (parsey > -1 && parsey >= scorey) {
+                    map.push(event)
+                }//else {
+                //    console.log(`subGoal is less than scorey ${event.title}`, parsey)
+                //}
             }
         })
+
         return map  
-    }*/
+    }
 
     function getRandomIndex(sizey){
         return Math.floor(Math.random() * sizey) //array.length
@@ -376,6 +404,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         removeMaingoal,
         getEventsForDate,
         hasEventsForDate,
-        testTasks
+        testTasks,
+        fetchGoalsWithMinScore
     }
 })
