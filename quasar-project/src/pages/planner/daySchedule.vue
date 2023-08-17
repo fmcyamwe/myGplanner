@@ -1,8 +1,8 @@
 <template>
    <div v-if="showForm" class="q-gutter-md">
     <add-goal-form /> 
-  </div> 
-
+  </div>
+  <q-pull-to-refresh @refresh="refresh">
   <div v-if="!showForm" class="subcontent">
     <navigation-bar
       @today="onToday"
@@ -32,8 +32,30 @@
             no-caps
           />
         </div>
-        <div v-if="doSchedule"> <!--this could be a dropdown with a few choices of scheduling logic Todo properly**-->
-          <q-btn
+        <div v-if="doSchedule">
+              <q-btn-dropdown
+                split
+                color=""
+                class="q-mt-xl"
+                text-color="teal"
+                elevated
+                label="Schedule"
+                @click="bringScorey"
+                no-caps
+              >
+                <q-list>
+                  <q-item v-for="e in scoreOptions" :key="e.id" clickable v-close-popup @click="chosenScore = e" >
+                    <q-item-section>
+                      <q-item-label>{{ e }}</q-item-label>
+                    </q-item-section>
+                  </q-item>
+
+                </q-list>
+              </q-btn-dropdown>
+
+        </div>
+        <!-- oldie but above is better
+                    <q-btn
             class="q-mt-xl"
             color=""
             text-color="teal"
@@ -42,7 +64,8 @@
             @click="bringScorey"
             no-caps
           />
-        </div>
+          <q-select borderless v-model="chosenScore" :options="scoreOptions" label="score" />
+        -->
     </div>
     <div class="row justify-center">
       <div style="display: flex; max-width: 800px; width: 100%; height: 400px;">
@@ -56,6 +79,7 @@
           :drop-func="onDrop"
           animated
           bordered
+          hoverable
           no-active-date
           transition-next="slide-left"
           transition-prev="slide-right"
@@ -75,6 +99,7 @@
           @mousemove-time="onMouseMoveTime"
         >
         <!--
+          dark
           @mouseenter-time="onMouseEnter"
           @mouseleave-time="onMouseLeave" works!!
           the drop-func seem to fire when other drag functions are present as well
@@ -204,13 +229,14 @@
       </q-dialog>
     
     </div>
-    <br><!-- in store.getSubGoals ...oldie >> storedEvents but allEvents also accessible when not returned? -->
+    <br><!-- in store.getSubGoals ...oldie >> events but allEvents also accessible when not returned? -->
     <div class="scroll overflow-auto" style="height: 360px; width: 100%;">
-        <div v-for="(event, index) in events" :key="index" class="col-12" style="font-size: 10px; line-height: 10px; max-height: 14px; min-height: 14px; padding: 2px 2px; white-space: nowrap;">
+        <div v-for="(event, index) in storedEvents" :key="index" class="col-12" style="font-size: 10px; line-height: 10px; max-height: 14px; min-height: 14px; padding: 2px 2px; white-space: nowrap;">
           {{ event }}
         </div>
     </div>
   </div>
+  </q-pull-to-refresh>
   <div class="row justify-center" style="padding:60px;">
         <q-btn
             class="q-mt-xl"
@@ -289,8 +315,10 @@ export default defineComponent({
 
     return {
       currentDate: ref(today()),
-      //nowDate: ref(this.currentDate), //addToDate(parseTimestamp(today()), { day: 1 }).date 
+      scoreOptions:ref([1,2,3,4,5]),
+      chosenScore:ref(null),
       events: [],
+
       calendar: ref(null), //umm wasnt here...any diff? with moving and update now? >>nope
       store:useGoalStore(),
 
@@ -382,44 +410,11 @@ export default defineComponent({
     storedEvents(){
         //let subGoals = 
         //return JSON.parse(JSON.stringify(this.store.getSubGoals))
-        return this.store.getSubGoals
+        return this.deepCopy(this.store.getSubGoals)
 
         //umm no massaging? TBD but maybe to add .date?!? 
         //return subGoals
     },
-    //loadGoals() {
-      //let subGoals = JSON.parse(JSON.stringify(this.store.getSubGoals)) //[...this.store.getSubGoals]
-      //copy so that changes dont go back in storage... the JSON above seems to work at least
-      //or use let arrCopy = Object.assign([], arr) //is also a 'shallow' copy smh
-
-    //  return this.loadEventsWithDate()
-
-      /* moved in `loadEventsWithDate`
-      let subGoals = this.storedEvents
-      let pMap = this.parentGoalsMap
-
-      if (!subGoals) { //|| !pMap
-        //console.log("no goals to schedule...")
-        this.doNotify("no goals to schedule...")
-        return []
-      }
-     
-      subGoals.forEach((obj) => {
-        obj.date = null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
-        let pgoal = pMap.get(obj.parentGoal)
-        if(!pgoal){
-            console.log("no parent goal for:", obj)
-            obj.bgcolor = "red" //default for goals (could be ad-hoc goals)
-            obj.details = "unknown"
-        } else {
-            obj.bgcolor = pgoal.bgcolor  //for weird colors, becomes transparent--beware**
-            obj.details = "from:"+ pgoal.title
-        }
-      })
-
-      return subGoals */
-  
-    //},
     style () {
       return {
         top: this.timeStartPos + 'px'
@@ -455,17 +450,23 @@ export default defineComponent({
   },
   methods: {
     loadEventsWithDate(d = null){
-      let subGoals = this.deepCopy(this.storedEvents)  //toSee deepCopy of this...
+      let subGoals = this.storedEvents //this.deepCopy(this.storedEvents)  //toSee deepCopy of this...
+      //let pMap = this.parentGoalsMap
+
+      return this.setEventsTo(d, subGoals)
+
+    },
+    setEventsTo(to, events){ //assumes that parentGoals present...
       let pMap = this.parentGoalsMap
 
-      if (!subGoals) { //|| !pMap
+      if (!events) { //|| !pMap
         //console.log("no goals to schedule...")
-        this.doNotify("no goals to schedule...")
+        this.doNotify("setEventsTo BUT no goals to schedule...")
         return []
       }
-     
-      subGoals.forEach((obj) => {
-        obj.date = d != null ? d : null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
+      
+      events.forEach((obj) => {
+        obj.date = to != null ? to : null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
         let pgoal = pMap.get(obj.parentGoal)
         if(!pgoal){
             console.log("no parent goal for:", obj)
@@ -477,8 +478,9 @@ export default defineComponent({
         }
       })
 
-      console.log("loadEventsWithDate", d, subGoals, typeof subGoals) 
-      return subGoals
+      console.log("setEventsTo", to, events, typeof events)
+
+      return events
 
     },
     saveScore(newVal, id){
@@ -883,6 +885,8 @@ export default defineComponent({
         console.log("AddEvent...got added eh", this.toAddE)
         this.disableSaveSchedule = false //for saving schedule on change for this day...
       }
+
+      this.updateButtons(false, true, true) //schedule button too? toReview**
       
       this.reset()
     },
@@ -985,12 +989,21 @@ export default defineComponent({
         message: 'Some saved schedule found, load it up?'
           }).onOk(() => {
             this.loadSavedEvents(aDate, true) //data.start
+            this.updateButtons(false,true,true)
           }).onCancel(() => {
              console.log('Cancelled loading...')
              this.loadSavedEvents(aDate, false)
+             this.updateButtons(true,false,true)
           })//.onDismiss(() => {
             // console.log('I am triggered on both OK and Cancel')
           //})
+    },
+    refresh(done) {  //test to drag for refresh--toREview***
+        setTimeout(() => {
+          this.loadSavedEvents(this.currentDate, false)
+          console.log('Refreshing...', this.currentDate)
+          done()
+        }, 1000)
     },
 
     /////////////////////////////// EVENT HANDLERS //////////////////////////
@@ -1097,7 +1110,7 @@ export default defineComponent({
         message: 'Sure to remove event from today?'
           }).onOk(() => {
              this.doRemove(event)
-             this.saveCurrentSchedule() // to refresh endTimes? gotta do it here or it runs before...
+             this.saveCurrentSchedule() // to refresh endTimes gotta do it here or it runs before...
           }).onCancel(() => {
              console.log('Cancelled')
           })//.onDismiss(() => {
@@ -1214,23 +1227,24 @@ export default defineComponent({
 
       
 
-      this.loadSavedEvents(data.start, false)
-      this.updateButtons(false,true,true)
+      this.loadSavedEvents(data.start, false) //this needed to set the date...
+      //this.updateButtons(false,true,true)
 
 
 
       //console.log('onChange', data, this.currentDate, isToday, inDates)
       if (data.start == this.currentDate && this.currentDate == isToday){
-        console.log('onChange and all dates are alike!')
+        console.log('onChange and all dates are ALIKE!')
 
-       // this.loadSavedEvents(data.start, false) //bon just to have stuff on load...merge with else as it's same...todo**
+       this.updateButtons(false,true,true)
 
       } else{
         console.log('onChange..something is different?', data, this.currentDate, isToday, inDates)
          //toReview though as doesnt actually reload defaults but just changes date for events already present***
         // this.loadSavedEvents(data.start, false)
+        this.doLoadDefault()
 
-         this.updateButtons(false,true,true)
+        this.updateButtons(false,true,true)
 
       }
       
@@ -1299,25 +1313,42 @@ export default defineComponent({
       this.askUser(this.currentDate) //no need for this here....toRemove later***
     },
     doLoadDefault(){
-      console.log('doLoadDefault:',this.currentDate,this.events)
+      //console.log('doLoadDefault:',this.currentDate,this.events)
       this.events = null
-      //let e = this.colisTest(this.currentDate) // umm no point to pass currentDate above as changed below //oldie >> this.loadGoals 
-      this.events = this.loadEventsWithDate(this.currentDate) //try to pass in the proper date **toReview**
-      //[...e]  //also this doesnt bring back the original time smdh...i.e: when clicked after a reload FML
       
-      //console.log('doLoadDefault:',this.currentDate, this.events)
+      console.log('doLoadDefault:',this.currentDate,this.events)
+
+      let e = this.storedEvents //this.deepCopy(this.storedEvents) //see if resets reference...
+      e = this.setEventsTo(this.currentDate, e)
+
+      this.events = [...e]  //see if resets reference...Would using this.loadEventsWithDate work? **toTest
       
       //this.loadSavedEvents(this.currentDate, false)  
       
       this.saveCurrentSchedule()
 
-      this.updateButtons(false,false,true)
+      //this.updateButtons(false,false,true) //umm not needed here?!? toREview**
     },
-    bringScorey(){ //to use a value picked by user--TODO
-      let e = this.store.fetchGoalsWithMinScore(3)
+    bringScorey(){
+      
+      if (this.chosenScore == null) {
+        this.doNotify("Ayo select a score!")
+        return
+      }
 
-      //now assign this to events---todo**
-      console.log('bringScorey:',e)
+      let e = this.store.fetchGoalsWithMinScore(this.chosenScore) //3  //deepCopy? tbd**
+
+      console.log('bringScorey:', this.currentDate,this.chosenScore, e)
+
+      e = this.setEventsTo(this.currentDate, e)
+
+      this.events = [...e]
+
+      this.saveCurrentSchedule()
+
+      this.updateButtons(false,true,true)
+
+      this.chosenScore = null  //just to reset....
 
     },
     deepCopy(obj){ //deep copy object

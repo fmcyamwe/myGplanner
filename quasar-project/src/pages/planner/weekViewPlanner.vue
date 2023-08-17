@@ -51,7 +51,11 @@
          label="Summary"
          no-caps
        />
-     </div>
+    </div>
+    <!--<div v-if="showForm" class="q-gutter-md">
+      <day-schedule />
+      is empty :(
+    </div>-->
 
     <div style="max-width: 800px; width: 100%;">
         <div class="row justify-center items-center">
@@ -112,11 +116,12 @@ import {
   //padNumber,
  //isBetweenDates
 } from '@quasar/quasar-ui-qcalendar/src/index.js'
-
+//import daySchedule from './daySchedule.vue'
 
 export default defineComponent({
   name: 'MainPlanner',
   components:{
+    //daySchedule,
     QCalendar
   },
   /*data () {  //works but put them in refs below

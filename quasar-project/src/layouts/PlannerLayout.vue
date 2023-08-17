@@ -16,7 +16,7 @@
         </q-toolbar-title>
 
         <!--<div>Quasar v{{ $q.version }}</div> -->
-        <q-btn
+        <!--<q-btn
         class="q-mt-xl"
         color="white"
         text-color="blue"
@@ -24,7 +24,17 @@
         label="Retrieve..."
         no-caps
         @click="checkStored"
-      />
+        />-->
+      <div class="text-white">
+        <q-btn
+            class="q-mt-sm"
+            text-color="blue"
+            unelevated
+            to="/planner"
+            label="Go Back"
+            no-caps
+        />
+      </div>
       </q-toolbar>
     </q-header>
 

@@ -1,18 +1,19 @@
 <template>
 <main class="page page--table">
  <div class="q-pa-md" style="max-width: 350px">
-    <div class="text-white text-center">
-    <q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="blue"
-        unelevated
-        to="/planner"
-        label="Go Back"
-        no-caps
-     />
-    </div>
-
+    
+    <!--<div class="text-white text-center">
+        <q-btn
+            class="q-mt-xl"
+            color="white"
+            text-color="blue"
+            unelevated
+            to="/planner"
+            label="Go Back"
+            no-caps
+        />
+    </div>-->
+    <q-pull-to-refresh @refresh="refresh">
     <div>
         <q-form @submit="onSubmit" class="q-gutter-md" >
             <div class="q-gutter-sm">
@@ -20,11 +21,12 @@
                 <q-radio v-model="goalType" @click="reset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
             </div>
 
-            <q-input
+            <q-input class="q-ml-md"
                 filled
                 v-model="goalTitle"
                 label="A Goal"
                 lazy-rules
+                item-aligned
                 :rules="[ val => val && val.length > 0 || 'Please type a goal']"
             />
 
@@ -106,6 +108,7 @@
 
     <!-- should use component template instead--todo**-->
     <br>
+    
     <q-list bordered> <!--v-mutation="reload" but triggers too much-->
       <q-expansion-item v-for="goal in mainGoals" :key="goal.id" v-model="expanded[goal.id]" class="q-my-sm" :label="goal.title"
         :caption="goal.details" clickable v-ripple>
@@ -145,7 +148,7 @@
             </q-card>
         </div>
     </div>  -->
-
+    </q-pull-to-refresh>
     <q-btn
         class="q-mt-xl"
         color="white"
@@ -417,6 +420,13 @@ export default {
             //then what?
             //this.$emit('update:model-value', !this.modelValue)
         }
+        function refresh(done) {  //test to drag for refresh--toREview***
+            setTimeout(() => {
+                reload()
+            console.log('Refreshing...')
+            done()
+            }, 1000)
+        }
 
         function reload() { //reload variables with stuff from storage...doesnt update the slide though smh
             //console.log("reloadin...")
@@ -454,7 +464,7 @@ export default {
             hasSubG,
             doPrint,
             onSubmit,doReset,getSubGoals,
-            onRightDelete,onLeftEdit,reset,onClickDelete,
+            onRightDelete,onLeftEdit,reset,onClickDelete,refresh,
             //, reload
         }
     }
