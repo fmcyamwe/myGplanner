@@ -25,7 +25,7 @@
         color="white"
         text-color="blue"
         unelevated
-        to="/planner/daySchedule"
+        to="/planner/dayCalendar"
         label="Schedule"
         no-caps
       />

@@ -40,17 +40,9 @@ const routes = [
         component: () => import('pages/planner/weekViewPlanner.vue')
       },
       {
-        path: 'daySchedule', 
-        component: () => import('pages/planner/daySchedule.vue') //scheduleDrag.vue in scratch
+        path: 'dayCalendar', 
+        component: () => import('pages/planner/dayCalendar.vue') //oldie>> daySchedule //scheduleDrag.vue in scratch
       },
-      /*{
-        path: 'schedule', //'testAgenda'
-        component: () => import('pages/planner/daySlot.vue') //planner/agendaTest.vue and scheduleTest.vue in scratch now
-      },
-      {
-        path: 'addGoal', 
-        component: () => import('components/planner/addGoalDialog.vue') //pages/planner
-      },*/
       {
         path: 'viewGoals', 
         component: () => import('pages/planner/viewAllGoals.vue')

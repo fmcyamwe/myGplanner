@@ -1,263 +1,267 @@
 <template>
-   <div v-if="showForm" class="q-gutter-md">
-    <add-goal-form /> 
-  </div>
-  <q-pull-to-refresh @refresh="refresh">
-  <div v-if="!showForm" class="subcontent">
-    <navigation-bar
-      @today="onToday"
-      @prev="onPrev"
-      @next="onNext"
-    />
-    <div class="float-right"> <!--to do proper placing on the right-->
-        <div v-if="reloadSaved">         
-            <q-btn
-              class="q-mt-xl"
-              color=""
-              text-color="green"
-              elevated
-              label="Load Saved"
-              @click="doReloadSaved"
-              no-caps 
-            />
-        </div>
-        <div v-if="loadDefault">
-          <q-btn
-            class="q-mt-xl"
-            color=""
-            text-color="blue"
-            elevated
-            label="Defaults"
-            @click="doLoadDefault"
-            no-caps
-          />
-        </div>
-        <div v-if="doSchedule">
-              <q-btn-dropdown
-                split
-                color=""
-                class="q-mt-xl"
-                text-color="teal"
-                elevated
-                label="Schedule"
-                @click="bringScorey"
-                no-caps
-              >
-                <q-list>
-                  <q-item v-for="e in scoreOptions" :key="e.id" clickable v-close-popup @click="chosenScore = e" >
-                    <q-item-section>
-                      <q-item-label>{{ e }}</q-item-label>
-                    </q-item-section>
-                  </q-item>
-
-                </q-list>
-              </q-btn-dropdown>
-
-        </div>
-        <!-- oldie but above is better
-                    <q-btn
-            class="q-mt-xl"
-            color=""
-            text-color="teal"
-            elevated
-            label="Schedule"
-            @click="bringScorey"
-            no-caps
-          />
-          <q-select borderless v-model="chosenScore" :options="scoreOptions" label="score" />
-        -->
-    </div>
-    <div class="row justify-center">
-      <div style="display: flex; max-width: 800px; width: 100%; height: 400px;">
-        <q-calendar-day
-          ref="calendar"
-          view="day"
-          v-model="currentDate"
-          :drag-enter-func="onDragEnter"
-          :drag-over-func="onDragOver"
-          :drag-leave-func="onDragLeave"
-          :drop-func="onDrop"
-          animated
-          bordered
-          hoverable
-          no-active-date
-          transition-next="slide-left"
-          transition-prev="slide-right"
-          time-clicks-clamped
-          :interval-minutes="15"
-          :interval-count="96"
-          :interval-height="28"
-          :selected-start-end-dates="startEndTimes"
-          @change="onChange"
-          @click-date="onClickDate"
-          @click-time="onClickTime"
-          @click-interval="onClickInterval"
-          @click-head-intervals="onClickHeadIntervals"
-          @click-head-day="onClickHeadDay"
-          @mousedown-time="onMouseDownTime"
-          @mouseup-time="onMouseUpTime"
-          @mousemove-time="onMouseMoveTime"
-        >
-        <!--
-          dark
-          @mouseenter-time="onMouseEnter"
-          @mouseleave-time="onMouseLeave" works!!
-          the drop-func seem to fire when other drag functions are present as well
-          adding drag-start-func/drag-end in calendar as below doesnt do anything
-          :drag-end-func="onDragEndy"
-          :drag-start-func="onDragStarty"
-
-          click-time and mouseup-time are almost the same with diff in event(PointerEvent vs MouseEvent)
-          
-          :interval-start="24" >>to start at 7am
-          :interval-count="68" >>oldie
-          :selected-start-end-dates="startEndTimes" >>need for/used for range selection!
-
-          time-clicks-clamped >>what does that do? >>ngo for selecting interval-minute instead of the timestamp where clicked...
-            **toTest impact of removing it for the adjustCurrentTime?
-
-          see if touch-...events fire--TODO
-          also diff between event-time or event-day?
-
-          also remove one of onMoved or onChange as fires twice and have to redundant handle both**
-          @moved="onMoved"
-          -->
-          <template #head-day-event="{ scope: { timestamp } }">
-            <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
-              <template
-                v-for="event in eventsMap[timestamp.date]"
-                :key="event.id"
-              >
-                <q-badge
-                  v-if="!event.time"
-                  :class="badgeClasses(event, 'header')"
-                  :style="badgeStyles(event, 'header')"
-                  style="width: 100%; cursor: pointer; height: 12px; font-size: 10px; margin: 1px;"
-                >
-                  <div class="title q-calendar__ellipsis">
-                    {{ event.title }}
-                    <q-tooltip>{{ event.details }}</q-tooltip>
-                  </div>
-                </q-badge>
-                <q-badge
-                  v-else
-                  :class="badgeClasses(event, 'header')"
-                  :style="badgeStyles(event, 'header')"
-                  style="margin: 1px; width: 10px; max-width: 10px; height: 10px; max-height: 10px; cursor: pointer"
-                  @click="scrollToEvent(event)"
-                >
-                  <q-tooltip>{{ event.time + ' - ' + event.title }}</q-tooltip>
-                </q-badge>
-              </template>
-            </div>
-          </template>
-
-          <template #day-container="{ scope: { days }}">
-            <template v-if="hasDate(days)">
-              <div
-                class="day-view-current-time-indicator"
-                :style="style"
-              />
-              <div
-                class="day-view-current-time-line"
-                :style="style"
-              />
-            </template>
-          </template>
-          <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
-            <template
-              v-for="event in getEvents(timestamp.date)"
-              :key="event.id"
-            >
-              <div
-                v-if="event.time !== undefined"
-                class="my-event"
-                :class="badgeClasses(event, 'body')"
-                :style="badgeStyles(event, 'body', timeStartPos, timeDurationHeight)"
-                :draggable="true"
-                @dblclick.prevent="(e) => onDblClickEvent(e, event)"
-                @dragstart.stop="(e) => onDragStart(e, event)"
-                @dragend.stop="onDragEnd"
-                @drop="(e) => onDrop(e, 'goal-item', scope)"
-                @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
-                @dragover="(e) => onDragOver(e, 'goal-item', scope)"
+    <div v-if="showForm" class="q-gutter-md">
+     <add-goal-form /> 
+   </div>
+   
+   <div v-if="!showForm" class="subcontent">
+     <q-pull-to-refresh @refresh="onRefresh"> <!--have to put here or drag in calendar does this refresh when it shouldnt-->
+     <navigation-bar
+       @today="onToday"
+       @prev="onPrev"
+       @next="onNext"
+     />
+     
+     <div class="float-right"> <!--to do proper placing on the right-->
+         <div v-if="reloadSaved">         
+             <q-btn
+               class="q-mt-xl"
+               color=""
+               text-color="green"
+               elevated
+               label="Load Saved"
+               @click="onReloadSaved"
+               no-caps 
+             />
+         </div>
+         <div v-if="loadDefault">
+           <q-btn
+             class="q-mt-xl"
+             color=""
+             text-color="blue"
+             elevated
+             label="Defaults"
+             @click="onLoadDefault"
+             no-caps
+           />
+         </div>
+         <div v-if="doSchedule">
+               <q-btn-dropdown
+                 split
+                 color=""
+                 class="q-mt-xl"
+                 text-color="teal"
+                 elevated
+                 :label="chosenScoreLabel"
+                 @click="onReloadWithScore"
+                 no-caps
                >
-                <div class="title q-calendar__ellipsis">
-                  {{ event.title }}
-                  <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip>
-                  <!-- meh interfere with dhouble click for removing...Tosee if can enable it later somehow... -->
-                  <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
-                  <q-popup-edit v-model="event.score" auto-save v-slot="scope" :disable="disabledScoreEvts[event.id]" @save="(e)=>saveScore(e,event.id)">
-                    <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set" /> <!--counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...-->
-                  </q-popup-edit>
-                  
-                  <!--<goal-item
-                    :modelValue="true"
-                    :title="event.title"
-                    :time="event.time"
-                    :details="event.details"
-                    /> 
-                    -->
-                </div>
-              </div>
-            </template>
-          </template>
-        </q-calendar-day>
-      </div>
-
-      <q-dialog v-model="showEventDialog" transition-show="rotate" transition-hide="rotate">
-       <q-card> <!--style="padding: 2px 2px;"-->
-          <q-card-section>
-            <div class="text-h3">Pick event</div>
-          </q-card-section>
-          <q-separator />
-          <div >
-            <q-select
-            v-model="toAddE" 
-            :options="storedEvents"             
-            option-value="id"
-            option-label="title"
-            label="Sub Goal"
-            class="q-pa-sm event-select"
-            /><!--bon todo** align items inside to be better viewed-->
-          </div>
-          <q-separator />
-          <q-card-actions align="right">
-            <q-btn flat label="Add" color="primary" @click="AddEvent"/>
-          </q-card-actions>         
-        </q-card>
-      </q-dialog>
-    
-    </div>
-    <br><!-- in store.getSubGoals ...oldie >> events but allEvents also accessible when not returned? -->
-    <div class="scroll overflow-auto" style="height: 360px; width: 100%;">
-        <div v-for="(event, index) in storedEvents" :key="index" class="col-12" style="font-size: 10px; line-height: 10px; max-height: 14px; min-height: 14px; padding: 2px 2px; white-space: nowrap;">
-          {{ event }}
-        </div>
-    </div>
-  </div>
-  </q-pull-to-refresh>
-  <div class="row justify-center" style="padding:60px;">
-        <q-btn
-            class="q-mt-xl"
-            color="Green"
-            text-color="blue"
-            elevated
-            label="SaveSchedule"
-            :disable="doDisableSaveSchedule"
-            @click="doSaveSchedule"
-            no-caps
-        />
-        <q-btn
-            class="q-mt-xl"
-            color=""
-            text-color="green"
-            elevated
-            label="ShowForm"
-            @click="showGoalForm = !showGoalForm"
-            no-caps
-        />
-    </div>
+                 <q-list>
+                   <q-item v-for="e in scoreOptions" :key="e.id" clickable v-close-popup @click="chosenScore = e" >
+                     <q-item-section>
+                       <q-item-label>{{ e }}</q-item-label>
+                     </q-item-section>
+                   </q-item>
+ 
+                 </q-list>
+               </q-btn-dropdown>
+ 
+         </div>
+         <!-- oldie but above is better
+                     <q-btn
+             class="q-mt-xl"
+             color=""
+             text-color="teal"
+             elevated
+             label="Schedule"
+             @click="bringScorey"
+             no-caps
+           />
+           <q-select borderless v-model="chosenScore" :options="scoreOptions" label="score" />
+         -->
+     </div>
+     </q-pull-to-refresh>
+     <div class="row justify-center">
+       <div style="display: flex; max-width: 800px; width: 100%; height: 400px;">
+         <q-calendar-day
+           ref="calendar"
+           view="day"
+           v-model="currentDate"
+           :drag-enter-func="onDragEnter"
+           :drag-over-func="onDragOver"
+           :drag-leave-func="onDragLeave"
+           :drop-func="onDrop"
+           animated
+           bordered
+           hoverable
+           no-active-date
+           transition-next="slide-left"
+           transition-prev="slide-right"
+           time-clicks-clamped
+           :interval-minutes="15"
+           :interval-count="96"
+           :interval-height="28"
+           :selected-start-end-dates="startEndTimes"
+           @change="onChange"
+           @click-date="onClickDate"
+           @click-time="onClickTime"
+           @click-interval="onClickInterval"
+           @click-head-intervals="onClickHeadIntervals"
+           @click-head-day="onClickHeadDay"
+           @mousedown-time="onMouseDownTime"
+           @mouseup-time="onMouseUpTime"
+           @mousemove-time="onMouseMoveTime"
+         >
+         <!--
+           dark
+           @mouseenter-time="onMouseEnter"
+           @mouseleave-time="onMouseLeave" works!!
+           the drop-func seem to fire when other drag functions are present as well
+           adding drag-start-func/drag-end in calendar as below doesnt do anything
+           :drag-end-func="onDragEndy"
+           :drag-start-func="onDragStarty"
+ 
+           click-time and mouseup-time are almost the same with diff in event(PointerEvent vs MouseEvent)
+           
+           :interval-start="24" >>to start at 7am
+           :interval-count="68" >>oldie
+           :selected-start-end-dates="startEndTimes" >>need for/used for range selection!
+ 
+           time-clicks-clamped >>what does that do? >>ngo for selecting interval-minute instead of the timestamp where clicked...
+             **toTest impact of removing it for the adjustCurrentTime?
+ 
+           see if touch-...events fire--TODO
+           also diff between event-time or event-day?
+ 
+           also remove one of onMoved or onChange as fires twice and have to redundant handle both**
+           @moved="onMoved"
+           -->
+           <template #head-day-event="{ scope: { timestamp } }">
+             <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
+               <template
+                 v-for="event in eventsMap[timestamp.date]"
+                 :key="event.id"
+               >
+                 <q-badge
+                   v-if="!event.time"
+                   :class="badgeClasses(event, 'header')"
+                   :style="badgeStyles(event, 'header')"
+                   style="width: 100%; cursor: pointer; height: 12px; font-size: 10px; margin: 1px;"
+                 >
+                   <div class="title q-calendar__ellipsis">
+                     {{ event.title }}
+                     <q-tooltip>{{ event.details }}</q-tooltip>
+                   </div>
+                 </q-badge>
+                 <q-badge
+                   v-else
+                   :class="badgeClasses(event, 'header')"
+                   :style="badgeStyles(event, 'header')"
+                   style="margin: 1px; width: 10px; max-width: 10px; height: 10px; max-height: 10px; cursor: pointer"
+                   @click="scrollToEvent(event)"
+                 >
+                   <q-tooltip>{{ event.time + ' - ' + event.title }}</q-tooltip>
+                 </q-badge>
+               </template>
+             </div>
+           </template>
+ 
+           <template #day-container="{ scope: { days }}">
+             <template v-if="hasDate(days)">
+               <div
+                 class="day-view-current-time-indicator"
+                 :style="style"
+               />
+               <div
+                 class="day-view-current-time-line"
+                 :style="style"
+               />
+             </template>
+           </template>
+           <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
+             <template
+               v-for="event in getEvents(timestamp.date)"
+               :key="event.id"
+             >
+               <div
+                 v-if="event.time !== undefined"
+                 class="my-event"
+                 :class="badgeClasses(event, 'body')"
+                 :style="badgeStyles(event, 'body', timeStartPos, timeDurationHeight)"
+                 :draggable="true"
+                 @dblclick.prevent="(e) => onDblClickEvent(e, event)"
+                 @dragstart.stop="(e) => onDragStart(e, event)"
+                 @dragend.stop="onDragEnd"
+                 @drop="(e) => onDrop(e, 'goal-item', scope)"
+                 @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
+                 @dragover="(e) => onDragOver(e, 'goal-item', scope)"
+                >
+                 <div class="title q-calendar__ellipsis">
+                   {{ event.title }}
+                   <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip>
+                   <!-- meh interfere with dhouble click for removing...Tosee if can enable it later somehow... -->
+                   <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
+                   <q-popup-edit v-model="event.score" auto-save v-slot="scope" :disable="disabledScoreEvts[event.id]" @save="(e)=>onSaveScore(e,event.id)">
+                     <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set" /> <!--counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...-->
+                   </q-popup-edit>
+                   
+                   <!--<goal-item
+                     :modelValue="true"
+                     :title="event.title"
+                     :time="event.time"
+                     :details="event.details"
+                     /> 
+                     -->
+                 </div>
+               </div>
+             </template>
+           </template>
+         </q-calendar-day>
+       </div>
+ 
+       <q-dialog v-model="showEventDialog" transition-show="rotate" transition-hide="rotate">
+        <q-card> <!--style="padding: 2px 2px;"-->
+           <q-card-section>
+             <div class="text-h3">Pick event</div>
+           </q-card-section>
+           <q-separator />
+           <div >
+             <q-select
+             v-model="toAddE" 
+             :options="storedEvents"
+             option-value="id"
+             option-label="title"
+             label="Sub Goal"
+             class="q-pa-sm event-select"
+             /><!--bon todo** align items inside to be better viewed 
+                :options="canBeAdded" gives errors 
+             -->
+           </div>
+           <q-separator />
+           <q-card-actions align="right">
+             <q-btn flat label="Add" color="primary" @click="onAddEvent"/>
+           </q-card-actions>         
+         </q-card>
+       </q-dialog>
+     
+     </div>
+     <div class="row justify-center" >
+       <q-btn
+           class="q-mt-xl"
+           color="Green"
+           text-color="blue"
+           elevated
+           label="SaveSchedule"
+           :disable="doDisableSaveSchedule"
+           @click="doSaveSchedule"
+           no-caps
+       />
+       <q-btn
+           class="q-mt-xl"
+           color=""
+           text-color="green"
+           elevated
+           label="ShowForm"
+           @click="showGoalForm = !showGoalForm"
+           no-caps
+       />
+     </div>
+     <br><!-- in store.getSubGoals ...oldie >> events but allEvents also accessible when not returned? -->
+     <div class="scroll overflow-auto" style="height: 360px; width: 100%;">
+         <div v-for="(event, index) in storedEvents" :key="index" class="col-12" style="font-size: 10px; line-height: 10px; max-height: 14px; min-height: 14px; padding: 2px 2px; white-space: nowrap;">
+           {{ event }}
+         </div>
+     </div>
+   </div>
 </template>
 <script>
 import {
@@ -288,27 +292,26 @@ function isLeftClick (e) {
   return e.button === 0
 }
 
-//umm try to move other function here as the above --Todo
+//umm move other function here as the above? --ToReview
 
 export default defineComponent({
-  name: 'daySchedule',
+  name: 'dayCalendar',
   components: {
     NavigationBar,
     QCalendarDay,
     addGoalForm,
     //goalDialog
   },
-
   data () {
     const draggedItem = ref(null)
-    const targetDrop = ref(null) 
-    //const currentDate = ref(null)
+    const targetDrop = ref(null)
+
     const currentTime = ref(null)
 
     const endTimesSet = ref(null) //set of end times for scheduled events for lookup when adjusting time!
     
-    const allEvents = ref(null)  //bring up all subgoals from storage by default
-    const dailyScheduled = ref(null) //shall be the daily scheduled and be source of truth for currently viewed day--toUse**
+    const allEvents = ref(null)  //bring up all subgoals from storage by default //keep reference to it without change
+    const dailyScheduled = ref(null) //shall be the daily scheduled and for currently viewed day--for saveSchedule..prolly
 
     const $q = useQuasar()
     let intervalId = null
@@ -317,7 +320,7 @@ export default defineComponent({
       currentDate: ref(today()),
       scoreOptions:ref([1,2,3,4,5]),
       chosenScore:ref(null),
-      events: [],
+      events: [], //should rename this...
 
       calendar: ref(null), //umm wasnt here...any diff? with moving and update now? >>nope
       store:useGoalStore(),
@@ -326,7 +329,7 @@ export default defineComponent({
       otherTimestamp: ref(null),   //end time for range...
       mouseDown: ref(false),
       mobile: ref(true),
-      //intervalId:ref(null), ////for showing current time >>nope
+
       timeStartPos:ref(0), ///This is the one for actually showing current time and needs to be in return for proper update
 
       showGoalForm: ref(false), //showing addGoal form
@@ -342,17 +345,12 @@ export default defineComponent({
     }
   },
   beforeMount() {
-    let e = this.loadEventsWithDate() //this.loadGoals
-    //console.log('After loadGoals', e)
-
     this.mobile = isMobile()  //--for drag for range selection.
    
-    this.events =  [...e] //does update!
-
-    //this.saveCurrentSchedule() //bon seem doesnt like putting this in loadGoals as it's computed! same way cant assignt events from loadGoals smh
-    
-    //this.skipReload = true //for the onChange....but nope
-    
+    //this should just load all events--nothing else--prolly
+    //in onChange is where to setDate and other props...prolly..unless there is a reason that not doable there?
+    //this.events = this.addPropsEventsTo(null, this.returnNewEvts(true)) //[...e] //does update!
+    this.events = this.returnNewEvts(true)
   },
   beforeUnmount() {
     clearInterval(this.intervalId)
@@ -364,14 +362,16 @@ export default defineComponent({
         this.adjustCurrentTime()
     }, 60000)
   },
+
   computed: {
+    chosenScoreLabel(){ 
+      return this.chosenScore == null ? `Scheduled All` : `Schedule >${this.chosenScore}` 
+    },
     showForm() {return this.showGoalForm},
     doDisableSaveSchedule(){ //umm was no need for this!?! smh but works well...maybe could do other calc here?
         return this.disableSaveSchedule 
     },
-
-    // convert the events into a map of lists keyed by date
-    eventsMap () {
+    eventsMap () {// convert the events into a map of lists keyed by date
       const map = {}
       this.events.forEach(event => {
         if (!map[ event.date ]) {
@@ -407,20 +407,30 @@ export default defineComponent({
         //console.log('parentGoalsMap', map) //JSON.stringify(e)
         return map
     },
-    storedEvents(){
-        //let subGoals = 
-        //return JSON.parse(JSON.stringify(this.store.getSubGoals))
-        return this.deepCopy(this.store.getSubGoals)
+    //dropdown for adding evts that are not already scheduled.
+    //when all are present, shows them all to change schduled timeslot 
+    canBeAdded(){ 
+      let e = this.storedEvents //this.deepCopy
 
-        //umm no massaging? TBD but maybe to add .date?!? 
-        //return subGoals
+      //console.log('canBeAdded e is', e, this.events)
+
+      //original stuff not currently scheduled...with comparison by reference this doesnt work....should have anonymous func that properly checks! **TODO**
+      let difference =  e.filter(x => !this.events.includes(x)); //this.events.indexOf(x) !== -1
+
+      console.log('canBeAdded difference is', difference)
+
+      if (difference.length == 0) return e
+      
+      return difference
+    },
+    storedEvents(){
+        return this.store.getSubGoals
     },
     style () {
       return {
         top: this.timeStartPos + 'px'
       }
     },
-
     //some computed for the range interval
     startEndTimes() { 
       const dates = []
@@ -447,26 +457,32 @@ export default defineComponent({
       }
       return false
     },
-  },
-  methods: {
-    loadEventsWithDate(d = null){
-      let subGoals = this.storedEvents //this.deepCopy(this.storedEvents)  //toSee deepCopy of this...
-      //let pMap = this.parentGoalsMap
+   },
 
-      return this.setEventsTo(d, subGoals)
+   methods: {
+    returnNewEvts(newish = false){
+        if (this.events === this.allEvents){ //triple equal sign for reference check..never goes here though smh
+          console.log("returnNewEvts SAME")
+        }
 
+        if (newish){
+          let e = this.deepCopy(this.storedEvents)
+          this.allEvents = [...e]
+          return e
+        }
+        return this.allEvents  //here return same stuff...beware that not null***
     },
-    setEventsTo(to, events){ //assumes that parentGoals present...
-      let pMap = this.parentGoalsMap
+    addPropsEventsTo(to, events){
+      let pMap = this.parentGoalsMap  //assumes that parentGoals present...
 
       if (!events) { //|| !pMap
         //console.log("no goals to schedule...")
-        this.doNotify("setEventsTo BUT no goals to schedule...")
+        this.doNotify("addPropsEventsTo BUT no goals to schedule...")
         return []
       }
       
       events.forEach((obj) => {
-        obj.date = to != null ? to : null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
+        obj.date = to != null ? to : obj.date //umm set to itself? //null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
         let pgoal = pMap.get(obj.parentGoal)
         if(!pgoal){
             console.log("no parent goal for:", obj)
@@ -478,21 +494,9 @@ export default defineComponent({
         }
       })
 
-      console.log("setEventsTo", to, events, typeof events)
+      console.log("addPropsEventsTo", to, events, typeof events)
 
       return events
-
-    },
-    saveScore(newVal, id){
-      
-      let ev = this.allEvents.get(id)
-      if (ev){
-        console.log(`oooh saveScore from ${ev.score}`,newVal, id)
-        ev.score = newVal
-        this.disableSaveSchedule = false //to save schedule--toReview placing it here**
-      }else {
-        console.log(`ERROR could not find event ${id}?!?`) //this would be baaad! 
-      }
     },
     //numeric date and time identifier for timestamp comparison
     getTimeNumber(timey) {
@@ -501,6 +505,57 @@ export default defineComponent({
       }
       return false
     },
+    adjustCurrentTime() {
+      const now = parseDate(new Date())
+
+      //console.log("adjustin...", this.currentDate, now.date)
+      if (this.currentDate !== now.date){  //caused a jump back to current day smh
+        console.log("Not adjustin...", this.currentDate, now.date)
+        this.timeStartPos = -10 //when null, doesnt change smh and 0 still shows...toMonitor if need to remove interval
+        this.currentTime = ''
+        return
+      }
+    
+      this.currentDate = now.date 
+      this.currentTime = now.time //'00:52'
+      this.timeStartPos = this.$refs.calendar.timeStartPos(this.currentTime, false)  
+      //the above dont update in view >>cause was not in return!!
+
+      
+      //could check map of end times(keys) to see if reached end of an event? 
+        //--not expensive? maybe if save only endTimes?
+     if(this.endTimesSet && this.endTimesSet.has(now.time)) { //this.endTimesArray[now.time]
+        //console.log("should got a notif?...",now.time)
+        this.changeEditScore(now.time)
+        this.doNotify(`WOOO at end of a scheduled event ${now.time}`, "positive")
+     }//else {
+      //  console.log("nothin...",this.endTimesSet)
+     //}
+    },
+    hasDate (days) {
+      return this.currentDate
+        ? days.find(day => day.date === this.currentDate)
+        : false
+    },
+    badgeClasses (event, type) {
+      const isHeader = type === 'header'
+      return {
+        [ `text-white bg-${ event.bgcolor.toLocaleLowerCase() }` ]: true, //adding toLocaleLowerCase() to account for colors with uppercased first letter
+        'full-width': !isHeader && (!event.side || event.side === 'full'),
+        'left-side': !isHeader && event.side === 'left',
+        'right-side': !isHeader && event.side === 'right',
+        'rounded-border': true
+      }
+    },
+    badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
+      const s = {}
+      if (timeStartPos && timeDurationHeight) {
+        s.top = timeStartPos(event.time) + 'px'
+        s.height = timeDurationHeight(event.duration) + 'px'
+      }
+      s[ 'align-items' ] = 'flex-start'
+      return s
+    },
     getAnEvent(id){
         for(let i = 0; i< this.events.length;i++){
             if (this.events[i].id === id) return this.events[i]
@@ -508,19 +563,21 @@ export default defineComponent({
         return null
     },
     addAnEvent(toAdd){
-        console.log("oooh addAnEvent..ORIG",toAdd)
-        let e = {...toAdd, date: today()} //would this work? seems so..but date already present?
+        console.log("oooh addAnEvent..ORIG",toAdd, this.currentDate) //make sure for currentDate
+        //let e = {...toAdd, date: today()} //would this work? seems so..but date already present?
         
-        let d = today()
-        toAdd.date = d
+        //let d = today()
+        //toAdd.date = d
 
-        console.log("addAnEvent..after",e, toAdd)
+        let e = this.addPropsEventsTo(this.currentDate, [toAdd])
 
-        this.events.push(toAdd)
+        console.log("addAnEvent..after",e[0], toAdd) //normally the same 
+
+        this.events.push(toAdd) //should push e[0]
         let startTime = addToDate(parsed(toAdd.date), { minute: parseTime(toAdd.time) })
         let endTime = addToDate(startTime, { minute: toAdd.duration })
 
-        this.allEvents.set(toAdd.id, {
+        this.dailyScheduled.set(toAdd.id, {
                 start: startTime,
                 end: endTime,
                 on: toAdd.date,
@@ -532,8 +589,7 @@ export default defineComponent({
         this.endTimesSet.add(endTime.time)
 
     },
-    //save 
-    saveCurrentSchedule() {
+    saveCurrentSchedule() { //save 
       const mappy = new Map()
       //const startsEnds = new Map()
       let endTimes = new Set() //[]
@@ -566,63 +622,12 @@ export default defineComponent({
           //}
         })
 
-        this.allEvents = mappy 
+        this.dailyScheduled = mappy 
 
         this.endTimesSet = endTimes
         
-        console.log("done saveCurrentSchedule") //,this.endTimesSet, this.allEvents, this.events, typeof this.endTimesSet)
+        console.log("done saveCurrentSchedule") //,this.dailyScheduled, this.events, typeof this.endTimesSet)
 
-    },
-    adjustCurrentTime() {
-      const now = parseDate(new Date())
-
-      //console.log("adjustin...", this.currentDate, now.date)
-      if (this.currentDate !== now.date){  //caused a jump back to current day smh
-        console.log("Not adjustin...", this.currentDate, now.date)
-        this.timeStartPos = -10 //when null, doesnt change smh and 0 still shows...toMonitor if need to remove interval
-        this.currentTime = ''
-        return
-      }
-    
-      this.currentDate = now.date 
-      this.currentTime = now.time //'00:52'
-      this.timeStartPos = this.$refs.calendar.timeStartPos(this.currentTime, false)  
-      //the above dont update in view >>cause was not in return!!
-
-      
-      //could check map of end times(keys) to see if reached end of an event? 
-        //--not expensive? maybe if save only endTimes?
-     if(this.endTimesSet.has(now.time)) { //this.endTimesArray[now.time]
-        //console.log("should got a notif?...",now.time)
-        this.changeEditScore(now.time)
-        this.doNotify(`WOOO at end of a scheduled event ${now.time}`, "positive")
-     }//else {
-      //  console.log("nothin...",this.endTimesSet)
-     //}
-    },
-    hasDate (days) {
-      return this.currentDate
-        ? days.find(day => day.date === this.currentDate)
-        : false
-    },
-    badgeClasses (event, type) {
-      const isHeader = type === 'header'
-      return {
-        [ `text-white bg-${ event.bgcolor.toLocaleLowerCase() }` ]: true, //adding toLocaleLowerCase() to account for colors with uppercased first letter
-        'full-width': !isHeader && (!event.side || event.side === 'full'),
-        'left-side': !isHeader && event.side === 'left',
-        'right-side': !isHeader && event.side === 'right',
-        'rounded-border': true
-      }
-    },
-    badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
-      const s = {}
-      if (timeStartPos && timeDurationHeight) {
-        s.top = timeStartPos(event.time) + 'px'
-        s.height = timeDurationHeight(event.duration) + 'px'
-      }
-      s[ 'align-items' ] = 'flex-start'
-      return s
     },
     // get all events for the specified date--use scheduleMap instead...prolly**
     getEvents (dt) {
@@ -664,7 +669,7 @@ export default defineComponent({
         return mappy
       }
 
-      this.allEvents.forEach( (value, key, map) => {
+      this.dailyScheduled.forEach( (value, key, map) => {
         if (key == evID){ 
             console.log("skipping sameness overlapOtherEvent")//, evID, value //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
         }else {
@@ -688,7 +693,7 @@ export default defineComponent({
     },
     recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false) { // goForward to push down overlapping evts as it's more natural
   
-        let overlappedEvt = this.allEvents.get(overlappingEvtID)
+        let overlappedEvt = this.dailyScheduled.get(overlappingEvtID)
         if (overlappedEvt){                
             console.log(`dragDirection...target>>${targetTimestamp.time}, oldie at`,tEvt, overlappedEvt)
             //direction of drag(up or down) >>either - or + 
@@ -741,8 +746,6 @@ export default defineComponent({
                 
         }else{console.log("ERROR overlapped event not found!", overlappingEvtID)}
 
-        //}
-
     },
     changeEvtSchedule(evtID, timey){
         let changed = this.changeEventSchedule(evtID, timey)
@@ -754,7 +757,7 @@ export default defineComponent({
     changeEditScore(timeEnd) { //enables the editing of score after event has passed.
         //search for corresponding eventID and enable that one only //this.disabledScoreEvts[0] = false
         
-        for (let [entry, val] of this.allEvents) {
+        for (let [entry, val] of this.dailyScheduled) { //allEvents
             //console.log("changeEditScore", entry, val)
             if (val.end.time == timeEnd){
                 console.log("changeEditScore...FOUND", entry, val)
@@ -763,13 +766,13 @@ export default defineComponent({
         }
     },
     updateScheduleMaps(evID, timeyStart){
-        if(this.allEvents.has(evID)){
-            let forsy = this.allEvents.get(evID).for
-            let oAt = this.allEvents.get(evID).originalAt
-            let oldEnd = this.allEvents.get(evID).end
+        if(this.dailyScheduled.has(evID)){
+            let forsy = this.dailyScheduled.get(evID).for
+            let oAt = this.dailyScheduled.get(evID).originalAt
+            let oldEnd = this.dailyScheduled.get(evID).end
             let newEndy = addToDate(timeyStart, { minute: forsy })
-            let scorey = this.allEvents.get(evID).score
-            this.allEvents.set(evID, {
+            let scorey = this.dailyScheduled.get(evID).score
+            this.dailyScheduled.set(evID, {
                 on: timeyStart.date,
                 originalAt: oAt, //timeyStart.time, >>keep origin time
                 for: forsy,
@@ -827,68 +830,93 @@ export default defineComponent({
         }
         return false 
     },
-    AddEvent() {
-      console.log('I be adding', this.toAddE, this.targetDrop)
-      
-      this.showEventDialog = false
+    doRemove (item) { //also should just remove it from the current schedule...NOT delete it completely!!
+      let currentSize = this.events.length
+      for( var i = 0; i < currentSize; i++){ 
+            if ( this.events[i].id === item.id) { 
+                this.events.splice(i, 1)
+                console.log("removed event spliced!", item)
 
-      //then add it to the map...after checking that it can be added...
-      //-making sure it doesnt overlap with other stuff already
-      //if it does..prolly .Notify
-      //if no prob ask whether to keep this time going forward?
+                if(this.dailyScheduled.has(item.id)){ // && this.startEndMap.has(item.id)
+                    this.dailyScheduled.delete(item.id)
+                    //this.startEndMap.delete(item.id)
+                }else{console.log("ERROR doRemove has no such item?@? ", item)}
 
-      this.draggedItem = this.toAddE
-
-      let addy = this.getAnEvent(this.toAddE.id)
-      if (!addy){
-        console.log("AddEvent ERROR? or...new?", addy, this.toAddE); 
-        addy = this.toAddE
-        //bon have to add it and then continue...
-        this.addAnEvent(this.toAddE)
+                return //important to return esti
+            }
       }
+    },
+    setEvtsToDate(date){ //change the current events to the passed date--toREview that it's not redundant**todo
+        console.log(`setEvtsToDate for ${date}...`)
 
-      let anyOverlap = this.overlapOtherEvent(addy.id, this.targetDrop.timestamp, addy.duration)
+        this.events.forEach((obj) => {
+                obj.date = date //data.start //today()
+        })
+        this.saveCurrentSchedule() //refresh schedule still...prolly
+    },
+    reset() { //reset variable for next use 
+      this.draggedItem = null
+      this.targetDrop = null
+      //
+      this.toAddE = null
+    },
+    doNotify(messg, colorNotif = undefined){
+      this.$q.notify({ // also see about using >> this.$q.dialog
+                        color: colorNotif !== undefined ? colorNotif : 'negative', //colorNotif,//'negative',
+                        position: 'top', //see using 'bottom'
+                        message: messg,
+                        icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+                    })
+    },
+    askUser(aDate){//toRepurpose**
+    },
+    updateButtons(reloadBool=null,defaultBool=null, scheduleBool=null){ 
+      //if (reloadBool != null) {
+        this.reloadSaved = reloadBool != null ? reloadBool : this.reloadSaved
+      //}
+      //if (defaultBool != null) { //sheesh dont check for falsy vals holmes!!
+        this.loadDefault = defaultBool != null ? defaultBool : this.loadDefault
+      //}
+      //if (scheduleBool != null) {
+        this.doSchedule = scheduleBool != null ? scheduleBool : this.doSchedule
+      //}
+    },
+    fetchEventsForDate(aDate) { //toReview and use
 
-      console.log("AddEvent anyOverlap", anyOverlap)
-      let sizey = anyOverlap.length
-      if(sizey > 0) {
-        let i = 0
+      let evts = this.store.getEventsForDate(aDate) //this.deepCopy ?
+
+      if (!evts) {console.log(`ERROR no evts found for ${aDate}...`, evts); return}
     
-        do {
-            this.recurChangeTime(anyOverlap[i],addy, this.targetDrop.timestamp, true)
-        } while (++i < sizey)
+      let e = this.deepCopy(this.storedEvents)
+      let toReload = []
 
-      } else {
-        
-        //so already there...just change it
-        if(this.allEvents.has(addy.id)){
-            let [changed, worked] = this.changeEvtSchedule(addy.id, this.targetDrop.timestamp) //this.toAddE
-            console.log("AddEvent that was there complete",changed, worked,addy.id) //this.toAddE.id
-        } else { 
-            //not there...add new event to schedule--Should not get here!!
-            console.log('NEW NEW event with current events as:', this.events) //should NOT get here now**
+      e.forEach((obj) => {
+        let sav = evts[obj.id]
+        if (sav){
+          obj.date = sav.date, //today()
+          obj.time = sav.time, //save.time is what it was changed to...
+          obj.duration = sav.duration,
+          obj.score = sav.atScore
 
-            //this.events.push({...this.toAddE, date: today()})
+          toReload.push(obj)
+        }//else{console.log('ERROR...hasDateEvts NOT found?!?', obj.title)} 
+      })
 
-            //console.log('NEW events as now',this.events) // this.toAddE, 
 
-            //this.saveCurrentSchedule() //see if works better?  >>seems so!
-            
-            /*let worked = this.changeEventSchedule(this.toAddE.id, this.targetDrop.timestamp)
-            console.log("AddEvent NEW complete",worked, this.targetDrop.timestamp)
+      toReload = this.addPropsEventsTo(null, toReload)
 
-            let e = this.updateScheduleMaps(this.toAddE.id, this.targetDrop.timestamp)
-            if (!e) {console.log("umm ERROR updateScheduleMaps failed?",this.toAddE.id) }
-            */
-        }
-       
-        console.log("AddEvent...got added eh", this.toAddE)
-        this.disableSaveSchedule = false //for saving schedule on change for this day...
-      }
+      this.events = toReload //[...toReload]
 
-      this.updateButtons(false, true, true) //schedule button too? toReview**
-      
-      this.reset()
+      this.saveCurrentSchedule()
+
+    },
+    /////////////////////////////// EVENT HANDLERS //////////////////////////
+    onRefresh(done) {  //test to drag for refresh
+        setTimeout(() => {
+          this.loadSavedEvents(this.currentDate) //, false
+          console.log('Refreshing...', this.currentDate)
+          done()
+        }, 1000)
     },
     doSaveSchedule() { //save the current schedule into localStorage
         console.log("doSaveSchedule for", this.currentDate)
@@ -898,7 +926,7 @@ export default defineComponent({
         //    map[ event.date ] = []   //toUse
         //}
 
-        this.allEvents.forEach( (value, key, map) => {
+        this.dailyScheduled.forEach( (value, key, map) => {
             toSave[key] = {  //also use push in case of multiple same subGoals--todo prolly!
                 //id: key,
                 date: value.on,
@@ -924,89 +952,83 @@ export default defineComponent({
             //duration(in case changes prolly)
             //score?maybe
        this.store.saveDailySchedule(this.currentDate, toSave) 
+       this.disableSaveSchedule = true 
     },
-    doRemove (item) { //also should just remove it from the current schedule...NOT delete it completely!!
-      let currentSize = this.events.length
-      for( var i = 0; i < currentSize; i++){ 
-            if ( this.events[i].id === item.id) { 
-                this.events.splice(i, 1)
-                console.log("removed event spliced!", item)
 
-                if(this.allEvents.has(item.id)){ // && this.startEndMap.has(item.id)
-                    this.allEvents.delete(item.id)
-                    //this.startEndMap.delete(item.id)
-                }else{console.log("ERROR doRemove has no such item?@? ", item)}
+    onAddEvent() {
+      console.log('I be adding', this.toAddE, this.targetDrop)
+      
+      this.showEventDialog = false
 
-                return //important to return esti
-            }
+      //then add it to the map...after checking that it can be added...
+      //-making sure it doesnt overlap with other stuff already
+      //if it does..prolly .Notify
+      //if no prob ask whether to keep this time going forward?
+
+      this.draggedItem = this.toAddE
+
+      let addy = this.getAnEvent(this.toAddE.id)
+      if (!addy){
+        console.log("onAddEvent ERROR? or...new?", addy, this.toAddE); 
+        //bon have to add it and then continue...
+        addy = this.toAddE
+        this.addAnEvent(this.toAddE)
+      }
+
+      let anyOverlap = this.overlapOtherEvent(addy.id, this.targetDrop.timestamp, addy.duration)
+
+      console.log("AddEvent anyOverlap", anyOverlap)
+      let sizey = anyOverlap.length
+      if(sizey > 0) {
+        let i = 0
+    
+        do {
+            this.recurChangeTime(anyOverlap[i],addy, this.targetDrop.timestamp, true)
+        } while (++i < sizey)
+
+      } else {
+        
+        //so already there...just change it
+        if(this.dailyScheduled.has(addy.id)){
+            let [changed, worked] = this.changeEvtSchedule(addy.id, this.targetDrop.timestamp) //this.toAddE
+            console.log("AddEvent that was there complete",changed, worked,addy.id) //this.toAddE.id
+        } else { 
+            //not there...add new event to schedule--Should not get here!!
+            console.log('NEW NEW event with current events as:', this.events) //should NOT get here now**
+
+            //this.events.push({...this.toAddE, date: today()})
+
+            //console.log('NEW events as now',this.events) // this.toAddE, 
+
+            //this.saveCurrentSchedule() //see if works better?  >>seems so!
+            
+            /*let worked = this.changeEventSchedule(this.toAddE.id, this.targetDrop.timestamp)
+            console.log("AddEvent NEW complete",worked, this.targetDrop.timestamp)
+
+            let e = this.updateScheduleMaps(this.toAddE.id, this.targetDrop.timestamp)
+            if (!e) {console.log("umm ERROR updateScheduleMaps failed?",this.toAddE.id) }
+            */
+        }
+       
+        console.log("onAddEvent...got added eh", this.toAddE)
+        this.disableSaveSchedule = false //for saving schedule on change for this day...
+      }
+
+      this.updateButtons(false, true, true) //schedule button too? toReview**
+      
+      this.reset()
+    },
+    onSaveScore(newVal, id){
+      
+      let ev = this.dailyScheduled.get(id)
+      if (ev){
+        console.log(`oooh onSaveScore from ${ev.score}`,newVal, id)
+        ev.score = newVal
+        this.disableSaveSchedule = false //to save schedule--toReview placing it here**
+      }else {
+        console.log(`ERROR could not find event ${id}?!?`) //this would be baaad! 
       }
     },
-    loadSavedEvents(date, wannaChange){ //loads a date saved events...or changes the current events to the passed date
-        console.log(`loadSavedEvents for ${date}...`)
-
-        if (wannaChange){
-            let evts = this.store.getEventsForDate(date)
-            if (!evts) {console.log(`ERROR no evts found for ${date}...`, evts); return}
-            
-            this.events.forEach((obj) => {
-                let sav = evts[obj.id]
-                if (sav){
-                    obj.date = sav.date, //today()
-                    //obj.originalAt =  obj.time, //umm but adding this property where it shouldnt!!
-                    obj.time = sav.time, //save.time is what it was changed to...
-                    obj.duration = sav.duration,
-                    obj.score = sav.atScore
-
-                }else{console.log('ERROR...hasDateEvts NOT found?!?', obj.id)} //shouldnt happen?!?
-            }) 
-        }else {
-            this.events.forEach((obj) => {
-                obj.date = date //data.start //today()
-            })
-        }
-
-        this.saveCurrentSchedule() //refresh schedule still...prolly
-    },
-    reset() { //reset variable for next use 
-      this.draggedItem = null
-      this.targetDrop = null
-      //
-      this.toAddE = null
-    },
-    doNotify(messg, colorNotif = undefined){
-      this.$q.notify({ // also see about using >> this.$q.dialog
-                        color: colorNotif !== undefined ? colorNotif : 'negative', //colorNotif,//'negative',
-                        position: 'top', //see using 'bottom'
-                        message: messg,
-                        icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-                    })
-    },
-    askUser(aDate){//maybe ask user
-      this.$q.dialog({ 
-        title: 'Alert',
-        cancel: true,
-       // position: 'bottom',
-        message: 'Some saved schedule found, load it up?'
-          }).onOk(() => {
-            this.loadSavedEvents(aDate, true) //data.start
-            this.updateButtons(false,true,true)
-          }).onCancel(() => {
-             console.log('Cancelled loading...')
-             this.loadSavedEvents(aDate, false)
-             this.updateButtons(true,false,true)
-          })//.onDismiss(() => {
-            // console.log('I am triggered on both OK and Cancel')
-          //})
-    },
-    refresh(done) {  //test to drag for refresh--toREview***
-        setTimeout(() => {
-          this.loadSavedEvents(this.currentDate, false)
-          console.log('Refreshing...', this.currentDate)
-          done()
-        }, 1000)
-    },
-
-    /////////////////////////////// EVENT HANDLERS //////////////////////////
     onDragStart(e, item) { 
         console.log("onDragStart", e, item) //.clientY to determine if going up or down? >>meh no need
         
@@ -1047,7 +1069,7 @@ export default defineComponent({
       if (curColEl) {
         curColEl.classList.remove('drag-over')
       }*/
-      console.log('onDragEnd', this.allEvents, this.endTimesSet, this.events) //.values()
+      console.log('onDragEnd', this.dailyScheduled, this.endTimesSet, this.events) //.values()
     },
     onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above
         console.log("onDrop", e, type, scope)//JSON.stringify(item)
@@ -1099,10 +1121,12 @@ export default defineComponent({
         this.disableSaveSchedule = false //save schedule?
 
         this.reset() //umm just reset....
+
+        //also update buttons--todo**
         
     },
     onDblClickEvent(e, event) {
-       console.log("double click eh...", e, event)
+       //console.log("double click eh...", e, event)
        this.$q.dialog({
         title: 'Alert',
         cancel: true,
@@ -1218,40 +1242,40 @@ export default defineComponent({
 
       //console.log('onChange', data, this.currentDate) // JSON.stringify(data)
       
-      //bof always at whichever day in calendar view--but shouldnt change but does automatically smh!
-
-      //let [inDates, maybe] = this.store.hasEventsForDate(this.currentDate) //oldie
+      
       let inDates = this.store.hasEventsForDate(this.currentDate)
 
       let isToday = today()
 
-      
+      //this.events = this.addPropsEventsTo(data.start, this.returnNewEvts(true))
+      //let a = 
+      this.addPropsEventsTo(data.start,this.events)
 
-      this.loadSavedEvents(data.start, false) //this needed to set the date...
-      //this.updateButtons(false,true,true)
-
-
+      //console.log('onChange retNew',a)
 
       //console.log('onChange', data, this.currentDate, isToday, inDates)
       if (data.start == this.currentDate && this.currentDate == isToday){
         console.log('onChange and all dates are ALIKE!')
+        this.saveCurrentSchedule() //umm?!?
 
-       this.updateButtons(false,true,true)
+       //this.updateButtons(false,true,true) //no need as done below again...
 
       } else{
-        console.log('onChange..something is different?', data, this.currentDate, isToday, inDates)
-         //toReview though as doesnt actually reload defaults but just changes date for events already present***
-        // this.loadSavedEvents(data.start, false)
-        this.doLoadDefault()
+        console.log('onChange..something is different?', data.start, this.currentDate, isToday, inDates)
+        
+        this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true)) //toTest that defaults are loaded on different dates!
 
-        this.updateButtons(false,true,true)
+        this.saveCurrentSchedule()
+        //this.updateButtons(false,false,true)
 
       }
+      this.updateButtons(inDates,!inDates,!inDates) //toReview for the last flag--
       
       if (inDates){
         console.log('onChange and has saved DateEvts!!..should CHANGE!')
         //this.reloadSaved = true //show button to reload saved event
-        this.updateButtons(true, true, false)
+
+        //this.updateButtons(true, false, false)
 
         //oldie >> this.askUser(data.start)
 
@@ -1274,10 +1298,10 @@ export default defineComponent({
         }else{console.log('Cancelled didnt wanna change :(')} */
  
       } else {
-        console.log('onChange NO saved DateEvts', inDates)
+        console.log('onChange NO saved evts', inDates)
         //this.loadSavedEvents(data.start, false)
 
-        this.updateButtons(false, false, true)
+        //this.updateButtons(false, false, true)
 
         //if(this.skipReload){
         //  console.log("umm onChange after onMoved?..skipping reload!")
@@ -1294,61 +1318,71 @@ export default defineComponent({
         //console.log("umm onChange...about to reload!")
         //this.saveCurrentSchedule()
       }
-
     },
-    updateButtons(reloadBool=null,defaultBool=null, scheduleBool=null){ //omitting the first values would work?->gotta assign null!
-      if (reloadBool != null) {
-        this.reloadSaved = reloadBool
-      }
-      if (defaultBool != null) { //sheesh dont check for falsy vals holmes!!
-        this.loadDefault = defaultBool  
-      }
-      if (scheduleBool != null) {
-        this.doSchedule = scheduleBool
-      }
-    },
-    doReloadSaved(){
+    onReloadSaved(){
       console.log('doReloadSaved:',this.currentDate) //toTest it's the current viewed day***
 
-      this.askUser(this.currentDate) //no need for this here....toRemove later***
+      //oldie >> this.askUser(this.currentDate) 
+      this.$q.dialog({ //maybe ask user
+        title: 'Alert',
+        cancel: true,
+       // position: 'bottom',
+        message: 'Some saved schedule found, load it up?'
+          }).onOk(() => {
+            //this.loadSavedEvents(this.currentDate, true) //data.start
+            this.fetchEventsForDate(this.currentDate)
+            this.updateButtons(false,true,false)
+          }).onCancel(() => {
+             console.log('Cancelled loading...')
+             this.setEvtsToDate(this.currentDate) //, false
+             this.updateButtons(true,false,true)
+             
+          })//.onDismiss(() => {
+            // console.log('I am triggered on both OK and Cancel')
+          //})
+      
+        this.chosenScore = null //here?!?
     },
-    doLoadDefault(){
+    onLoadDefault(){
       //console.log('doLoadDefault:',this.currentDate,this.events)
       this.events = null
       
-      console.log('doLoadDefault:',this.currentDate,this.events)
+      console.log('doLoadDefault:',this.currentDate) //,this.events, this.allEvents
 
-      let e = this.storedEvents //this.deepCopy(this.storedEvents) //see if resets reference...
-      e = this.setEventsTo(this.currentDate, e)
+      //let e = this.deepCopy(this.storedEvents) //see if resets reference >>does!
+      //e = this.addPropsEventsTo(this.currentDate, e)
 
-      this.events = [...e]  //see if resets reference...Would using this.loadEventsWithDate work? **toTest
-      
-      //this.loadSavedEvents(this.currentDate, false)  
+      this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
+
+      //this.events = e //[...e] 
       
       this.saveCurrentSchedule()
 
-      //this.updateButtons(false,false,true) //umm not needed here?!? toREview**
+      this.updateButtons(false,false,true) //toReview when date is different**
+      this.chosenScore = null 
+
     },
-    bringScorey(){
+    onReloadWithScore(){
       
       if (this.chosenScore == null) {
         this.doNotify("Ayo select a score!")
         return
       }
 
-      let e = this.store.fetchGoalsWithMinScore(this.chosenScore) //3  //deepCopy? tbd**
+      let e = this.store.fetchGoalsWithMinScore(this.chosenScore) //deepCopy? tbd**
 
       console.log('bringScorey:', this.currentDate,this.chosenScore, e)
 
-      e = this.setEventsTo(this.currentDate, e)
+      e = this.addPropsEventsTo(this.currentDate, e)  //setEvtsToDate
 
-      this.events = [...e]
+      this.events = e//[...e]
 
       this.saveCurrentSchedule()
 
       this.updateButtons(false,true,true)
 
-      this.chosenScore = null  //just to reset....
+      //this.chosenScore = null  //just to reset....not done here*** put someplace else todo**
+      this.disableSaveSchedule = false
 
     },
     deepCopy(obj){ //deep copy object
@@ -1369,58 +1403,8 @@ export default defineComponent({
 
       return copied;
     },
-    //obsolete but kept for reference....tbd
-    /*onMoved (data) { //bon removing this as redundant with onChange below!--ToMonitor and remove!--yup onChange is better!
-      //console.log('onMoved to', data.date) //only here can access .date
-
-      //runs after calendar's Next(), Prev()right before onChange() below when changing calendar days
-      //doenst run for  today() tho?!? smh
-
-      let isToday = today()
-
-      //so check if current date is in storage
-      let  inDates = this.store.hasEventsForDate(data.date)  //[inDates, maybe]
-     
-
-      console.log('onMoved to date', data.date,this.currentDate, isToday, inDates)
-
-      this.disableSaveSchedule = true //should be?....prolly but toREview
-
-      if (inDates){
-        this.$q.dialog({ //maybe ask user, onCancel, just keep same order
-            title: 'Alert',
-            cancel: true,
-        // position: 'bottom',
-            message: 'Some saved schedule found, load it up?'
-            }).onOk(() => {
-                this.loadSavedEvents(data.date, true)
-            }).onCancel(() => {
-                console.log('Cancelled loading...')
-                this.loadSavedEvents(data.date, false)
-          })
-          this.askUser(data.date)  //toBeware with the skipReload below!
-
-          //this.skipReload = true //to not redo all this in onChange below
-      }else { 
-        console.log('onMoved NO DateEvts :(', inDates)
-        //this.loadSavedEvents(data.date, false)
-
-        if(this.skipReload){ //to not redo it...
-          let e = this.loadGoals
-          this.events = [...e] //reload default...could check date perhaps?
-          this.saveCurrentSchedule()
-
-          this.skipReload = false //**To see effect of this for below when moving between dates!
-        }
-      }
-     
-      //this.events.forEach((obj) => {
-      //  obj.date = data.date //today()
-      //})
-    },*/
-  }
+   }
 })
-
 </script>
 <style lang="sass" scoped>
 .my-event
