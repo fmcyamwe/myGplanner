@@ -321,6 +321,23 @@ export const useGoalStore = defineStore('allGoals', () => {
         return Math.floor(Math.random() * sizey) //array.length
     }
 
+    function savedTaskSummary(){
+        let savedDates = this.getAllDates
+        if(!savedDates){
+            console.log(`no savedTaskSummary..ERROR`) 
+            return []
+        }
+        let mains = this.getMainGoals
+
+        //slurp all the subgoals, keeping date && duration(logged)
+        for (let dateKey in savedDates) { 
+            let onDay = savedDates[dateKey]
+            
+
+        }
+
+    }
+
     function testTasks() { //massage data for testing Task summary 
         let mains = this.getMainGoals
         let subs =  this.getSubGoals

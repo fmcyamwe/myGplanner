@@ -415,7 +415,6 @@
     }
   })
 </script>
-
 <style lang="sass" scoped>
 .header
   display: flex

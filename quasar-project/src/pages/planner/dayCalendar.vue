@@ -1,9 +1,18 @@
 <template>
     <div v-if="showForm" class="q-gutter-md">
-     <add-goal-form /> 
-   </div>
+        <q-btn
+           class="q-pl-xl justify-center"
+           color=""
+           text-color="green"
+           elevated
+           label="HideForm"
+           @click="showGoalForm = !showGoalForm"
+           no-caps
+       />
+       <add-goal-form /> 
+    </div>
    
-   <div v-if="!showForm" class="subcontent">
+    <div v-if="!showForm" class="subcontent">
      <q-pull-to-refresh @refresh="onRefresh"> <!--have to put here or drag in calendar does this refresh when it shouldnt-->
      <navigation-bar
        @today="onToday"
@@ -214,19 +223,17 @@
              <div class="text-h3">Pick event</div>
            </q-card-section>
            <q-separator />
-           <div >
+           <div class="q-ml-md event-select">
              <q-select
              v-model="toAddE" 
-             :options="storedEvents"
+             :options="canbeScheduled"
              option-value="id"
              option-label="title"
              label="Sub Goal"
-             class="q-pa-sm event-select"
-             /><!--bon todo** align items inside to be better viewed 
-                :options="canBeAdded" gives errors 
+             item-aligned
+             /><!-- could add popup-content-class="class" for popup class
              -->
            </div>
-           <q-separator />
            <q-card-actions align="right">
              <q-btn flat label="Add" color="primary" @click="onAddEvent"/>
            </q-card-actions>         
@@ -322,7 +329,7 @@ export default defineComponent({
       chosenScore:ref(null),
       events: [], //should rename this...
 
-      calendar: ref(null), //umm wasnt here...any diff? with moving and update now? >>nope
+      calendar: ref(null),
       store:useGoalStore(),
 
       anchorTimestamp: ref(null), //start time for range
@@ -364,7 +371,7 @@ export default defineComponent({
   },
 
   computed: {
-    chosenScoreLabel(){ 
+    chosenScoreLabel() { 
       return this.chosenScore == null ? `Scheduled All` : `Schedule >${this.chosenScore}` 
     },
     showForm() {return this.showGoalForm},
@@ -409,13 +416,27 @@ export default defineComponent({
     },
     //dropdown for adding evts that are not already scheduled.
     //when all are present, shows them all to change schduled timeslot 
-    canBeAdded(){ 
-      let e = this.storedEvents //this.deepCopy
+    canbeScheduled() {
+      let e = this.deepCopy(this.storedEvents)
 
-      //console.log('canBeAdded e is', e, this.events)
+      /*//neat! but shorter below :)
+      const toRet = []
+      
+      const hasEvt = taskID => {
+        return this.events.find(item => item.id == taskID) 
+      }
 
-      //original stuff not currently scheduled...with comparison by reference this doesnt work....should have anonymous func that properly checks! **TODO**
-      let difference =  e.filter(x => !this.events.includes(x)); //this.events.indexOf(x) !== -1
+      e.forEach(obj => { 
+           let h = hasEvt(obj.id)
+           if (!h){
+            toRet.push(obj)
+           }else{console.log('hasEvt found',h) }
+        })
+    
+      console.log('canBeAdded toRet is', toRet) */
+
+      // filter out events that are already scheduled
+      let difference =  e.filter(x => !this.events.find(item => item.id == x.id)); // these dont work >> !this.events.includes(x)  //this.events.indexOf(x) !== -1
 
       console.log('canBeAdded difference is', difference)
 
@@ -482,7 +503,7 @@ export default defineComponent({
       }
       
       events.forEach((obj) => {
-        obj.date = to != null ? to : obj.date //umm set to itself? //null //oldie >>today() but better to null this and change in the onChange //"date": "2023-07-22"
+        obj.date = to != null ? to : obj.date //umm set to itself and better to null this and change in the onChange //"date": "2023-07-22"
         let pgoal = pMap.get(obj.parentGoal)
         if(!pgoal){
             console.log("no parent goal for:", obj)
@@ -510,7 +531,7 @@ export default defineComponent({
 
       //console.log("adjustin...", this.currentDate, now.date)
       if (this.currentDate !== now.date){  //caused a jump back to current day smh
-        console.log("Not adjustin...", this.currentDate, now.date)
+        //console.log("Not adjustin...", this.currentDate, now.date)
         this.timeStartPos = -10 //when null, doesnt change smh and 0 still shows...toMonitor if need to remove interval
         this.currentTime = ''
         return
@@ -526,11 +547,27 @@ export default defineComponent({
         //--not expensive? maybe if save only endTimes?
      if(this.endTimesSet && this.endTimesSet.has(now.time)) { //this.endTimesArray[now.time]
         //console.log("should got a notif?...",now.time)
-        this.changeEditScore(now.time)
+        this.enableEditScore(now.time)
         this.doNotify(`WOOO at end of a scheduled event ${now.time}`, "positive")
-     }//else {
-      //  console.log("nothin...",this.endTimesSet)
-     //}
+     }else {
+        //console.log("nothin...",this.endTimesSet)
+        //check that all events can have their score updated(would mean nothing else to do?)
+        //--toReview!
+        if (!this.hasUncompletedEvents()){ 
+            //so if any of them are still true >> nothing to do...otherwise > enable the
+            this.doNotify(`WOOOHOO finished all events`,"positive")
+            this.disableSaveSchedule = false
+        }
+     }
+    },
+    hasUncompletedEvents(){
+        let toRet = false
+        for (let entry in this.disabledScoreEvts) { //could also use >> let value of Object.values(user)
+            //console.log("hasUncompletedEvents", entry,this.disabledScoreEvts[entry])
+            if (this.disabledScoreEvts[entry]) return true
+        }
+        return toRet
+        
     },
     hasDate (days) {
       return this.currentDate
@@ -671,7 +708,7 @@ export default defineComponent({
 
       this.dailyScheduled.forEach( (value, key, map) => {
         if (key == evID){ 
-            console.log("skipping sameness overlapOtherEvent")//, evID, value //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
+            //console.log("skipping sameness overlapOtherEvent")//, evID, value //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
         }else {
           let eStart = this.getTimeNumber(value.start)
           let eEnd = this.getTimeNumber(value.end)
@@ -695,11 +732,11 @@ export default defineComponent({
   
         let overlappedEvt = this.dailyScheduled.get(overlappingEvtID)
         if (overlappedEvt){                
-            console.log(`dragDirection...target>>${targetTimestamp.time}, oldie at`,tEvt, overlappedEvt)
+            console.log(`dragDirection...target>>${targetTimestamp.time}`) //, oldie at`,tEvt, overlappedEvt
             //direction of drag(up or down) >>either - or + 
             let dragDirection = parseTime(targetTimestamp.time) - parseTime(tEvt.time)
                    
-            console.log(`dragDirection...${dragDirection > 0 ? "goign down": "going up"}`)
+            console.log(`dragDirection...${goForward}: ${dragDirection > 0 ? "goign down": "going up"}`)
 
             //when dragDirection > 0 (going down)...otherwise going up...prolly
             //let overlappedEvtNew = dragDirection > 0 ? addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) //parseInt(overlappedEvt.for) 
@@ -754,14 +791,14 @@ export default defineComponent({
         
         return [changed, worked] //works when using array
     },
-    changeEditScore(timeEnd) { //enables the editing of score after event has passed.
+    enableEditScore(timeEnd) { //enables the editing of score after event has passed.
         //search for corresponding eventID and enable that one only //this.disabledScoreEvts[0] = false
         
         for (let [entry, val] of this.dailyScheduled) { //allEvents
             //console.log("changeEditScore", entry, val)
             if (val.end.time == timeEnd){
                 console.log("changeEditScore...FOUND", entry, val)
-                this.disabledScoreEvts[entry] = false //actually works!
+                this.disabledScoreEvts[entry] = false
             }
         }
     },
@@ -835,7 +872,7 @@ export default defineComponent({
       for( var i = 0; i < currentSize; i++){ 
             if ( this.events[i].id === item.id) { 
                 this.events.splice(i, 1)
-                console.log("removed event spliced!", item)
+                console.log("removed event spliced!", item.title)
 
                 if(this.dailyScheduled.has(item.id)){ // && this.startEndMap.has(item.id)
                     this.dailyScheduled.delete(item.id)
@@ -899,7 +936,7 @@ export default defineComponent({
           obj.score = sav.atScore
 
           toReload.push(obj)
-        }//else{console.log('ERROR...hasDateEvts NOT found?!?', obj.title)} 
+        }else{console.log('ERROR...hasDateEvts NOT found?!?', obj.title)} 
       })
 
 
@@ -969,7 +1006,7 @@ export default defineComponent({
 
       let addy = this.getAnEvent(this.toAddE.id)
       if (!addy){
-        console.log("onAddEvent ERROR? or...new?", addy, this.toAddE); 
+        console.log("onAddEvent...NEW", addy, this.toAddE); 
         //bon have to add it and then continue...
         addy = this.toAddE
         this.addAnEvent(this.toAddE)
@@ -1263,7 +1300,7 @@ export default defineComponent({
       } else{
         console.log('onChange..something is different?', data.start, this.currentDate, isToday, inDates)
         
-        this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true)) //toTest that defaults are loaded on different dates!
+        this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
 
         this.saveCurrentSchedule()
         //this.updateButtons(false,false,true)

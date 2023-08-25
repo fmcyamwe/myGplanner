@@ -109,9 +109,10 @@
     <!-- should use component template instead--todo**-->
     <br>
     
-    <q-list bordered> <!--v-mutation="reload" but triggers too much-->
-      <q-expansion-item v-for="goal in mainGoals" :key="goal.id" v-model="expanded[goal.id]" class="q-my-sm" :label="goal.title"
-        :caption="goal.details" clickable v-ripple>
+    <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
+     <transition-group name="dalist">
+      <q-expansion-item v-for="goal in allMGoals" :key="goal.id" v-model="expanded[goal.id]" class="q-my-sm" :label="goal.title"
+        :caption="goal.details" clickable>
         <!--<template v-slot:header></template> -->
         
         <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a card works?>>huh not without adding >>:key="event.id" -->
@@ -136,6 +137,7 @@
             <q-btn label="Delete?" type="reset" color="primary" flat class="q-ml-sm"  @click.prevent="(e) => onClickDelete(e, goal.id)" />
         </q-card>
       </q-expansion-item>
+     </transition-group>
     </q-list>
 
     <!--<div v-for="[element, subby] in allGoals" :key="element.id" class="item"> //--allGoals.keys()
@@ -172,7 +174,7 @@
 </template>
 <script>
 //import draggable from 'vuedraggable'
-import { computed, ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, nextTick, watchEffect } from 'vue'
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
 //import { storeToRefs } from 'pinia' 
@@ -195,6 +197,8 @@ export default {
         const goalType = ref('line') //so nothing is selected at first
         const pGoal = ref(null)
 
+        const howThis = ref(null) //watchEffect testing...not bad
+
         const mainGoals = ref(null) //computed(() => store.getMainGoals) //works except that reload cannot occur since these are read-only!
         const subGoals = ref(null) //computed(() => store.getSubGoals)
         
@@ -212,6 +216,8 @@ export default {
 
         const hRefs = computed(() => store.headerRefs) //tosee if works
         const headers = computed(() => store.getHeaders) //ditto as above
+
+        const allMGoals = computed(() => mainGoals.value) //oldie store.getMainGoals >> doesnt updates
 
         const showSubG = computed(() => goalType.value ==='main' ? false : true )
 
@@ -241,6 +247,12 @@ export default {
             })
             console.log("allGoals be",map.entries()) //JSON.stringify(allGoals,null,1)
             return map
+        })
+
+        watchEffect(() => {
+            // tracks A0 and A1
+            //A2.value = A0.value + A1.value
+            howThis.value = mainGoals.value  //does track changes but redundant with `allMGoals` above
         })
 
         /*const subbyGoals = computed((id) => {
@@ -290,7 +302,7 @@ export default {
             }
         }
         function onSubmit() {
-            console.log("Adding Goal of type:",goalType.value)
+            //console.log("Adding Goal of type:",goalType.value)
 
             if (goalType.value ==='main') { //goal,details,color,priority
                 store.addMainGoal(goalTitle,details,bgcolor,priority)
@@ -318,6 +330,8 @@ export default {
 
             }
             reset() //reset variables
+            //reload() //no need here even and have to interact with page to see list change smh
+            console.log("Done Adding Goal of type:",goalType.value)
         }
         function editSuGoal(){
             if(updatingSubG){
@@ -335,10 +349,12 @@ export default {
         }
 
         function hasSubG(parentID){
-            let euh = this.getSubGoals(parentID) //works? >>yups!!
+            let euh = this.getSubGoals(parentID)
             return euh.length > 0
         }
-
+        function getMainGoals(){ //for testing updates but doesnt either smh
+            return mainGoals.value //store.getMainGoals
+        }
         function getSubGoals(parentID){
             const map = []
             if(!subGoals.value) {
@@ -428,14 +444,14 @@ export default {
             }, 1000)
         }
 
-        function reload() { //reload variables with stuff from storage...doesnt update the slide though smh
+        function reload() { //reload variables with stuff from storage...
             //console.log("reloadin...")
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
 
             //window.location.reload() //so inelegant
 
-            console.log("reloadin...", subGoals.value)
+            console.log("reloadin...", subGoals.value,mainGoals.value)
         }
 
         function reset(){
@@ -456,6 +472,7 @@ export default {
             mainGoals,
             subGoals,
             //subbyGoals, //test >>nope
+            allMGoals,howThis,
             daRefs:hRefs,
             expanded, //see if can trigger close >>does!
             buttonLabel,
@@ -465,7 +482,7 @@ export default {
             doPrint,
             onSubmit,doReset,getSubGoals,
             onRightDelete,onLeftEdit,reset,onClickDelete,refresh,
-            //, reload
+            getMainGoals
         }
     }
 }
@@ -482,4 +499,20 @@ export default {
     }
   }
 }
+.dalist,
+.dalist-enter-active,
+.dalist-leave-active {
+  transition: all 0.5s ease;
+}
+.dalist-enter-from,
+.dalist-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+/* ensure leaving items are taken out of layout flow so that moving
+   animations can be calculated correctly.-boof not that needed prolly
+.dalist-leave-active {
+    position: absolute;
+}
+*/
 </style>
