@@ -1,10 +1,42 @@
 <template>
     <div class="subcontent">
-      <navigation-bar
+      <!-- not needed since it's overview and replaced by buttons for nav....toREview when have data from many months!**
+        <navigation-bar
         @today="onToday"
         @prev="onPrev"
         @next="onNext"
-      />
+      /> -->
+      <div class="row justify-center items-center">
+        <q-btn
+           class="q-ma-xl"
+           color="white"
+           text-color="blue"
+           unelevated
+           to="/planner/dayCalendar"
+           label="Schedule"
+           no-caps
+        />
+      
+        <q-btn
+           class="q-ma-xl"
+           color="white"
+           text-color="blue"
+           unelevated
+           to="/planner/viewGoals"
+           label="Goals"
+           no-caps
+        />
+       
+        <!--<q-btn
+            class="q-mt-xl"
+            color="white"
+            text-color="blue"
+            unelevated
+            to="/planner/eventSummary"
+            label="Summary"
+            no-caps
+        /> -->
+       </div>
   
       <div class="row justify-center">
         <div style="display: flex; max-width: 800px; width: 100%;">
@@ -22,6 +54,7 @@
             :day-class="dayClass"
             :footer-day-class="footerDayClass"
             :focus-type="['weekday', 'date', 'task']"
+            dark
             focusable
             hoverable
             animated
@@ -37,7 +70,7 @@
                 class="header ellipsis"
                 style="font-weight: 600"
               >
-                <div class="issue ellipsis">Issue</div>
+                <div class="issue ellipsis">Goaly</div>
                 <div class="key">Key</div>
                 <div class="logged">Logged</div>
               </div>
@@ -109,13 +142,13 @@
   import '@quasar/quasar-ui-qcalendar/src/QCalendarTask.sass'
   
   import { defineComponent } from 'vue'
-  import NavigationBar from '../../components/NavigationBar.vue'
+  //import NavigationBar from '../../components/NavigationBar.vue'
   import { useGoalStore } from 'stores/goalStorage'
   
   export default defineComponent({
     name: 'TaskDark',
     components: {
-      NavigationBar,
+      //NavigationBar,
       QCalendarTask
     },
     data () {
@@ -125,108 +158,6 @@
         endDate: today(),
         store: useGoalStore(),
         tasks: [],
- /*         {
-            title: 'Task 1',
-            key: 'TSK-584',
-            logged: [
-              { date: '2021-03-02', logged: 0.5 },
-              { date: '2021-03-05', logged: 2.0 }
-            ]
-          },
-          {
-            title: 'Task 2',
-            key: 'TSK-592',
-            logged: [
-              { date: '2021-03-06', logged: 3.5 },
-              { date: '2021-03-08', logged: 4.0 }
-            ]
-          },
-          {
-            title: 'Task 3',
-            key: 'TSK-593',
-            logged: [
-              { date: '2021-03-10', logged: 9 },
-              { date: '2021-03-11', logged: 4.8 }
-            ],
-            expanded: false,
-            children: [
-              {
-                title: 'Subtask 3.1',
-                key: 'TSK-593.1',
-                logged: [
-                  { date: '2021-03-10', logged: 4.5 },
-                  { date: '2021-03-11', logged: 2.4 }
-                ]
-              },
-              {
-                title: 'Subtask 3.2',
-                key: 'TSK-593.2',
-                logged: [
-                  { date: '2021-03-10', logged: 4.5 },
-                  { date: '2021-03-11', logged: 2.4 }
-                ]
-              }
-            ]
-          },
-          {
-            title: 'Task 4',
-            key: 'TSK-594',
-            logged: [
-              { date: '2021-03-14', logged: 6.5 },
-              { date: '2021-03-15', logged: 2.0 }
-            ]
-          },
-          {
-            title: 'Task 5',
-            key: 'TSK-595',
-            logged: [
-              { date: '2021-03-12', logged: 1.5 },
-              { date: '2021-03-18', logged: 2.0 }
-            ]
-          },
-          {
-            title: 'Task 6',
-            key: 'TSK-596',
-            logged: [
-              { date: '2021-03-13', logged: 1.5 },
-              { date: '2021-03-23', logged: 3.5 }
-            ]
-          },
-          {
-            title: 'Task 7',
-            key: 'TSK-597',
-            logged: [
-              { date: '2021-03-19', logged: 0.75 },
-              { date: '2021-03-26', logged: 2.25 }
-            ]
-          },
-          {
-            title: 'Task 8',
-            key: 'TSK-598',
-            logged: [
-              { date: '2021-03-21', logged: 1.5 },
-              { date: '2021-03-22', logged: 4.0 }
-            ]
-          },
-          {
-            title: 'Task 9',
-            key: 'TSK-599',
-            logged: [
-              { date: '2021-03-26', logged: 6.5 },
-              { date: '2021-03-27', logged: 3.5 }
-            ]
-          },
-          {
-            title: 'Task 10',
-            key: 'TSK-600',
-            logged: [
-              { date: '2021-03-12', logged: 0.5 },
-              { date: '2021-03-14', logged: 2.0 },
-              { date: '2021-03-28', logged: 4.5 },
-              { date: '2021-03-30', logged: 1.0 }
-            ]
-          }
-        ],*/
         footerTasks: [
           { title: 'TOTALS' }
         ]
@@ -261,13 +192,13 @@
       const year = date.getFullYear()
       const month = padNumber((date.getMonth() + 1), 2)
 
-      let e = this.store.testTasks()
+      let e = this.store.fetchAllTaskSummary()//testTasks()
 
       //console.log("weeee?", e)
       //console.log("taks?", this.tasks)
       this.tasks = e //works? >>YEEEE
 
-      console.log("weeee?", this.tasks)
+      //console.log("weeee?", this.tasks)
       
       const updateTask = task => {
         task.logged.forEach(logged => {
@@ -413,6 +344,109 @@
         console.log('onClickHeadDay', data)
       }
     }
+    //original Task data 
+        /* {
+            title: 'Task 1',
+            key: 'TSK-584',
+            logged: [
+              { date: '2021-03-02', logged: 0.5 },
+              { date: '2021-03-05', logged: 2.0 }
+            ]
+          },
+          {
+            title: 'Task 2',
+            key: 'TSK-592',
+            logged: [
+              { date: '2021-03-06', logged: 3.5 },
+              { date: '2021-03-08', logged: 4.0 }
+            ]
+          },
+          {
+            title: 'Task 3',
+            key: 'TSK-593',
+            logged: [
+              { date: '2021-03-10', logged: 9 },
+              { date: '2021-03-11', logged: 4.8 }
+            ],
+            expanded: false,
+            children: [
+              {
+                title: 'Subtask 3.1',
+                key: 'TSK-593.1',
+                logged: [
+                  { date: '2021-03-10', logged: 4.5 },
+                  { date: '2021-03-11', logged: 2.4 }
+                ]
+              },
+              {
+                title: 'Subtask 3.2',
+                key: 'TSK-593.2',
+                logged: [
+                  { date: '2021-03-10', logged: 4.5 },
+                  { date: '2021-03-11', logged: 2.4 }
+                ]
+              }
+            ]
+          },
+          {
+            title: 'Task 4',
+            key: 'TSK-594',
+            logged: [
+              { date: '2021-03-14', logged: 6.5 },
+              { date: '2021-03-15', logged: 2.0 }
+            ]
+          },
+          {
+            title: 'Task 5',
+            key: 'TSK-595',
+            logged: [
+              { date: '2021-03-12', logged: 1.5 },
+              { date: '2021-03-18', logged: 2.0 }
+            ]
+          },
+          {
+            title: 'Task 6',
+            key: 'TSK-596',
+            logged: [
+              { date: '2021-03-13', logged: 1.5 },
+              { date: '2021-03-23', logged: 3.5 }
+            ]
+          },
+          {
+            title: 'Task 7',
+            key: 'TSK-597',
+            logged: [
+              { date: '2021-03-19', logged: 0.75 },
+              { date: '2021-03-26', logged: 2.25 }
+            ]
+          },
+          {
+            title: 'Task 8',
+            key: 'TSK-598',
+            logged: [
+              { date: '2021-03-21', logged: 1.5 },
+              { date: '2021-03-22', logged: 4.0 }
+            ]
+          },
+          {
+            title: 'Task 9',
+            key: 'TSK-599',
+            logged: [
+              { date: '2021-03-26', logged: 6.5 },
+              { date: '2021-03-27', logged: 3.5 }
+            ]
+          },
+          {
+            title: 'Task 10',
+            key: 'TSK-600',
+            logged: [
+              { date: '2021-03-12', logged: 0.5 },
+              { date: '2021-03-14', logged: 2.0 },
+              { date: '2021-03-28', logged: 4.5 },
+              { date: '2021-03-30', logged: 1.0 }
+            ]
+          }
+        ],*/
   })
 </script>
 <style lang="sass" scoped>

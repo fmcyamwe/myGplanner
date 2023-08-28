@@ -37,7 +37,7 @@ const routes = [
     children: [
       {
         path: '', 
-        component: () => import('pages/planner/weekViewPlanner.vue')
+        component: () => import('pages/planner/eventTask.vue') //oldie >>pages/planner/weekViewPlanner.vue
       },
       {
         path: 'dayCalendar', 
@@ -46,11 +46,11 @@ const routes = [
       {
         path: 'viewGoals', 
         component: () => import('pages/planner/viewAllGoals.vue')
-      },
-      {
-        path: 'eventSummary',  //this should prolly be the 'weekViewPlanner' instead **todo
+      }
+      /*{
+        path: 'eventSummary',
         component: () => import('pages/planner/eventTask.vue')
-      }     
+      }*/    
     ]
   },
 
