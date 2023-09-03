@@ -1,43 +1,12 @@
 <template>
     <div class="subcontent">
-      <!-- not needed since it's overview and replaced by buttons for nav....toREview when have data from many months!**
-        <navigation-bar
+      
+      <navigation-bar
         @today="onToday"
         @prev="onPrev"
         @next="onNext"
-      /> -->
-      <div class="row justify-center items-center">
-        <q-btn
-           class="q-ma-xl"
-           color="white"
-           text-color="blue"
-           unelevated
-           to="/planner/dayCalendar"
-           label="Schedule"
-           no-caps
-        />
-      
-        <q-btn
-           class="q-ma-xl"
-           color="white"
-           text-color="blue"
-           unelevated
-           to="/planner/viewGoals"
-           label="Goals"
-           no-caps
-        />
-       
-        <!--<q-btn
-            class="q-mt-xl"
-            color="white"
-            text-color="blue"
-            unelevated
-            to="/planner/eventSummary"
-            label="Summary"
-            no-caps
-        /> -->
-       </div>
-  
+      />
+
       <div class="row justify-center">
         <div style="display: flex; max-width: 800px; width: 100%;">
           <q-calendar-task
@@ -65,69 +34,100 @@
             @click-day="onClickDay"
             @click-head-day="onClickHeadDay"
           >
-            <template #head-tasks="{ /* scope */ }">
-              <div
-                class="header ellipsis"
-                style="font-weight: 600"
-              >
-                <div class="issue ellipsis">Goaly</div>
-                <div class="key">Key</div>
-                <div class="logged">Logged</div>
-              </div>
-            </template>
+          <template #head-tasks="{ /* scope */ }">
+            <div
+              class="header ellipsis"
+              style="font-weight: 600"
+            >
+              <div class="issue ellipsis">Goaly</div>
+              <div class="key">Key</div>
+              <div class="logged">Logged</div>
+            </div>
+          </template>
   
-            <template #task="{ scope }">
-              <template
-                v-for="task in getTasks(scope.start, scope.end, scope.task)"
-                :key="task.key"
-              >
-                <div class="header ellipsis">
-                  <div class="issue ellipsis">
-                    {{ scope.task.title }}
+          <template #task="{ scope }">
+            <template
+              v-for="task in getTasks(scope.start, scope.end, scope.task)"
+              :key="task.key"
+            >
+              <div class="header ellipsis">
+                <div class="issue ellipsis">
+                  {{ scope.task.title }}
                     <!--here for child, try to indent somehow...toDO**-->
-                  </div>
-                  <div class="key">{{ scope.task.key }}</div>
-                  <div class="logged">{{ sum(scope.start, scope.end, scope.task) }}</div>
                 </div>
-              </template>
-            </template>
-  
-            <template #day="{ scope }">
-              <template
-                v-for="time in getLogged(scope.timestamp.date, scope.task.logged)"
-                :key="time"
-              >
-                <div
-                  v-if="scope.task.children !== void 0"
-                  class="logged-time"
-                  style="font-weight: 800;"
-                >
-                  {{ time.logged }}
-                </div>
-                <div
-                  v-else
-                  class="logged-time"
-                >
-                  {{ time.logged }}
-                </div>
-              </template>
-            </template>
-  
-            <template #footer-task="{ scope }">
-              <div class="summary ellipsis">
-                <div class="title ellipsis">{{ scope.footer.title }}</div>
-                <div class="total">{{ totals(scope.start, scope.end) }}</div>
+                <div class="key">{{ scope.task.key }}</div>
+                <div class="logged">{{ sum(scope.start, scope.end, scope.task) }}</div>
               </div>
             </template>
+          </template>
   
-            <template #footer-day="{ scope }">
-              <div class="logged-time">{{ getLoggedSummary(scope.timestamp.date) }}</div>
+          <template #day="{ scope }">
+            <template
+              v-for="time in getLogged(scope.timestamp.date, scope.task.logged)"
+              :key="time"
+            >
+              <div
+                v-if="scope.task.children !== void 0"
+                class="logged-time"
+                style="font-weight: 800;"
+              >
+                {{ time.logged }}
+              </div>
+              <div
+                v-else
+                class="logged-time"
+              >
+                {{ time.logged }}
+              </div>
             </template>
-          </q-calendar-task>
-        </div>
+          </template>
+  
+          <template #footer-task="{ scope }">
+            <div class="summary ellipsis">
+              <div class="title ellipsis">{{ scope.footer.title }}</div>
+              <div class="total">{{ totals(scope.start, scope.end) }}</div>
+            </div>
+          </template>
+  
+          <template #footer-day="{ scope }">
+            <div class="logged-time">{{ getLoggedSummary(scope.timestamp.date) }}</div>
+          </template>
+        </q-calendar-task>
       </div>
     </div>
-  </template>
+    <div class="row justify-center items-center">
+      <q-btn
+         class="q-ma-xl"
+         color="white"
+         text-color="blue"
+         unelevated
+         to="/planner/dayCalendar"
+         label="Schedule"
+         no-caps
+      />
+    
+      <q-btn
+         class="q-ma-xl"
+         color="white"
+         text-color="blue"
+         unelevated
+         to="/planner/viewGoals"
+         label="Goals"
+         no-caps
+      />
+     
+      <!--<q-btn
+          class="q-mt-xl"
+          color="white"
+          text-color="blue"
+          unelevated
+          to="/planner/eventSummary"
+          label="Summary"
+          no-caps
+      /> -->
+    </div>
+  </div>
+</template>
 
   <script>
   import {
@@ -142,13 +142,13 @@
   import '@quasar/quasar-ui-qcalendar/src/QCalendarTask.sass'
   
   import { defineComponent } from 'vue'
-  //import NavigationBar from '../../components/NavigationBar.vue'
+  import NavigationBar from '../../components/NavigationBar.vue'
   import { useGoalStore } from 'stores/goalStorage'
   
   export default defineComponent({
     name: 'TaskDark',
     components: {
-      //NavigationBar,
+      NavigationBar,
       QCalendarTask
     },
     data () {
@@ -198,13 +198,15 @@
       //console.log("taks?", this.tasks)
       this.tasks = e //works? >>YEEEE
 
-      //console.log("weeee?", this.tasks)
+      console.log("weeee?", this.tasks)
       
       const updateTask = task => {
         task.logged.forEach(logged => {
           // get last 2 digits from current date (day)
           const day = logged.date.slice(-2)
-          logged.date = [ year, padNumber(month, 2), padNumber(day, 2) ].join('-')
+          //logged.
+          const datey = [ year, padNumber(month, 2), padNumber(day, 2) ].join('-')
+          //console.log("taks woulda been", datey, logged.date)
         })
       }
   
