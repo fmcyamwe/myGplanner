@@ -317,7 +317,7 @@ export default {
                     return
                 }
                 let pId = pGoal.value
-                if(buttonLabel.value === "Edit"){
+                if(buttonLabel.value === "Save"){
                     editSuGoal()
                     expanded.value[pId.id] = false //just so that it can be updated!
 
@@ -399,10 +399,10 @@ export default {
             let subby = subGoals.value.filter(element => element.id == subId) //remember that filter returns an array!!
             let pGoally = mainGoals.value.filter(element => element.id == pID)
 
-            console.log("subgoal be with parent", subby[0],pGoally[0])
+            //console.log("subgoal be with parent", subby[0],pGoally[0])
 
             if (subby && pGoally) {
-                buttonLabel.value = "Edit"
+                buttonLabel.value = "Save"
 
                 goalType.value = 'sub' //updates
 

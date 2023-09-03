@@ -274,7 +274,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     }
 
-    function fetchGoalsWithMinScore(scorey){  //of scorey minimum 
+    function fetchGoalsWithMinScore(scorey){  //of scorey minimum --actually max difference range in the score **ToRename properly!!
         const map = []
         //const tokenRegex = /^[0-9]{1,2}on[0-9]{1,2}$/g; //toREview....
 
