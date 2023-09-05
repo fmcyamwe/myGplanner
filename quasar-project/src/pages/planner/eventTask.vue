@@ -144,6 +144,7 @@
   import { defineComponent } from 'vue'
   import NavigationBar from '../../components/NavigationBar.vue'
   import { useGoalStore } from 'stores/goalStorage'
+  import { useQuasar } from 'quasar'
   
   export default defineComponent({
     name: 'TaskDark',
@@ -160,7 +161,8 @@
         tasks: [],
         footerTasks: [
           { title: 'TOTALS' }
-        ]
+        ],
+        $q : useQuasar() //umm $?
       }
     },
     computed: {
@@ -196,6 +198,16 @@
 
       //console.log("weeee?", e)
       //console.log("taks?", this.tasks)
+
+      if (e.length == 0) {
+        this.$q.notify({ // also see about using >> this.$q.dialog
+            color: 'negative',
+            position: "center", //see using 'bottom'
+            message: "No summary...please save a schedule to see more!",
+            icon: 'warning' //others >>report_problem || warning || thumb_up || tag_faces
+            })
+        return
+      }
       this.tasks = e //works? >>YEEEE
 
       console.log("weeee?", this.tasks)

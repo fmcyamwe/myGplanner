@@ -640,7 +640,7 @@ export default defineComponent({
     },
     saveCurrentSchedule() { //save 
       const mappy = new Map()
-      
+
       let endTimes = new Set() //[]
       const now = parseDate(new Date())
 
@@ -962,15 +962,13 @@ export default defineComponent({
       this.toAddE = null
       this.chosenScore = null
     },
-    doNotify(messg, colorNotif = undefined){
+    doNotify(messg, colorNotif = undefined, position = 'top'){
       this.$q.notify({ // also see about using >> this.$q.dialog
                         color: colorNotif !== undefined ? colorNotif : 'negative', //colorNotif,//'negative',
-                        position: 'top', //see using 'bottom'
+                        position: position, //see using 'bottom'
                         message: messg,
                         icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
                     })
-    },
-    askUser(aDate){//toRepurpose**
     },
     updateButtons(reloadBool=null,defaultBool=null, scheduleBool=null){ 
       //if (reloadBool != null) {
@@ -1077,6 +1075,8 @@ export default defineComponent({
             //score?maybe
        this.store.saveDailySchedule(this.currentDate, toSave) 
        this.disableSaveSchedule = true 
+
+       this.doNotify(`doSaveSchedule for ${this.currentDate}`, "positive", "top")
     },
     onAddEvent() {
       //console.log('I be adding', this.toAddE, this.targetDrop)
@@ -1442,9 +1442,9 @@ export default defineComponent({
             return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!**to add guardrails...
         }
         const mapToLabels = anEvt => {
-            return { label: anEvt.title, value: anEvt.id } // color: 'secondary' >>should prolly see look**
+            return { label: anEvt.title + " at " + anEvt.score, value: anEvt.id } // color: 'secondary' >>should prolly see look**
         }
-        //let picks = []
+       
         for (let conflict of conflicts) {
             let pick = null //see if better than picks[]
             let cIDs = this.retrieveSameStart(conflict.at)

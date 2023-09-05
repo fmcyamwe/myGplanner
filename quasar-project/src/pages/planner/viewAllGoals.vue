@@ -63,7 +63,14 @@
 
             <div v-if="showSubG" class="q-gutter-sm">
                 <q-input v-model="time" filled type="time" hint="Default time" />
-                <q-input v-model="score" filled label="Score" hint="format: #on#" />
+                
+                <q-input v-model="score" 
+                filled 
+                label="Score" 
+                hint="format: #on#"
+                lazy-rules
+                :rules="[ val => val && val.includes('on') && val.length > 3 || 'hint, hint!']"
+                /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview -->
 
                 Duration
                 <q-knob
