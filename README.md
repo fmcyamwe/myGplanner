@@ -14,7 +14,12 @@ Goals are defined in my own way of course and they usually have some subgoals (t
 
 Some logic will be put in place to account for these scores when auto-scheduling. 
 
-### Next...
+### Now! And Next...
 
-To be updated with more info.
+WooHoo! The working app, hosted via github pages, is [here](https://fmcyamwe.github.io/gplanner/).
+The minified production code was put into a different [repo](https://github.com/fmcyamwe/gplanner) while I was exploring ways to deploy the app with minimal cost--Thank you Github!
+
+I would like to add local notifications for Android to allow more scheduling capability in case an event drags on longer (or shorter and move on to the next scheduled event). A definite todo also is using a central database as each device (and browser) keeps a local copy of the data for now, which defeats the purpose of the summary tracking for all goals :D 
+
+All in due time... now on to set some goals and use this thing to grow!!!
 
