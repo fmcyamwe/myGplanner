@@ -89,10 +89,17 @@
                 <br>
                 <q-toggle
                     v-model="canMove"
-                    label="Can be Moved?"
+                    label="Can be Moved"
                     left-label
                     color="green"
-                />
+                >
+                    <q-badge 
+                    color="orange" floating
+                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer"
+                    >?
+                        <q-tooltip>Need to confirm any timeslot change</q-tooltip>
+                    </q-badge>
+                </q-toggle>
             </div>
 
             <div>
@@ -117,6 +124,13 @@
     <br>
     
     <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
+        <q-item>
+            <q-item-section>
+              <q-item-label overline>Swipe toEdit or Delete A goal.</q-item-label>
+            </q-item-section>
+         </q-item>
+    
+     <q-separator spaced />
      <transition-group name="dalist">
       <q-expansion-item v-for="goal in allMGoals" :key="goal.id" v-model="expanded[goal.id]" class="q-my-sm" :label="goal.title"
         :caption="goal.details" clickable>
@@ -338,7 +352,14 @@ export default {
             }
             reset() //reset variables
             //reload() //no need here even and have to interact with page to see list change smh
+            
             console.log("Done Adding Goal of type:",goalType.value)
+            $q.notify({
+                    color: 'positive',
+                    position: 'top',
+                    message: `Success action for ${goalTitle.value}`,
+                    icon: 'thumb_up'
+                })
         }
         function editSuGoal(){
             if(updatingSubG){
@@ -464,10 +485,10 @@ export default {
         function reset(){
             goalTitle.value = ' ' //subvert the rule check with space tho and add an extra space in beginnin..toReview***
             priority.value = 3
-            score.value = ''
+            //score.value = ''
             time.value = ''
             duration.value = 30
-            //goalType.value = '' //huh make it unselectable smh
+            //goalType.value = 'line' //huh makes it unselectable smh
             details.value = ''
             bgcolor.value = ''
 

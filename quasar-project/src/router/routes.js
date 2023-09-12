@@ -1,6 +1,6 @@
 
 const routes = [
-  {
+  /*{
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
@@ -20,19 +20,18 @@ const routes = [
         path: 'dragga',
         component: () => import('components/aDragga.vue'), ////testGoal
       }
-      /*{
-        path: 'pinia',
-        component: () => import('components/piniaGoal.vue'),
-      }
-      {
-        path: 'calendar',
-        component: () => import('pages/calendarPage.vue'),
-      },
-      */
+      //{
+      //  path: 'pinia',
+      //  component: () => import('components/piniaGoal.vue'),
+      //}
+      //{
+      // path: 'calendar',
+      //  component: () => import('pages/calendarPage.vue'),
+      //},
     ]
-  },
+  },*/
   {
-    path: '/planner',
+    path: '/', // oldie >> /planner
     component: () => import('layouts/PlannerLayout.vue'),
     children: [
       {

@@ -28,9 +28,9 @@
       <div class="text-white">
         <q-btn
             class="q-mt-sm"
-            text-color="blue"
+            text-color="gold"
             unelevated
-            to="/planner"
+            to="/"
             label="Go Back"
             no-caps
         />

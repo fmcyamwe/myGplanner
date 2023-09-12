@@ -39,7 +39,7 @@
               class="header ellipsis"
               style="font-weight: 600"
             >
-              <div class="issue ellipsis">Goaly</div>
+              <div class="issue ellipsis">{{getViewedMonth}}</div>
               <div class="key">Key</div>
               <div class="logged">Logged</div>
             </div>
@@ -101,7 +101,7 @@
          color="white"
          text-color="blue"
          unelevated
-         to="/planner/dayCalendar"
+         to="/dayCalendar"
          label="Schedule"
          no-caps
       />
@@ -111,7 +111,7 @@
          color="white"
          text-color="blue"
          unelevated
-         to="/planner/viewGoals"
+         to="/viewGoals"
          label="Goals"
          no-caps
       />
@@ -126,6 +126,27 @@
           no-caps
       /> -->
     </div>
+    <div class="column justify-center items-center">
+      <q-card>
+        1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
+      </q-card>
+      <q-separator />
+      <q-card>
+        2. Go to Schedule to see a daily schedule. Drag scheduled events to new timeslots or click in calendar to add an event.
+      </q-card>
+      <q-separator />
+      <q-card>
+        3. Reload a saved daily schedule or defaults or choose minimal score events to schedule. Fix any scheduling conflicts.
+      </q-card>
+      <q-separator />
+      <q-card>
+        4. Save the daily schedule (dont forget to update their score as needed!)
+      </q-card>
+      <q-separator />
+      <q-card>
+        5. Check out the summary of all goals here!
+      </q-card>
+    </div>
   </div>
 </template>
 
@@ -135,7 +156,8 @@
     today,
     isBetweenDates,
     parsed,
-    padNumber
+    padNumber,
+    getMonthNames
   } from '@quasar/quasar-ui-qcalendar/src/QCalendarTask.js'
   import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
   import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
@@ -155,6 +177,8 @@
     data () {
       return {
         selectedDate: today(),
+        selectedMonth:'',
+        allMonths : getMonthNames('long', 'en-US'), //'short', 'en-US'
         startDate: today(),
         endDate: today(),
         store: useGoalStore(),
@@ -186,7 +210,10 @@
         }
   
         return tasks
-      }
+      },
+      getViewedMonth(){
+        return `Goaly in ${this.selectedMonth}`
+      },
     },
     beforeMount () {
       // adjust all the dates for the current month
@@ -344,7 +371,14 @@
         console.log('onMoved', data)
       },
       onChange (data) {
-        console.log('onChange', data)
+        //console.log('onChange', data)
+
+        //const start = parsed(this.startDate)
+        let monthy = data.days[0].month  //meh this is good enough!
+
+        console.log('onChange', monthy,data ) //this.allMonths,this.allMonths[monthy-1]
+        this.selectedMonth = this.allMonths[monthy-1]
+
         this.startDate = data.start
         this.endDate = data.end
       },
