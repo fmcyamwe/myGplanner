@@ -295,7 +295,7 @@ export default {
                     expanded[item.id] = false
                 })
             }
-            console.log(`the component is now mounted.`)
+            //console.log(`the component is now mounted.`)
         })
 
         onBeforeUnmount(() => {
@@ -350,8 +350,6 @@ export default {
                 
 
             }
-            reset() //reset variables
-            //reload() //no need here even and have to interact with page to see list change smh
             
             console.log("Done Adding Goal of type:",goalType.value)
             $q.notify({
@@ -360,6 +358,9 @@ export default {
                     message: `Success action for ${goalTitle.value}`,
                     icon: 'thumb_up'
                 })
+            
+            reset() //reset variables
+            //reload() //no need here even and have to interact with page to see list change smh
         }
         function editSuGoal(){
             if(updatingSubG){

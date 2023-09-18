@@ -223,9 +223,6 @@
 
       let e = this.store.fetchAllTaskSummary()//testTasks()
 
-      //console.log("weeee?", e)
-      //console.log("taks?", this.tasks)
-
       if (e.length == 0) {
         this.$q.notify({ // also see about using >> this.$q.dialog
             color: 'negative',
@@ -237,7 +234,7 @@
       }
       this.tasks = e //works? >>YEEEE
 
-      console.log("weeee?", this.tasks)
+      console.log("weeee tasks:", this.tasks)
       
       const updateTask = task => {
         task.logged.forEach(logged => {
@@ -257,8 +254,12 @@
       })
     },
     methods: {
-      getLogged (date, logged) {
+      getLogged (date, logged, extra = null) {  //extra for scope.task.title..just for logging below but prolly redundant!
         const val = []
+        if (logged.length == 0){
+          console.log("Empty getLogged?!?", date, extra) //just in case as should be caught at storage level
+          return val
+        }
         for (let index = 0; index < logged.length; ++index) {
           if (logged[ index ].date === date) {
             val.push({ logged: logged[ index ].logged })
@@ -310,6 +311,7 @@
         const tasks = []
   
         for (let index = 0; index < task.logged.length; ++index) {
+          //console.log(`in getTasks for ${task.title}`, task.logged)
           const loggedTimestamp = parsed(task.logged[ index ].date)
           if (isBetweenDates(loggedTimestamp, start, end)) {
             tasks.push(task)

@@ -172,6 +172,7 @@ export const useGoalStore = defineStore('allGoals', () => {
     function resetAll() {
         $q.localStorage.remove('subGoals')
         $q.localStorage.remove('mainGoals')
+        //remove schedule too prolly--todo**
 
         console.log("removed ALL")
     }
@@ -407,6 +408,10 @@ export const useGoalStore = defineStore('allGoals', () => {
 
             for (let i = 0; i < subG.length; i++) { //if(toAdd.children.length > 0) {
                 let uSub = updateGoal(subG[i], goal.id)
+                if (uSub.logged.length == 0) { //not adding evts that have not been schedule-saved yet and appearing as blank rows!
+                    console.log(`Oooh no logged for parent ${goal.title}`, uSub)
+                    continue
+                }
                 toAdd.logged.push(...uSub.logged) //logged child's gets added to parent(makes sense) so that calculations are correct!
                 toAdd.children.push(uSub)
             }
