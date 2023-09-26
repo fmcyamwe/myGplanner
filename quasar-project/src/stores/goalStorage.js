@@ -378,7 +378,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let updateGoal = (task, withParent = null) => {
             let aTask = {
                 children: [],
-                title: task.title,
+                title: withParent ? `${task.title}:(${task.score})`:task.title,
                 key: withParent ? `${withParent}-${task.id}` : task.id,
                 logged:[], 
                 //logged: daDs[task.id] || [], //gotta assign empty eh!
