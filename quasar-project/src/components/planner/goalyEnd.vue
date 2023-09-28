@@ -1,9 +1,12 @@
 <!--for showing end-Now button and updating the goal score when ending-->
 <template>
-    <div class="goal-item"><!--q-mr-xs q-mb-xs q-px-sm -->
+    <div class="title q-calendar__ellipsis"><!--q-mr-xs q-mb-xs q-px-sm -->
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
         <div style="max-width: 25px; min-width: 25px;"></div> $emit('endNow', id)
       -->
+      {{ title }}
+      <q-tooltip>{{ startTime + ' - ' + details + ' :'+ score }}</q-tooltip>
+
         <q-btn
         no-caps
         class="button"
@@ -11,12 +14,12 @@
         :style="endNowBtnStyle"
         @click="wannaEnd"
         />
-        <div class="ellipsis"> <!-- :style="userStyle"
+        <!--<div class="ellipsis">  :style="userStyle"
           {{ title }}
-          <q-tooltip>{{ endTime + ' - ' + details }}</q-tooltip>-->
-        </div>
+          <q-tooltip>{{ endTime + ' - ' + details }}</q-tooltip>
+        </div>-->
 
-        <q-popup-edit v-model="aScore" :disable="disabledScore" v-slot="scope">
+        <q-popup-edit v-model="aScore" :disable="disabledScore" v-slot="scope" auto-save>
            <!--disabledScoreEvts[event.id] for disable && onSaveScore(e,id). 
           rmv this to see >> @save="(e)=>$emit('saveScore', e, id)"-->
             <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set" /> 
@@ -24,13 +27,6 @@
             now though no need for @keyup.enter="scope.set" toSee how it works!-->
         </q-popup-edit>
       </div>
-  
-      <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
-        <div style="max-width: 25px; min-width: 25px;">
-          <CurrencyDollar />
-        </div>
-        <div class="ellipsis col">{{ amount }}</div>
-      </div> -->
 </template>
   
 <script>
@@ -60,7 +56,7 @@
         get(){return this.score},
         set(value){
           console.log(`aScore getting set`,value, this.id) 
-          this.$emit('saveScore', value, this.id) //wont this update too much? even when rendering? 
+          this.$emit('saveScore', value, this.id) //check if auto-save does update it...
         }
       },
       overdueIconStyle () {
@@ -80,9 +76,9 @@
         return (this.disabledScore === false && this.happeningNow === true) ? 'Edit' : 'EndNow'
         
       },
-      endNowBtnStyle () {  //for displaying the button...
+      endNowBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
         return {
-          display: this.happeningNow === true ? 'block' : 'none',
+          display: (this.happeningNow === true && this.disabledScore === true) ? 'block' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
           margin: '2px'
         }
       }

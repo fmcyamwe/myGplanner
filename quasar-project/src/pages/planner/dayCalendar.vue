@@ -194,15 +194,15 @@
                  @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
                  @dragover="(e) => onDragOver(e, 'goal-item', scope)"
                 >
-                 <div class="title q-calendar__ellipsis">
-                   {{ event.title }}
-                   <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip>
+                 <!--<div class="title q-calendar__ellipsis"> -->
+                   <!--{{ event.title }}
+                   <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip> -->
                    <!-- interfere with double click for removing when enabled..toSee if using component would help -->
                    <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
                    
                    <!--<q-popup-edit v-model="event.score" auto-save v-slot="scope" :disable="disabledScoreEvts[event.id]" @save="(e)=>onSaveScore(e,event.id)">
                      <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set" /> 
-                     <//counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...
+                     //counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...
                       >>**DEF check if can trigger all the events properly in goaly-end!
                    </q-popup-edit>-->
                    
@@ -216,9 +216,9 @@
                      :happeningNow="hasStarted[event.id] ? hasStarted[event.id] : false"
                      @end-now="onEndNow"
                      @save-score="onSaveScore"
-                    /> 
-                     
-                 </div>
+                    />
+
+                 <!--</div> -->
                </div>
              </template>
            </template>
@@ -657,7 +657,7 @@ export default defineComponent({
         this.startTimesSet.add(startTime.time)
 
     },
-    saveCurrentSchedule() { //save 
+    updateCurrentSchedule() { //update current schedule
       const mappy = new Map()
 
       let endTimes = new Set() //[]
@@ -707,7 +707,8 @@ export default defineComponent({
         this.endTimesSet = endTimes
         this.startTimesSet = startTimes
         
-        console.log("done saveCurrentSchedule", startTimes, sameTime) //,this.dailyScheduled, this.events, typeof this.endTimesSet)
+        console.log("done updateCurrentSchedule", startTimes, sameTime) 
+        //,this.dailyScheduled, this.events, typeof this.endTimesSet)
 
         return sameTime
 
@@ -722,7 +723,7 @@ export default defineComponent({
         }else {
             //console.log("diffy negative so evt has ended",diffy,evtID)
             this.disabledScoreEvts[evtID] = false //enable score edit after end of event!
-            this.hasStarted[evtID] = true  //bon also show edit button!
+            this.hasStarted[evtID] = false  //umm bon hide when button when past as well
         }
 
     },
@@ -1027,18 +1028,6 @@ export default defineComponent({
       let e = this.deepCopy(this.storedEvents)
       let toReload = []
 
-      /* //should prolly not have to change much stuff...hopfully
-      e.forEach((obj) => {
-        let sav = evts[obj.id]
-        if (sav){
-          obj.date = sav.date, //today()
-          obj.time = sav.time, //save.time is what it was changed to...
-          obj.duration = sav.duration,
-          obj.score = sav.atScore
-
-          toReload.push(obj)
-        }else{console.log('ERROR...hasDateEvts NOT found?!?', obj.title)} 
-      })*/
       e.forEach((obj) => {
         let sav = evts[obj.id]
         if (sav){
@@ -1056,7 +1045,7 @@ export default defineComponent({
 
       this.events = toReload //[...toReload]
 
-      this.saveCurrentSchedule()
+      this.updateCurrentSchedule()
 
     },
     /////////////////////////////// EVENT HANDLERS //////////////////////////
@@ -1076,23 +1065,6 @@ export default defineComponent({
         //}
 
         this.dailyScheduled.forEach( (value, key, map) => {
-            /*toSave[key] = {  
-                //id: key,
-                date: value.on,
-                duration: value.for,
-                time: value.start.time, //hopefully this present and got the current (perhaps changed) timestart...add guardrail though to set to default originalAt?**Tbd
-                originalAt: value.originalAt,
-                atScore: value.score
-            }*/
-
-            /*toSave.push({//also use push in case of multiple same subGoals
-                id: key,
-                date: value.on,
-                duration: value.for,
-                time: value.start.time //hopefully this present and got the current (perhaps changed) timestart...add guardrail though to set to default originalAt?**Tbd
-                //score? that is updated?toSee** maybe do actually!
-            })*/
-
             toSave[key] = {  //minimalistic
                 //id: key,
                 //date: value.on, //redundant
@@ -1100,9 +1072,8 @@ export default defineComponent({
                 time: value.start.time, //should be present and got the current (perhaps changed) timestart...add guardrail though to set to default originalAt?**Tbd
                 //originalAt: value.originalAt,
                 //atScore: value.score
-            }
-
-        })
+              }
+          })
     
         //minimum to save instead of duplicate stuff
             //oh id to link it afterwards
@@ -1194,7 +1165,7 @@ export default defineComponent({
           //let diffy = diffTimestamp(now, starty) //prolly no need to check for negative as done above line ...hopefully**TOTEST
           
           let o = this.getTimeNumber(endy) - this.getTimeNumber(starty)  //how this larger?!? should be duration
-          let anotherDiff = this.getTimeNumber(now) - this.getTimeNumber(starty) //umm was correct smh...toReview!!
+          let anotherDiff = this.getTimeNumber(now) - this.getTimeNumber(starty)
 
           console.log(`end data be:`,endy, starty, evt)
 
@@ -1293,8 +1264,8 @@ export default defineComponent({
             
                 targetTimey = this.targetDrop.timestamp
             }else {
-                console.log("Cannot drop here YO!!",e, type, scope, this.targetDrop) //shouldnt happen? could!
-                return //just in case
+                console.log("Cannot drop here YO!!",e, type, scope, this.targetDrop) //shouldnt happen? >>could if dropping too high in header as if going to prev/next day
+                return
             }
         }
 
@@ -1333,7 +1304,7 @@ export default defineComponent({
         message: `Sure to remove evt: ${event.title} from today?`
           }).onOk(() => {
              this.doRemove(event)
-             this.saveCurrentSchedule() // gotta do it here or it runs before...
+             this.updateCurrentSchedule() // gotta do it here or it runs before...
              this.updateButtons(null, true, null)
              this.disableSaveSchedule = false //save schedule?
           }).onCancel(() => {
@@ -1455,18 +1426,16 @@ export default defineComponent({
 
         this.events = this.addPropsEventsTo(data.start,this.doReset ? this.returnNewEvts(true) : this.events)
 
-        //this.saveCurrentSchedule()
         this.doReset = false //reset flag
       } else{
         console.log('onChange..something is different?', data.start, this.currentDate, isToday, inDates)
         
         this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
 
-        //this.saveCurrentSchedule()
         this.disableSaveSchedule = true //reset saveSchedule button
 
       }
-      let e = this.saveCurrentSchedule()
+      let e = this.updateCurrentSchedule()
       if (e.size > 0){
         console.log('onChange..has some conflicts', e)
         if (inDates){//in case not needed after reload...
@@ -1476,7 +1445,16 @@ export default defineComponent({
             this.fixConflicts(e) //choose score or priority dialog
         } 
         
-      } //else{
+      } else if (inDates){
+        console.log('onChange and has saved DateEvts!!CHANGE?')
+        //this.onReloadSaved() //bon bypassing this cause of dialog smh--toReview **
+        this.fetchEventsForDate(this.currentDate)
+        this.updateButtons(false,true,false)
+        this.doNotify("Saved schedule Loaded", "info")
+        this.reset()
+        return
+      }
+       //else{
         //this.updateButtons(inDates,!inDates,!inDates) //toReview for the last flag--
       //}
       //let f = {at:"11:30",id: 2}
@@ -1484,11 +1462,11 @@ export default defineComponent({
 
       this.updateButtons(inDates,!inDates,!inDates) //toReview for the last flag--
       
-      if (inDates){
-        console.log('onChange and has saved DateEvts!!CHANGE?')
-      } else {
+      //if (inDates){
+      //  console.log('onChange and has saved DateEvts!!CHANGE?')
+      //} else {
         //console.log('onChange NO saved evts', inDates)
-      }
+      //}
     },
     fixConflicts(conflicts){ //walk through conflict and resolve by scheduling higher priority evts..choose higher priority or use score...alert too!
 
@@ -1586,7 +1564,7 @@ export default defineComponent({
                                 this.onPickConflictReso(pick, conflictEvts)
                             })
                              //bon saveSchedule at end...prolly to not edit while we could still iterate over it!
-                            let f = this.saveCurrentSchedule() // to refresh times...prolly check return of fixConflicts? toReview
+                            let f = this.updateCurrentSchedule() // to refresh times...prolly check return of fixConflicts? toReview
                             console.log('fixConflicts inner...after conflicts?', f)
                             this.updateButtons(null, true, null)
                             this.disableSaveSchedule = false //enable save schedule
@@ -1618,7 +1596,7 @@ export default defineComponent({
                     console.log('Dismissing...', pick) //for inner dialog this is empty...
                     if (pick) {
                         this.onPickConflictReso(pick, conflictEvts)
-                        let f = this.saveCurrentSchedule() // to refresh endTimes
+                        let f = this.updateCurrentSchedule() // to refresh endTimes
                         console.log('fixConflicts outer...after conflicts?', f) //just check...
                         this.updateButtons(null, true, null)
                         this.disableSaveSchedule = false //enable save schedule
@@ -1629,7 +1607,7 @@ export default defineComponent({
         return true //should return false in error? tbd**
         
     },
-    onReloadSaved(conflicts = null){
+    onReloadSaved(conflicts = null){ //toReview if not redundant**
       console.log('doReloadSaved:',this.currentDate) //toTest it's the current viewed day***
 
       //oldie >> this.askUser(this.currentDate) 
@@ -1675,7 +1653,7 @@ export default defineComponent({
 
       //this.events = e //[...e] 
       
-      this.saveCurrentSchedule() //should also check conflicts here...todo**
+      this.updateCurrentSchedule() //should also check conflicts here...todo**
 
       let inDates = this.store.hasEventsForDate(this.currentDate)
 
@@ -1700,7 +1678,7 @@ export default defineComponent({
 
       this.events = e//[...e]
 
-      this.saveCurrentSchedule() //should also check conflicts here...todo**
+      this.updateCurrentSchedule() //should also check conflicts here...todo**
 
       this.updateButtons(false,true,true)
 
