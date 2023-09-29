@@ -300,6 +300,7 @@ import {
   diffTimestamp,
   getDateTime,
   getDayTimeIdentifier,
+  getDayIdentifier,
   today,
   parsed,
   parseDate,
@@ -346,6 +347,7 @@ export default defineComponent({
     let intervalId = null
 
     let doReset = false //when going backward..reload defaults
+    let disableUpdates = false //not allow changes for past events
 
     return {
       currentDate: ref(today()),
@@ -836,7 +838,7 @@ export default defineComponent({
                 } while (++i < sizey)
             }
                     
-            let [change, work] = this.changeEvtSchedule(overlappingEvtID, overlappedEvtNew)
+            let [change, work] = this.changeEvtSchedule(overlappingEvtID, overlappedEvtNew, true)
             console.log("overlappedEvtNew..",change,work, overlappingEvtID, overlappedEvtNew)
 
 
@@ -844,15 +846,15 @@ export default defineComponent({
             let draggedNewTime = dragDirection > 0 ? addToDate(targetTimestamp, { minute: 0 })
                                                     : addToDate(targetTimestamp, { minute: 0 }) 
                     
-            let [changed, worked] = this.changeEvtSchedule(tEvt.id, draggedNewTime)
+            let [changed, worked] = this.changeEvtSchedule(tEvt.id, draggedNewTime, true)
             
             console.log("recurChangeTime complete",changed, worked, tEvt.id, draggedNewTime)
 
         }else{console.log("ERROR overlapped event not found!", overlappingEvtID)}
 
     },
-    changeEvtSchedule(evtID, timey){
-        let changed = this.changeEventTime(evtID, timey)
+    changeEvtSchedule(evtID, timey,skipAsk = false){
+        let changed = this.changeEventTime(evtID, timey, skipAsk)
 
         let worked = this.updateScheduleMaps(evtID, timey)
         
@@ -936,7 +938,7 @@ export default defineComponent({
         }  
         
     },
-    changeEventTime(evID, timeyStart) {
+    changeEventTime(evID, timeyStart, skipAsk = false) {
         console.log("changeEventTime",evID, timeyStart.time)
         for(let i = 0; i < this.events.length; i++) {
             let obj = this.events[i] //will changes stick ahubwo?!? seems so...but break doesnt return true? or seems to be evaluated earlier than dialog close?!?
@@ -958,19 +960,21 @@ export default defineComponent({
                 } else {
                   obj.time = timeyStart.time //do change to new time
                   
-                  //ask if should be default...too much asking when it could be just for today? toREview
-                  this.$q.dialog({
-                    title: 'Alert',
-                    cancel: "No", //huh can also use string for labelling! sweet!
-                    // position: 'bottom',
-                    message: `Make ${timeyStart.time} the default time for ${obj.title} ?`
-                  }).onOk(() => {
-                    //obj.time = timeyStart.time
-                    this.store.saveSubProp(evID, timeyStart.time, null)
-                  }).onCancel(() => {
-                    //this.doNotify(`${obj.title} Cancelled moving ...`)
-                    console.log("Nope cool, coolios")
-                  })
+                  //ask if should be default...too much asking? >>see with skipAsk flag!
+                  if (!skipAsk) {
+                    this.$q.dialog({
+                      title: 'Alert',
+                      cancel: "No", //huh can also use string for labelling! sweet!
+                      // position: 'bottom',
+                      message: `Make ${timeyStart.time} the default time for ${obj.title} ?`
+                    }).onOk(() => {
+                      //obj.time = timeyStart.time
+                      this.store.saveSubProp(evID, timeyStart.time, null)
+                    }).onCancel(() => {
+                      //this.doNotify(`${obj.title} Cancelled moving ...`)
+                      console.log("Nope cool, coolios")
+                    })
+                  }
                 }
                 return true //here work? yup
             }
@@ -1048,6 +1052,28 @@ export default defineComponent({
       this.updateCurrentSchedule()
 
     },
+    isViewingPast(){ ///should return bool for past, futur ?
+      let isToday = today()
+
+      //data.start == 
+      if (this.currentDate && this.currentDate == isToday){
+        //console.log('onChange', data, this.currentDate, isToday, inDates)
+        this.disableUpdates = false
+        return false
+      }
+
+      let onToday = getDayIdentifier(parsed(isToday))
+      let viewing = getDayIdentifier(parsed(this.currentDate))
+
+      if (viewing >= onToday) {
+        //console.log('isViewingPast..nope future >', isToday, this.currentDate)
+        this.disableUpdates = false
+        return false
+      }
+      this.disableUpdates = true //so do not allow changes...
+      
+      return true
+    },
     /////////////////////////////// EVENT HANDLERS //////////////////////////
     onRefresh(done) {  //test to drag for refresh
         setTimeout(() => {
@@ -1087,7 +1113,9 @@ export default defineComponent({
        this.doNotify(`doSaveSchedule for ${this.currentDate}`, "positive", "top")
     },
     onAddEvent() {
-      //console.log('I be adding', this.toAddE, this.targetDrop)
+
+  
+      console.log('I be adding', this.toAddE, this.targetDrop, this.currentDate, this.isViewingPast())
       
       this.showEventDialog = false
 
@@ -1117,7 +1145,7 @@ export default defineComponent({
         
         //so already there...just change it
         if(this.dailyScheduled.has(addy.id)){
-            let [changed, worked] = this.changeEvtSchedule(addy.id, this.targetDrop.timestamp) //this.toAddE
+            let [changed, worked] = this.changeEvtSchedule(addy.id, this.targetDrop.timestamp, false)
             console.log("AddEvent that was there complete",changed, worked,addy.id) //this.toAddE.id
         } else { 
             //not there...add new event to schedule--Should not get here!!
@@ -1197,15 +1225,33 @@ export default defineComponent({
       
       let ev = this.dailyScheduled.get(id)
       if (ev){
-        console.log(`oooh onSaveScore from ${ev.score} to ${newVal}`, id)
+        //console.log(`oooh onSaveScore from ${ev.score} to ${newVal}`, id)
         ev.score = newVal
         this.store.saveSubProp(id, null, newVal)  //should just send whole event?
+
+        const getEvt = taskID => {
+          return this.events.find(item => item.id == taskID) 
+        }
+
+        let h = getEvt(id) //send changes down to child component...
+        if (h){
+            h.score = newVal
+        }else{console.log('onSaveScore ERROR not found',h, id) }
+
       }else {
-        console.log(`ERROR could not find event ${id}?!?`) //this would be baaad! 
+        console.log(`ERROR onSaveScore could not find event ${id}?!?`) //this would be baaad! 
       }
     },
     onDragStart(e, item) { 
-        console.log("onDragStart", e, item) //.clientY to determine if going up or down? >>meh no need
+        console.log("onDragStart", e, item, this.currentDate) 
+        //.clientY to determine if going up or down? >>meh no need
+
+        ////not allowed to change past loaded schedule > should show dialog that not possible --todo**
+        if(this.isViewingPast()){ //should prolly also check that it's schedule? shouldnt make no diff though
+          this.doNotify("Editing past is no no!")
+          e.preventDefault() 
+          return
+        }
         
         //save the moved item
         this.draggedItem = item
@@ -1284,8 +1330,8 @@ export default defineComponent({
             //oldie >> this.draggedItem.time = scope.timestamp.time
             //draggy.time = targetTimey.time  //this works...no need to put in function mais bon 
 
-            let [changed, worked] = this.changeEvtSchedule(draggy.id, targetTimey) //this.draggedItem
-            console.log("onDrop no overlap complete",changed, worked, draggy.id) //this.draggedItem
+            let [changed, worked] = this.changeEvtSchedule(draggy.id, targetTimey, false)
+            console.log("onDrop no overlap complete",changed, worked, draggy.id)
             
         }
         this.disableSaveSchedule = false //save schedule?
@@ -1297,6 +1343,13 @@ export default defineComponent({
     },
     onDblClickEvent(e, event) {
        //console.log("double click eh...", e, event)
+      
+      if(this.isViewingPast()){ //should prolly also check that it's schedule? 
+          this.doNotify("Removing from the past is a no no!") //not likey if it's score editing that goes on!--toReview**
+          e.preventDefault()
+          return
+      }
+
        this.$q.dialog({
         title: 'Alert',
         cancel: true,
@@ -1320,6 +1373,13 @@ export default defineComponent({
       //**ariko wont this affect the scrolling? or would it be notificeable in mobile? ToSee**
       //tbd if shouldnt do this in clickInterval...
       console.log('onClickTime..event', data)
+
+     //not allowed to change past loaded schedule--todo
+      if(this.isViewingPast()){ //should prolly also check saved? shouldnt make no diff though
+          this.doNotify("Adding to the past is a no no!")
+          //this.targetDrop = null 
+          return
+      }
 
       //so here propose selection to add an event to the schedule
       //...dialog box to select from all subgoals
@@ -1410,23 +1470,24 @@ export default defineComponent({
       this.$refs.calendar.prev()
     },
     onNext () {
+      //this.doReset = true  //umm should do it here too right? 
       this.$refs.calendar.next()
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
 
-      //console.log('onChange', data, this.currentDate) // JSON.stringify(data)
+      console.log('onChange', data, this.currentDate, this.isViewingPast()) // JSON.stringify(data)
       
       let inDates = this.store.hasEventsForDate(this.currentDate)
 
       let isToday = today()
 
-      //console.log('onChange', data, this.currentDate, isToday, inDates)
+      //console.log('onChange', data, this.currentDate, isToday, inDates) //still wonder when this.currentDate is set
       if (data.start == this.currentDate && this.currentDate == isToday){
         console.log('onChange and all dates are ALIKE!')
 
         this.events = this.addPropsEventsTo(data.start,this.doReset ? this.returnNewEvts(true) : this.events)
 
-        this.doReset = false //reset flag
+        this.doReset = false //reset flag...what was point of this again?
       } else{
         console.log('onChange..something is different?', data.start, this.currentDate, isToday, inDates)
         
@@ -1435,6 +1496,7 @@ export default defineComponent({
         this.disableSaveSchedule = true //reset saveSchedule button
 
       }
+
       let e = this.updateCurrentSchedule()
       if (e.size > 0){
         console.log('onChange..has some conflicts', e)
@@ -1446,7 +1508,7 @@ export default defineComponent({
         } 
         
       } else if (inDates){
-        console.log('onChange and has saved DateEvts!!CHANGE?')
+        console.log(`onChange and saved schedule ${this.currentDate}...loading!`)
         //this.onReloadSaved() //bon bypassing this cause of dialog smh--toReview **
         this.fetchEventsForDate(this.currentDate)
         this.updateButtons(false,true,false)

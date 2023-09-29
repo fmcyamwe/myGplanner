@@ -79,7 +79,7 @@
       endNowBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
         return {
           display: (this.happeningNow === true && this.disabledScore === true) ? 'block' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
-          margin: '2px'
+          'margin-left': '32em'
         }
       }
     },
