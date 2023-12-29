@@ -326,7 +326,7 @@ export default {
             //console.log("Adding Goal of type:",goalType.value)
 
             if (goalType.value ==='main') { //goal,details,color,priority
-                store.addMainGoal(goalTitle,details,bgcolor,priority)
+                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
             } else {//pGoal,title,score,time, duration, canMove
                 if(!pGoal.value){
                     $q.notify({
@@ -344,7 +344,7 @@ export default {
 
                     buttonLabel.value = "Submit"
                 } else{
-                    store.addSubGoal(pId.id,goalTitle,score,time, duration,canMove)
+                    store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value)
                     console.log("Subgoal Goal added for parent:",pId.title)
                 }
                 
@@ -364,7 +364,7 @@ export default {
         }
         function editSuGoal(){
             if(updatingSubG){
-                store.editSubGoal(updatingSubG,goalTitle,score,time, duration,canMove) 
+                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value) 
                 //bon no need to pass parentGoal in case it has changed(should add this later as would involve more work to change both stored maps!!)
 
             }else{

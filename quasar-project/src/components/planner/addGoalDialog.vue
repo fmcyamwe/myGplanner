@@ -183,7 +183,7 @@ export default {
             console.log("Adding Goal of type:",goalType.value)
 
             if (goalType.value ==='main') { //goal,details,color,priority
-                store.addMainGoal(goalTitle,details,bgcolor,priority)
+                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
             } else {//pGoal,title,score,time, duration, canMove
                 if(!pGoal.value){
                     $q.notify({
@@ -196,7 +196,7 @@ export default {
                 }
                 let pId = pGoal.value
                 console.log("Subgoal Goal added for parent:",pId.title)
-                store.addSubGoal(pId.id,goalTitle,score,time, duration,canMove)
+                store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value)
             }
         }
         function getSubGoals(parentID){

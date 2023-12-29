@@ -33,15 +33,15 @@
              />
          </div>
          <div v-if="loadDefault">
-           <q-btn
-             class="q-mt-xl"
-             color=""
-             text-color="blue"
-             elevated
-             label="Defaults"
-             @click="onLoadDefault"
-             no-caps
-           />
+          <q-btn
+            class="q-mt-xl"
+            color=""
+            text-color="blue"
+            elevated
+            label="Defaults"
+            @click="onLoadDefault"
+            no-caps
+          />
          </div>
          <div v-if="doSchedule">
                <q-btn-dropdown
@@ -225,7 +225,29 @@
          </q-calendar-day>
        </div>
  
-       <q-dialog v-model="showEventDialog" transition-show="rotate" transition-hide="rotate">
+       <q-dialog v-model="addEventDialog" transition-show="rotate" transition-hide="rotate">
+        <!-- either newEvent || pick existing event style="padding: 2px 2px;-->
+        <q-card v-if="adHocEventDialog">
+          <q-card-section>
+            <div class="text-h6">Ad hoc or Existing event</div>
+          </q-card-section>
+          <q-card-actions align="center">
+            <q-btn flat label="Add hoc" color="primary" @click="adHocEventDialog = !adHocEventDialog"/>
+            <q-btn flat label="Existing" color="primary" @click="onChooseEvent"/>
+          </q-card-actions>        
+        </q-card>
+        <q-card v-else>
+          <div class="q-ml-md event-select">
+            <ad-hoc-event
+              :mainGoals="storedMainG"
+              @save-Event="onAddNewEvent"
+            />
+            <q-btn flat label="Cancel" color="primary" @click="adHocEventDialog = !adHocEventDialog"/>
+          </div>
+        </q-card>
+       </q-dialog>
+
+       <q-dialog v-model="pickEventDialog" transition-show="rotate" transition-hide="rotate">
         <q-card> <!--style="padding: 2px 2px;"-->
            <q-card-section>
              <div class="text-h3">Pick event</div>
@@ -243,7 +265,7 @@
              -->
            </div>
            <q-card-actions align="right">
-             <q-btn flat label="Add" color="primary" @click="onAddEvent"/>
+             <q-btn flat label="Add" color="primary" @click="onPickEvent"/>
            </q-card-actions>         
         </q-card>
        </q-dialog>
@@ -314,6 +336,7 @@ import NavigationBar from '../../components/NavigationBar.vue'
 import { isMobile } from '../util/isMobile'
 import addGoalForm from '../planner/viewAllGoals.vue'
 import GoalyEnd from '../../components/planner/goalyEnd.vue'
+import adHocEvent from '../../components/planner/adHocEvent.vue'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
 
@@ -330,6 +353,7 @@ export default defineComponent({
     QCalendarDay,
     addGoalForm,
     GoalyEnd,
+    adHocEvent,
   },
   data () {
     const draggedItem = ref(null)
@@ -349,6 +373,8 @@ export default defineComponent({
     let doReset = false //when going backward..reload defaults
     let disableUpdates = false //not allow changes for past events
 
+    let possibleRange = null //for adhoc scheduling...keep track of selected time range
+
     return {
       currentDate: ref(today()),
       scoreOptions:ref([1,2,3,4,5]),
@@ -366,7 +392,10 @@ export default defineComponent({
       timeStartPos:ref(0), ///This is the one for actually showing current time and needs to be in return for proper update
 
       showGoalForm: ref(false), //showing addGoal form
-      showEventDialog:ref(false), //showing pick event to schedule dialog
+      pickEventDialog:ref(false), //showing pick event to schedule dialog
+      addEventDialog: ref(false),
+      adHocEventDialog:ref(true),  //true by default 
+
       conflictReso:ref(false), //resolve conflict radiobutton dialog
       resoType: ref(''), //priority or score 
       toAddE:ref(null),
@@ -401,7 +430,7 @@ export default defineComponent({
 
   computed: {
     chosenScoreLabel() { 
-      return this.chosenScore == null ? `Scheduled All` : `Schedule >${this.chosenScore}` 
+      return this.chosenScore == null ? `Score Schedule` : `Score > ${this.chosenScore}` 
     },
     showForm() {return this.showGoalForm},
     doDisableSaveSchedule(){
@@ -473,8 +502,11 @@ export default defineComponent({
       
       return difference
     },
-    storedEvents(){
+    storedEvents(){  //rename properly** todo
         return this.store.getSubGoals
+    },
+    storedMainG(){
+      return this.store.getMainGoals
     },
     style () {
       return {
@@ -492,7 +524,6 @@ export default defineComponent({
           dates.push(getDateTime(this.otherTimestamp), getDateTime(this.anchorTimestamp))
         }
       }
-      //console.log("startEndTimes", dates)
       return dates
     },
     anchorDayTimeIdentifier() {
@@ -535,7 +566,7 @@ export default defineComponent({
         let pgoal = pMap.get(obj.parentGoal)
         if(!pgoal){
             console.log("no parent goal for:", obj)
-            obj.bgcolor = "red" //default for goals (could be ad-hoc goals)
+            obj.bgcolor = "grey" //default for goals (could be ad-hoc goals)
             obj.details = "unknown"
         } else {
             obj.bgcolor = pgoal.bgcolor  //for weird colors, becomes transparent--beware**
@@ -884,7 +915,7 @@ export default defineComponent({
         //search for corresponding eventID and enable that one only //this.disabledScoreEvts[0] = false
         
         let evtIDs = this.retrieveSameEnd(timeEnd)
-        console.log("enableEditScore...FOUND", evtIDs) //shouldnt be multiple but 'could'
+        //console.log("enableEditScore...FOUND", evtIDs) //shouldnt be multiple but 'could'
         for (let i of evtIDs){
             this.disabledScoreEvts[i] = false
         }
@@ -1003,6 +1034,8 @@ export default defineComponent({
       //
       this.toAddE = null
       this.chosenScore = null
+
+      this.possibleRange = null //enable after test**
     },
     doNotify(messg, colorNotif = undefined, position = 'top'){
       this.$q.notify({ // also see about using >> this.$q.dialog
@@ -1112,12 +1145,84 @@ export default defineComponent({
 
        this.doNotify(`doSaveSchedule for ${this.currentDate}`, "positive", "top")
     },
-    onAddEvent() {
+    onAddNewEvent(goalTitle, parentGoal, own){
+      console.log("Adding Event eh...", goalTitle, parentGoal, own, this.possibleRange)
 
-  
-      console.log('I be adding', this.toAddE, this.targetDrop, this.currentDate, this.isViewingPast())
+      if (!this.possibleRange){
+        //console.log("umm not a range selection", this.startEndTimes)  //just in case it's single cell selction
+        this.possibleRange = this.startEndTimes
+      }
+
+      let timeStart = parseTimestamp(this.possibleRange[0])
+      //let tosee = parsed(this.possibleRange[0])
+      let timeEnd = addToDate(parseTimestamp(this.possibleRange[1]), { minute: 15 })  //as to account for extra 15 mins in selection or when single timeslot selection
+
+      let duration = Math.floor((diffTimestamp(timeStart, timeEnd)/1000)/60)  //(diffy / 60000)
+
+      //console.log("With times as ", timeStart, timeEnd, duration)
       
-      this.showEventDialog = false
+      let subID = null 
+      if(own == "self"){ //add it as self >>so create parent goal with this as subgoal
+        //disregards whether a parent was selected*** ToReview!
+
+        let pId = this.store.addMainGoal(goalTitle, "", "orange", 2)  //default color and priority
+        if (pId) {
+          console.log("wooh parent created",pId)
+
+          subID = this.store.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,false) 
+          //any issue with .value?
+          
+        } else {//could be for first first parentGoal---toTest**
+          console.log("ERROR? no pID", pId)
+          //
+          //return? or just add it?
+        }
+      } else { //just add it to Misc parentGoal(that have all one-off kind of stuff)
+        if (parentGoal){
+          //add it to parentGoal
+          subID = this.store.addSubGoal(parentGoal.id,goalTitle,'1on5',timeStart.time, duration,false)
+
+        }else { //any Misc parentGoal available?
+          let pMisc = this.store.getGoalByTitle("Misc")  
+          //could also filter by those present? >> this.storedMainG
+          if(!pMisc){
+            console.log("ERROR? no Misc pgoal", this.storedMainG)
+            let iD = this.store.addMainGoal("Misc", "", "purple", 2)  //default color and priority
+            subID = this.store.addSubGoal(iD,goalTitle,'1on5',timeStart.time, duration,false) 
+            
+          } else{
+            console.log("Woo found Misc pgoal", pMisc)
+            subID = this.store.addSubGoal(pMisc.id,goalTitle,'1on5',timeStart.time, duration,false)
+          }
+        }
+      }
+
+      if (subID) {
+        this.addAnEvent({ //parentGoal map not updated at this point mais bon...
+            id: subID,
+            time: timeStart.time,
+            score: '1on5',
+            duration: duration,
+            canMove: false //this default though?!?toReview if cannot move...
+        })
+        //this.updateCurrentSchedule()  //prolly no need as updated in addAnEvent() 
+
+        this.doSaveSchedule()
+      } else{
+        console.log("BOO ERROR no subID:(",subID)
+      }
+
+      this.addEventDialog = false
+      this.reset()
+    },
+    onChooseEvent(){ //so hide the main dialog and show the pickEvent dialog
+      this.addEventDialog = false
+      this.pickEventDialog = true
+    },
+    onPickEvent() {
+      console.log('I be picking', this.toAddE, this.targetDrop, this.currentDate, this.isViewingPast())
+      
+      this.pickEventDialog = false
 
       //if no prob ask whether to keep this time going forward? ToSee later
 
@@ -1146,14 +1251,12 @@ export default defineComponent({
         //so already there...just change it
         if(this.dailyScheduled.has(addy.id)){
             let [changed, worked] = this.changeEvtSchedule(addy.id, this.targetDrop.timestamp, false)
-            console.log("AddEvent that was there complete",changed, worked,addy.id) //this.toAddE.id
+            console.log("AddEvent that was there complete",changed, worked,addy.id)
         } else { 
             //not there...add new event to schedule--Should not get here!!
             console.log('ERROR ERROR NEW event with current events as:', this.events) //should NOT get here now**
 
         }
-       
-        //console.log("onAddEvent...got added eh", this.toAddE)
       }
       
       this.disableSaveSchedule = false //for saving schedule on change for this day...
@@ -1383,7 +1486,7 @@ export default defineComponent({
 
       //so here propose selection to add an event to the schedule
       //...dialog box to select from all subgoals
-       this.showEventDialog = true
+       this.addEventDialog = true
         
        //save the data to use later when checking that it can be scheduled!
        this.targetDrop = data.scope
@@ -1408,7 +1511,7 @@ export default defineComponent({
     onMouseDownTime ({ scope, event }) {
       console.log('onMouseDownTime', { scope, event })
       if (isLeftClick(event)) {
-        //console.log('onMouseDownTime and its a leftClick event')
+        console.log('onMouseDownTime and its a leftClick event')
         if (this.mobile === true
           && this.anchorTimestamp !== null
           && this.otherTimestamp !== null
@@ -1423,33 +1526,25 @@ export default defineComponent({
         this.otherTimestamp = scope.timestamp
       }
     },
-    onMouseUpTime ({ scope, event }) { 
-      //this actually unfurl(destructure) the data parameter in two with those {}
-      //can also further destructure keeping only needed variables with { scope: { timestamp } }
 
-        console.log('onMouseUpTime', { scope, event })
-        if (this.mobile !== true && isLeftClick(event)) {
-            // mouse is up, capture last and cancel selection
-            this.otherTimestamp = scope.timestamp
-            this.mouseDown = false
+    //this actually unfurl(destructure) the data parameter in two with those {}
+    //can also further destructure keeping only needed variables with { scope: { timestamp } }
+    onMouseUpTime ({ scope, event }) {
+      console.log('onMouseUpTime', { scope, event })
+      if (this.mobile !== true && isLeftClick(event)) {
+          // mouse is up, capture last and cancel selection
+          this.otherTimestamp = scope.timestamp
+          this.mouseDown = false
         }
 
-      /*if(!this.mousedown) { // test to see if can trigger a dialog--react on every mouse up though
-        this.$q.dialog({
-        title: 'Alert',
-        message: 'Some message'
-          }).onOk(() => {
-             console.log('OK')
-          }).onCancel(() => {
-             console.log('Cancel')
-          }).onDismiss(() => {
-             console.log('I am triggered on both OK and Cancel')
-          })
-      }*/
       if(!this.mousedown) {
-        let rangey = this.startEndTimes
-        console.log('onMouseUpTime range', rangey)
-        //so when range of selected time is different >> bring up dialog to add a subgoal** 
+        let rangy = this.startEndTimes
+        if (rangy[1] == rangy[0]){ //to keep selection range in case of adding new event ad hoc!
+          //console.log("DIDNT change", rangy)
+          return
+        }
+        this.possibleRange = rangy
+        console.log('onMouseUpTime range change', this.possibleRange)
       }
     },
     onMouseMoveTime ({ scope, event }) { //fires lots! when not on top of an event!
@@ -1474,22 +1569,20 @@ export default defineComponent({
       this.$refs.calendar.next()
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
-
-      console.log('onChange', data, this.currentDate, this.isViewingPast()) // JSON.stringify(data)
       
       let inDates = this.store.hasEventsForDate(this.currentDate)
 
       let isToday = today()
 
-      //console.log('onChange', data, this.currentDate, isToday, inDates) //still wonder when this.currentDate is set
+      console.log('onChange', data, this.currentDate, isToday, inDates, this.isViewingPast())
       if (data.start == this.currentDate && this.currentDate == isToday){
-        console.log('onChange and all dates are ALIKE!')
+        //console.log('onChange and all dates are ALIKE!')
 
         this.events = this.addPropsEventsTo(data.start,this.doReset ? this.returnNewEvts(true) : this.events)
 
         this.doReset = false //reset flag...what was point of this again?
       } else{
-        console.log('onChange..something is different?', data.start, this.currentDate, isToday, inDates)
+        console.log('onChange..different day', data.start, this.currentDate, isToday, inDates)
         
         this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
 
@@ -1679,7 +1772,6 @@ export default defineComponent({
        // position: 'bottom',
         message: 'Some saved schedule found, load it up?'
           }).onOk(() => {
-            //this.loadSavedEvents(this.currentDate, true) //data.start
             this.fetchEventsForDate(this.currentDate)
             this.updateButtons(false,true,false)
             this.reset()
@@ -1825,6 +1917,13 @@ export default defineComponent({
   left: 5px
   border-top: rgba(0, 0, 255, .5) 2px solid
   width: calc(100% - 5px)
+
+.event-select
+  display: flex
+  flex-direction: column
+  justify-content: center
+  width: 100%
+  padding: 2px
 
 .event-select
   display: flex

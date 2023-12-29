@@ -66,17 +66,17 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function addMainGoal(goal,details,color,priority) {
        
-        console.log(goal.value+ ' ' +details.value+ ' ' +color.value+ ' ' +priority.value) //+ ' ' +icon.value
+        console.log(goal+ ' ' +details + ' ' +color + ' ' +priority)
         
         let current = this.getMainGoals
         if(!current){
             console.log("umm no mainGoals...adding")
             $q.localStorage.set('mainGoals', JSON.stringify([{ //unshift
                 id: 0,
-                title: goal.value,
-                details: details.value,
-                priority: priority.value,
-                bgcolor: color.value,
+                title: goal,
+                details: details,
+                priority: priority,
+                bgcolor: color,
                 icon: 'fas fa-utensils' 
             }]))
             return
@@ -91,33 +91,34 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
         current.unshift({
             id: newID,
-            title: goal.value,
-            details: details.value,
-            priority: priority.value,
-            bgcolor: color.value,
+            title: goal,
+            details: details,
+            priority: priority,
+            bgcolor: color,
             icon: 'fas fa-utensils' 
         })
 
       $q.localStorage.set('mainGoals', JSON.stringify(current))
 
-      console.log("done adding mainGoal")
+      console.log("done adding mainGoal", newID)
+      return newID
     }
 
     function addSubGoal(pGoal,title,score,time, duration, canMove) {
         
-        console.log(pGoal+ ' ' +title.value+ ' ' +score.value+ ' ' +time.value+ ' ' +duration.value+' ' +canMove.value)
+        console.log(pGoal+ ' ' +title + ' ' +score + ' ' +time + ' ' +duration +' ' +canMove)
         
         let current = this.getSubGoals
         //let id = current !== null ? current.length + 1 : 0
         if(!current){
             $q.localStorage.set('subGoals', JSON.stringify([{ //unshift
                 id: 0,
-                parentGoal:pGoal, //weird how no need for .value...
-                title: title.value,
-                score: score.value,
-                time:time.value,//'19:00',
-                duration: duration.value,
-                canMove: canMove.value
+                parentGoal:pGoal,
+                title: title,
+                score: score,
+                time:time,//'19:00',
+                duration: duration,
+                canMove: canMove
             }]))
             return
         }
@@ -132,31 +133,34 @@ export const useGoalStore = defineStore('allGoals', () => {
         current.unshift({
             id: newID,
             parentGoal:pGoal,
-            title: title.value,
-            score: score.value,
-            time:time.value,//'19:00',
-            duration: duration.value,
-            canMove: canMove.value
+            title: title,
+            score: score,
+            time:time,//'19:00',
+            duration: duration,
+            canMove: canMove
         })
 
         $q.localStorage.set('subGoals', JSON.stringify(current))
 
+        console.log("done adding subGoal", newID)
+        return newID
     }
 
     function editSubGoal(goalId, title,score,time, duration, canMove){
         let current = this.getSubGoals
-        //console.log("subGoal time change with ",goalId, time, current)
-         current.forEach((obj) => {  //make this better instead of having to walk the whole map! todo***
-             if(obj.id === goalId){
-                obj.title = title.value,
-                obj.score = score.value,
-                obj.time = time.value,//'19:00',
-                obj.duration = duration.value,
-                obj.canMove = canMove.value
-                console.log("editSubGoal for",obj)
-             }
-         })
-         $q.localStorage.set('subGoals', JSON.stringify(current))
+        for( var i = 0; i < current.length; i++){ 
+            if ( current[i].id === goalId) {
+                current[i].title = title,
+                current[i].score = score,
+                current[i].time = time,//'19:00',
+                current[i].duration = duration,
+                current[i].canMove = canMove
+                console.log("editSubGoal for",current[i], i)
+                break
+            }
+        }
+         
+        $q.localStorage.set('subGoals', JSON.stringify(current))
     }
 
     function resetMain() {
@@ -179,14 +183,15 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function saveSubProp(goalId, time = null, score = null) {
         let current = this.getSubGoals
-        //console.log("saveSubProp change with ",goalId, time, score)
-        current.forEach((obj) => {
-            if(obj.id === goalId){
-                obj.time = time || obj.time
-                obj.score = score || obj.score
+        for( var i = 0; i < current.length; i++){ 
+            if (current[i].id === goalId) {
+                current[i].time = time || current[i].time
+                current[i].score = score || current[i].score
                // console.log("subGoal time change for",obj) //.title +"to" + obj.time
+               break
             }
-        })
+        }
+
         $q.localStorage.set('subGoals', JSON.stringify(current))
     }
 
@@ -213,6 +218,19 @@ export const useGoalStore = defineStore('allGoals', () => {
         $q.localStorage.set('mainGoals', JSON.stringify(current))
 
         return current
+    }
+
+    function getGoalByTitle(goalTitle) {
+        let current = this.getMainGoals
+
+        //let toRet = null 
+        for( var i = 0; i < current.length; i++){ 
+            if ( current[i].title === goalTitle) { 
+                return current[i]
+            }
+        }
+
+        return null
     }
 
     //saves map of events that were completed...for summary retrieval
@@ -423,72 +441,6 @@ export const useGoalStore = defineStore('allGoals', () => {
         return tasks
     }
 
-    /*function testTasks() { //massage data for testing Task summary //replaced by fetchAllTaskSummary() above!
-        let mains = this.getMainGoals
-        let subs =  this.getSubGoals
-        const datesS = datesTest.length
-        const loggedS = loggedTest.length
-
-        let tasks = []
-
-        let findSubGoals = parentID => {
-            let map = []
-            //let allSubGoals = this.getSubGoals
-            if(!subs) { //allSubGoals
-                //console.log("No subgoals")
-                return map
-            }
-            map = subs.filter(x => x.parentGoal == parentID)
-
-            //subs.forEach(event => {
-            //    if (event.parentGoal == parentID) {
-            //        map.push(event)
-            //    }
-            //})
-            return map  
-        }
-        let updateGoal = task => {
-            let aTask = {
-                children: [],
-                title: task.title,
-                key: task.id,
-                logged: [],
-                expanded:false //see if true works?
-            }
-
-            let loggedSize = getRandomIndex(3) //bon not more than 3 logged events--ToChange
-            do {
-                let loggedDate = datesTest[getRandomIndex(datesS)]
-                let loggedDuration = loggedTest[getRandomIndex(loggedS)]
-                aTask.logged.push({date: loggedDate, logged: loggedDuration})
-            } while (--loggedSize > 0)
-
-            return aTask
-        }
-      
-        mains.forEach(goal => {
-            let toAdd = updateGoal(goal)
-            let subG = findSubGoals(goal.id)
-            ///*if (subG !== void 0) {
-                //toAdd.children = [...subG]
-                console.log("aMainSubs",subG)
-                //toAdd.children.forEach(child => { updateGoal(child) }) //oldie with bug as didnt assign it back!
-            } else {
-                console.log("No subgoals for",goal.title)
-            //}/*
-            for (let i = 0; i < subG.length; i++) { //if(toAdd.children.length > 0) {
-                let uSub = updateGoal(subG[i])
-                toAdd.children.push(uSub)
-            }
-
-            tasks.push(toAdd)
-        })
-
-        //console.log("testTasks",tasks) //JSON.stringify(tasks)
-
-        return tasks
-    }*/
-
     return {
         headers, 
         headerRefs, 
@@ -499,6 +451,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         addMainGoal,
         addSubGoal,
         editSubGoal,
+        getGoalByTitle,
         saveSubProp,
         saveDailySchedule,
         resetSub,
