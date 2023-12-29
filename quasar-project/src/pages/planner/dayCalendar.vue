@@ -365,7 +365,7 @@ export default defineComponent({
     const startTimesSet = ref(null) //bon same as above--just to know when starting an event
     
     const allEvents = ref(null)  //bring up all subgoals from storage by default //keep reference to it without change
-    const dailyScheduled = ref(null) //shall be the daily scheduled and for currently viewed day--for saveSchedule..prolly
+    const dailyScheduled = ref() //shall be the daily scheduled and for currently viewed day--for saveSchedule..prolly
 
     const $q = useQuasar()
     let intervalId = null
@@ -1577,16 +1577,23 @@ export default defineComponent({
       console.log('onChange', data, this.currentDate, isToday, inDates, this.isViewingPast())
       if (data.start == this.currentDate && this.currentDate == isToday){
         //console.log('onChange and all dates are ALIKE!')
-
-        this.events = this.addPropsEventsTo(data.start,this.doReset ? this.returnNewEvts(true) : this.events)
-
+        if(inDates){
+          this.loadCurrentSaved(data.start)
+        }else{
+          this.updateCurrentSchedule()  //just to set the map...or get some error!
+        }
+        
         this.doReset = false //reset flag...what was point of this again?
+        
+        return
+
       } else{
         console.log('onChange..different day', data.start, this.currentDate, isToday, inDates)
-        
-        this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
+        this.askUser(inDates)
+        //this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
 
-        this.disableSaveSchedule = true //reset saveSchedule button
+        //this.disableSaveSchedule = true //reset saveSchedule button
+        return 
 
       }
 
@@ -1615,13 +1622,47 @@ export default defineComponent({
       //let f = {at:"11:30",id: 2}
       //if (e.has(f)) { console.log('onChange..HASIT')} //bon cant check with object...weakSet?>>neither!
 
-      this.updateButtons(inDates,!inDates,!inDates) //toReview for the last flag--
+      //this.updateButtons(inDates,!inDates,!inDates) //toReview for the last flag--
       
       //if (inDates){
       //  console.log('onChange and has saved DateEvts!!CHANGE?')
       //} else {
         //console.log('onChange NO saved evts', inDates)
       //}
+    },
+    loadCurrentSaved(sDate){
+      this.events = this.addPropsEventsTo(sDate,this.doReset ? this.returnNewEvts(true) : this.events)
+
+      let e = this.updateCurrentSchedule()
+      if (e.size > 0){
+        this.onReloadSaved(e)
+      }
+      this.updateButtons(false,true,false) //toReview
+      return
+    },
+    askUser(hasDefaults){
+
+      let aMss = hasDefaults ? "Some Defaults found load" : "Skippin as nothin..."
+      let doLoad = () => {
+        this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
+        let e = this.updateCurrentSchedule()
+        if (e.size > 0){
+          hasDefaults ? this.onReloadSaved(e) : this.fixConflicts(e)   //see also here
+        }
+
+        this.disableSaveSchedule = true  //disable save button...
+      }
+
+      this.$q.dialog({
+        title: 'Alert',
+        cancel: true,
+       // position: 'bottom',
+        message: aMss
+          }).onOk(() => {
+            if (hasDefaults){doLoad()}else{console.log("nada...")}
+          }).onCancel(() => {
+             console.log('Cancelled Default loading!')
+          })
     },
     fixConflicts(conflicts){ //walk through conflict and resolve by scheduling higher priority evts..choose higher priority or use score...alert too!
 
