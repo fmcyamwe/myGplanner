@@ -105,6 +105,15 @@
          label="Schedule"
          no-caps
       />
+      <q-btn
+         class="q-ma-xl"
+         color="white"
+         text-color="blue"
+         unelevated
+         to="/week"
+         label="Week"
+         no-caps
+      />
     
       <q-btn
          class="q-ma-xl"

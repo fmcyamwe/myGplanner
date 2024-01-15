@@ -14,70 +14,70 @@
    
     <div v-if="!showForm" class="subcontent">
      <q-pull-to-refresh @refresh="onRefresh"> <!--have to put here or drag in calendar does this refresh when it shouldnt-->
-     <navigation-bar
-       @today="onToday"
-       @prev="onPrev"
-       @next="onNext"
-     />
+      <navigation-bar
+        @today="onToday"
+        @prev="onPrev"
+        @next="onNext"
+      />
      
-     <div class="float-right">
-         <div v-if="reloadSaved">         
-             <q-btn
-               class="q-mt-xl"
-               color=""
-               text-color="green"
-               elevated
-               label="Load Saved"
-               @click="onReloadSaved"
-               no-caps 
-             />
-         </div>
-         <div v-if="loadDefault">
-          <q-btn
-            class="q-mt-xl"
-            color=""
-            text-color="blue"
-            elevated
-            label="Defaults"
-            @click="onLoadDefault"
-            no-caps
-          />
-         </div>
-         <div v-if="doSchedule">
-               <q-btn-dropdown
-                 split
-                 color=""
-                 class="q-mt-xl"
-                 text-color="teal"
-                 elevated
-                 :label="chosenScoreLabel"
-                 @click="onReloadWithScore"
-                 no-caps
-               >
-                 <q-list>
-                   <q-item v-for="e in scoreOptions" :key="e.id" clickable v-close-popup @click="chosenScore = e" >
-                     <q-item-section>
-                       <q-item-label>{{ e }}</q-item-label>
-                     </q-item-section>
-                   </q-item>
- 
-                 </q-list>
-               </q-btn-dropdown>
- 
-         </div>
-         <!-- oldie but above is better
-                     <q-btn
-             class="q-mt-xl"
-             color=""
-             text-color="teal"
-             elevated
-             label="Schedule"
-             @click="bringScorey"
-             no-caps
-           />
-           <q-select borderless v-model="chosenScore" :options="scoreOptions" label="score" />
-         -->
-     </div>
+      <div class="float-right">
+          <div v-if="reloadSaved">         
+              <q-btn
+                class="q-mt-xl"
+                color=""
+                text-color="green"
+                elevated
+                label="Load Saved"
+                @click="onReloadSaved"
+                no-caps 
+              />
+          </div>
+          <div v-if="loadDefault">
+            <q-btn
+              class="q-mt-xl"
+              color=""
+              text-color="blue"
+              elevated
+              label="Defaults"
+              @click="onLoadDefault"
+              no-caps
+            />
+          </div>
+          <div v-if="doSchedule">
+                <q-btn-dropdown
+                  split
+                  color=""
+                  class="q-mt-xl"
+                  text-color="teal"
+                  elevated
+                  :label="chosenScoreLabel"
+                  @click="onReloadWithScore"
+                  no-caps
+                >
+                  <q-list>
+                    <q-item v-for="e in scoreOptions" :key="e.id" clickable v-close-popup @click="chosenScore = e" >
+                      <q-item-section>
+                        <q-item-label>{{ e }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+  
+                  </q-list>
+                </q-btn-dropdown>
+  
+          </div>
+          <!-- oldie but above is better
+                      <q-btn
+              class="q-mt-xl"
+              color=""
+              text-color="teal"
+              elevated
+              label="Schedule"
+              @click="bringScorey"
+              no-caps
+            />
+            <q-select borderless v-model="chosenScore" :options="scoreOptions" label="score" />
+          -->
+      </div>
      </q-pull-to-refresh>
      <div class="row justify-center">
        <div style="display: flex; max-width: 800px; width: 100%; height: 400px;">
@@ -740,7 +740,7 @@ export default defineComponent({
         this.endTimesSet = endTimes
         this.startTimesSet = startTimes
         
-        console.log("done updateCurrentSchedule", startTimes, sameTime) 
+        //console.log("done updateCurrentSchedule", startTimes, sameTime) 
         //,this.dailyScheduled, this.events, typeof this.endTimesSet)
 
         return sameTime
@@ -1570,15 +1570,16 @@ export default defineComponent({
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
       
-      let inDates = this.store.hasEventsForDate(this.currentDate)
+      let hasEvents = this.store.hasEventsForDate(this.currentDate)
 
       let isToday = today()
 
-      console.log('onChange', data, this.currentDate, isToday, inDates, this.isViewingPast())
+      //console.log('onChange', data, this.currentDate, isToday, hasEvents, this.isViewingPast())
       if (data.start == this.currentDate && this.currentDate == isToday){
-        //console.log('onChange and all dates are ALIKE!')
-        if(inDates){
-          this.loadCurrentSaved(data.start)
+        console.log('onChange today and hasEvents?',hasEvents)
+        if(hasEvents){
+          this.loadSaved(data.start)
+          //this.askUser(hasEvents)  //toSee if better than above? >> nah seems weird.
         }else{
           this.updateCurrentSchedule()  //just to set the map...or get some error!
         }
@@ -1588,49 +1589,16 @@ export default defineComponent({
         return
 
       } else{
-        console.log('onChange..different day', data.start, this.currentDate, isToday, inDates)
-        this.askUser(inDates)
+        console.log('onChange..different day', data.start, this.currentDate, isToday, hasEvents)
+        this.askUser(hasEvents)
         //this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
 
         //this.disableSaveSchedule = true //reset saveSchedule button
         return 
 
       }
-
-      let e = this.updateCurrentSchedule()
-      if (e.size > 0){
-        console.log('onChange..has some conflicts', e)
-        if (inDates){//in case not needed after reload...
-            //let b = 
-            this.onReloadSaved(e) //bon have to pass in the conflicts so can trigger the resolve in case of cancel smh..toREview**
-        } else{
-            this.fixConflicts(e) //choose score or priority dialog
-        } 
-        
-      } else if (inDates){
-        console.log(`onChange and saved schedule ${this.currentDate}...loading!`)
-        //this.onReloadSaved() //bon bypassing this cause of dialog smh--toReview **
-        this.fetchEventsForDate(this.currentDate)
-        this.updateButtons(false,true,false)
-        this.doNotify("Saved schedule Loaded", "info")
-        this.reset()
-        return
-      }
-       //else{
-        //this.updateButtons(inDates,!inDates,!inDates) //toReview for the last flag--
-      //}
-      //let f = {at:"11:30",id: 2}
-      //if (e.has(f)) { console.log('onChange..HASIT')} //bon cant check with object...weakSet?>>neither!
-
-      //this.updateButtons(inDates,!inDates,!inDates) //toReview for the last flag--
-      
-      //if (inDates){
-      //  console.log('onChange and has saved DateEvts!!CHANGE?')
-      //} else {
-        //console.log('onChange NO saved evts', inDates)
-      //}
     },
-    loadCurrentSaved(sDate){
+    loadSaved(sDate){
       this.events = this.addPropsEventsTo(sDate,this.doReset ? this.returnNewEvts(true) : this.events)
 
       let e = this.updateCurrentSchedule()

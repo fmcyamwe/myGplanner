@@ -34,9 +34,17 @@ const routes = [
     path: '/', // oldie >> /planner
     component: () => import('layouts/PlannerLayout.vue'),
     children: [
-      {
+      /*{
         path: '', 
+        component: () => import('pages/planner/weekCalendar.vue') //oldie >>pages/planner/weekViewPlanner.vue
+      },*/
+      {
+        path: '', //summary 
         component: () => import('pages/planner/eventTask.vue') //oldie >>pages/planner/weekViewPlanner.vue
+      },
+      {
+        path: 'week', //summary 
+        component: () => import('pages/planner/weekCalendar.vue')
       },
       {
         path: 'dayCalendar', 

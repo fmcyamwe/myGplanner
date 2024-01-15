@@ -10,6 +10,7 @@
       >
         &lt; Prev
       </q-btn>
+      <q-separator vertical/>
       <q-btn
         no-caps
         class="button justify-center items-center"
@@ -18,6 +19,7 @@
       >
         Today
       </q-btn>
+      <q-separator vertical/>
       <q-btn
         no-caps
         class="button"
@@ -27,6 +29,7 @@
         Next &gt;
 
       </q-btn> 
+      <q-separator />
     </div>
   </div>
 </template>
