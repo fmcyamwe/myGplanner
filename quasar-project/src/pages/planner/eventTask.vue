@@ -95,47 +95,8 @@
         </q-calendar-task>
       </div>
     </div>
-    <div class="row justify-center items-center">
-      <q-btn
-         class="q-ma-xl"
-         color="white"
-         text-color="blue"
-         unelevated
-         to="/dayCalendar"
-         label="Schedule"
-         no-caps
-      />
-      <q-btn
-         class="q-ma-xl"
-         color="white"
-         text-color="blue"
-         unelevated
-         to="/week"
-         label="Week"
-         no-caps
-      />
-    
-      <q-btn
-         class="q-ma-xl"
-         color="white"
-         text-color="blue"
-         unelevated
-         to="/viewGoals"
-         label="Goals"
-         no-caps
-      />
-     
-      <!--<q-btn
-          class="q-mt-xl"
-          color="white"
-          text-color="blue"
-          unelevated
-          to="/planner/eventSummary"
-          label="Summary"
-          no-caps
-      /> -->
-    </div>
-    <div class="column justify-center items-center">
+    <br>
+    <div class="column justify-center items-center"> <!--should show this when there is no summary>>TODO**-->
       <q-card>
         1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
       </q-card>

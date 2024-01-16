@@ -334,6 +334,7 @@ import '@quasar/quasar-ui-qcalendar/src/QCalendarDay.sass'
 import { defineComponent,ref } from 'vue'
 import NavigationBar from '../../components/NavigationBar.vue'
 import { isMobile } from '../util/isMobile'
+import { applyClasses, applyStyles } from '../util/utiFunc'
 import addGoalForm from '../planner/viewAllGoals.vue'
 import GoalyEnd from '../../components/planner/goalyEnd.vue'
 import adHocEvent from '../../components/planner/adHocEvent.vue'
@@ -638,23 +639,25 @@ export default defineComponent({
         : false
     },
     badgeClasses (event, type) {
-      const isHeader = type === 'header'
+      return applyClasses(event, type)
+      /*const isHeader = type === 'header'
       return {
         [ `text-white bg-${ event.bgcolor.toLocaleLowerCase() }` ]: true, //adding toLocaleLowerCase() to account for colors with uppercased first letter
         'full-width': !isHeader && (!event.side || event.side === 'full'),
         'left-side': !isHeader && event.side === 'left',
         'right-side': !isHeader && event.side === 'right',
         'rounded-border': true
-      }
+      }*/
     },
     badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
-      const s = {}
+      return applyStyles(event, type, timeStartPos, timeDurationHeight)
+      /*const s = {}
       if (timeStartPos && timeDurationHeight) {
         s.top = timeStartPos(event.time) + 'px'
         s.height = timeDurationHeight(event.duration) + 'px'
       }
       s[ 'align-items' ] = 'flex-start'
-      return s
+      return s*/
     },
     getAnEvent(id){
         for(let i = 0; i< this.events.length;i++){

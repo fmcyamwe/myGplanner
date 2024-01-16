@@ -51,8 +51,37 @@
                   </template>
 
                 </q-calendar>
-            
         </div>
+        <div class="row justify-center items-center">
+            <q-btn
+               class="q-ma-xl"
+               color="white"
+               text-color="blue"
+               unelevated
+               to="/summary"
+               label="Summary"
+               no-caps
+            />
+            <q-btn
+               class="q-ma-xl"
+               color="white"
+               text-color="blue"
+               unelevated
+               to="/dayCalendar"
+               label="Daily"
+               no-caps
+            />
+          
+            <q-btn
+               class="q-ma-xl"
+               color="white"
+               text-color="blue"
+               unelevated
+               to="/viewGoals"
+               label="Goals"
+               no-caps
+            />
+          </div>
     </q-page>
 </template>
 <script>
@@ -73,6 +102,7 @@ import {
 } from '@quasar/quasar-ui-qcalendar/src/index.js'
 import NavigationBar from '../../components/NavigationBar.vue'
 import { isMobile } from '../util/isMobile'
+import { applyClasses, applyStyles } from '../util/utiFunc'
 import { useGoalStore } from 'stores/goalStorage'
 //import { useQuasar } from 'quasar'
 
@@ -95,66 +125,57 @@ export default defineComponent({
     const draggedItem = ref(null)
     const targetDrop = ref(null)
     return {
+      store:useGoalStore(),
       calendar: ref(null),
       currentDate: ref(today()),
       events: [], //should rename this...
     }
   },
   beforeMount() {
-    console.log(`beforeMount`)
-    this.events = this.returnNewEvts //(true)
+    //let e = this.store.getSubGoals
+    //let b = this.store.getAllDates   //so gotta also massage this to get the parentGoal(for color) and the goal itself for more info smh
+    //console.log(`beforeMount`,e, b)
+    //this.events = e//this.store.getSubGoals //this.returnNewEvts //(true)
+    this.returnNewEvts()
   },
   mounted() {
     console.log(`mounted`)
   },
   computed: {
-    returnNewEvts(){ //return this.store.getSubGoals
-        return [
-        {
-          id: 1,
-          title: '1st of the Month',
-          details: 'Everything is funny as long as it is happening to someone else',
-          date: getCurrentDay(1),
-          bgcolor: 'orange'
-        },
-        {
-          id: 2,
-          title: 'Sisters Birthday',
-          details: 'Buy a nice present',
-          date: getCurrentDay(4),
-          bgcolor: 'green',
-          icon: 'fas fa-birthday-cake'
-        },
-        {
-          id: 3,
-          title: 'Meeting',
-          details: 'Time to pitch my idea to the company',
-          date: getCurrentDay(10),
-          time: '10:00',
-          duration: 120,
-          bgcolor: 'red',
-          icon: 'fas fa-handshake'
-        },
-        {
-          id: 4,
-          title: 'Lunch',
-          details: 'Company is paying!',
-          date: getCurrentDay(10),
-          time: '11:30',
-          duration: 90,
-          bgcolor: 'teal',
-          icon: 'fas fa-hamburger'
-        },
-        {
-          id: 5,
-          title: 'Visit mom',
-          details: 'Always a nice chat with mom',
-          date: getCurrentDay(20),
-          time: '17:00',
-          duration: 90,
-          bgcolor: 'grey',
-          icon: 'fas fa-car'
-        }]
+    storedGoalsMap(){  //rename properly** todo
+        const map = new Map()
+        let mG = this.store.getSubGoals
+        if (!mG){
+            console.log('GoalsMap is empty or null', mG)
+            return map
+        }
+
+        mG.forEach(obj => { 
+            map.set(obj.id, obj);
+        })
+        //console.log('parentGoalsMap', map) //JSON.stringify(e)
+        return map
+    },
+    allEvents(){
+        return this.store.getAllDates
+    },
+    parentGoalsMap() {
+        const map = new Map()
+        let mG = this.store.getMainGoals
+        if (!mG){
+            console.log('parentGoalsMap is empty or null', mG)
+            return map
+        }
+
+        mG.forEach(obj => { 
+            map.set(obj.id, obj);
+        })
+        //console.log('parentGoalsMap', map) //JSON.stringify(e)
+        return map
+    },
+
+    storedEvents(){  //rename properly** todo
+        return this.store.getSubGoals
     },
     eventsMap () {// convert the events into a map of lists keyed by date
       const map = {}
@@ -176,11 +197,66 @@ export default defineComponent({
           } while (--days > 0)
         }
       })
-      //console.log(`eventsMap`)
+      //console.log(`eventsMap`,map)
       return map
     },
   },
   methods: {
+    returnNewEvts(){
+        let pMap = this.parentGoalsMap
+        let mGoals = this.storedGoalsMap
+        let allEvts = this.allEvents
+
+        //let e = this.store.fetchAllTaskSummary() 
+        //should prolly have a diff method for just allEvents instead of doing it all here!!--TODO**
+
+        //console.log("returnNewEvts:", pMap,mGoals,allEvts)
+      
+        if (mGoals && pMap) {
+            if (allEvts) {
+                for (let dateKey in allEvts) { 
+                    //console.log("allEvents:", dateKey, allEvts[dateKey])
+                    let dEvts = allEvts[dateKey]
+                    for (let evtId in dEvts) {
+                        let euh = parseInt(evtId)
+                        let e = mGoals.get(euh)
+                        //console.log("eeee",evtId,euh,e,f)
+                        if(e){
+                            let prt = pMap.get(e.parentGoal)
+                            //console.log("eeee",prt)
+                            this.events.push({
+                                id: e.id,
+                                title: e.title,//'1st of the Month',
+                                details: "from:"+ prt.title,
+                                time: dEvts[evtId].time,//'10:00',
+                                duration: dEvts[evtId].duration, //120,
+                                date: dateKey,//getCurrentDay(1),
+                                bgcolor:prt.bgcolor //'orange'
+                            })
+
+                        }else{console.log("ERROR?!?:", evtId,dEvts)}
+                    }
+
+                }
+            }
+
+        } else {
+            console.log("ERROR--no parent or goals!!REVIEW**")
+            return
+        }
+
+        /*   
+        {
+          id: 3,
+          title: 'Meeting',
+          details: 'Time to pitch my idea to the company',
+          date: getCurrentDay(10),
+          time: '10:00',
+          duration: 120,
+          bgcolor: 'red',
+          icon: 'fas fa-handshake'
+        },*/
+    },
     getEvents (dt) {
       // get all events for the specified date
       const events = this.eventsMap[ dt ] || []
@@ -205,27 +281,29 @@ export default defineComponent({
           events[ 1 ].side = 'full'
         }
       }
-      //console.log(`getEvents ${dt}`)
+      //console.log(`getEvents ${dt}`, events)
       return events
     },
     badgeClasses (event, type) {
-      const isHeader = type === 'header'
+        return applyClasses(event, type)
+      /*const isHeader = type === 'header'
       return {
         [ `text-white bg-${ event.bgcolor }` ]: true,
         'full-width': !isHeader && (!event.side || event.side === 'full'),
         'left-side': !isHeader && event.side === 'left',
         'right-side': !isHeader && event.side === 'right',
         'rounded-border': true
-      }
+      }*/
     },
     badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
-      const s = {}
+        return applyStyles(event, type, timeStartPos, timeDurationHeight)
+        /*const s = {} 
       if (timeStartPos && timeDurationHeight) {
         s.top = timeStartPos(event.time) + 'px'
         s.height = timeDurationHeight(event.duration) + 'px'
       }
       s[ 'align-items' ] = 'flex-start'
-      return s
+      return s*/
     },
     onToday () {
       this.$refs.calendar.moveToToday()
@@ -255,8 +333,8 @@ export default defineComponent({
       console.log('onClickHeadIntervals', data)
       //events.value.unshift(`click:interval:header: ${JSON.stringify(data)}`)
     },
-    onClickHeadDay (data) { //where this again?
-      console.log('onClickHeadDay?!?', data)
+    onClickHeadDay (data) { //date header where the date is....
+      console.log('onClickHeadDay', data)
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
         console.log('onChange', data)
