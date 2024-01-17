@@ -293,6 +293,24 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     }
 
+    function fetchAllPrio(prio = null){
+        let allGs = this.getMainGoals
+        let Smap = new Set()
+
+        if(prio){
+            for( var i = 0; i < allGs.length; i++){ 
+                if ( allGs[i].priority == prio) {
+                    Smap.add(allGs[i].priority)  //umm not goal?!?
+                }
+            }
+        }else {
+            allGs.forEach(g => {
+                Smap.add(g.priority)
+            })
+        }
+        return Smap
+    }
+
     function fetchGoalsWithMinScore(scorey){  //of scorey minimum --actually max difference range in the score **ToRename properly!!
         const map = []
         //const tokenRegex = /^[0-9]{1,2}on[0-9]{1,2}$/g; //toREview....
@@ -462,6 +480,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         getEventsForDate,
         hasEventsForDate,
         fetchAllTaskSummary,  //testTasks,
-        fetchGoalsWithMinScore
+        fetchGoalsWithMinScore,
+        fetchAllPrio
     }
 })

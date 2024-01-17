@@ -63,7 +63,27 @@
   
                   </q-list>
                 </q-btn-dropdown>
-  
+          </div>
+          <div v-if="showPrio">
+            <q-btn-dropdown
+              split
+              color=""
+              class="q-mt-xl"
+              text-color="teal"
+              elevated
+              :label="chosenPrioLabel"
+              @click="onReloadWithPrio"
+              no-caps
+            >
+              <q-list>
+                <q-item v-for="e in prioOptions" :key="e" clickable v-close-popup @click="chosenPrio = e" >
+                  <q-item-section>
+                    <q-item-label>{{ e }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+
+              </q-list>
+            </q-btn-dropdown>
           </div>
           <!-- oldie but above is better
                       <q-btn
@@ -380,7 +400,9 @@ export default defineComponent({
       currentDate: ref(today()),
       scoreOptions:ref([1,2,3,4,5]),
       chosenScore:ref(null),
+      chosenPrio:ref(null),
       events: [], //should rename this...
+      prioOptions:ref([]), //for priorities
 
       calendar: ref(null),
       store:useGoalStore(),
@@ -408,6 +430,7 @@ export default defineComponent({
       reloadSaved:ref(false), //when date has saved events that are not default
       loadDefault:ref(true), //reload default events...
       doSchedule:ref(false), //toReview usage..should be for schedule from a particular logic...
+      showPrio:ref(false)  //for showing prioritiy button...
     }
   },
   beforeMount() {
@@ -418,6 +441,13 @@ export default defineComponent({
     //this.events = this.addPropsEventsTo(null, this.returnNewEvts(true)) //[...e] //does update!
     this.events = this.returnNewEvts(true)
     this.doReset = false //to not load up defaults too
+
+    let e = this.store.fetchAllPrio()
+    if(e.size > 0){
+      this.prioOptions = e.values()
+      console.log('allPrio', e.values())
+      this.showPrio = true
+    }
 
   },
   beforeUnmount() {
@@ -434,6 +464,9 @@ export default defineComponent({
   computed: {
     chosenScoreLabel() { 
       return this.chosenScore == null ? `Score Schedule` : `Score > ${this.chosenScore}` 
+    },
+    chosenPrioLabel() { 
+      return this.chosenPrio == null ? `Priority Schedule` : `Prio = ${this.chosenPrio}` 
     },
     showForm() {return this.showGoalForm},
     doDisableSaveSchedule(){
@@ -1087,7 +1120,7 @@ export default defineComponent({
 
       this.events = toReload //[...toReload]
 
-      this.updateCurrentSchedule()
+      return this.updateCurrentSchedule()
 
     },
     isViewingPast(){ ///should return bool for past, futur ?
@@ -1621,13 +1654,16 @@ export default defineComponent({
 
       let aMss = hasDefaults ? "Some Defaults found load" : "Skippin as nothin..."
       let doLoad = () => {
-        this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
-        let e = this.updateCurrentSchedule()
+        //this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
+        let e = this.fetchEventsForDate(this.currentDate) //prolly better than the above?
+        //let e = this.updateCurrentSchedule()
         if (e.size > 0){
           hasDefaults ? this.onReloadSaved(e) : this.fixConflicts(e)   //see also here
         }
 
-        this.disableSaveSchedule = true  //disable save button...
+        //this.disableSaveSchedule = true  //disable save button...
+        this.updateButtons(false,false,true) //toReview
+        this.disableSaveSchedule = false //enable 
       }
 
       this.$q.dialog({
@@ -1832,8 +1868,45 @@ export default defineComponent({
       this.updateButtons(inDates,false,true)
       this.disableSaveSchedule = false //enable saveSchedule button
 
-      this.chosenScore = null 
+      this.chosenScore = null
+      this.chosenPrio = null
 
+    },
+    onReloadWithPrio(){
+      if (this.chosenPrio == null) {
+        this.doNotify("Ayo select a priority!")
+        return
+      }
+      //console.log('findSamePrio.',this.chosenPrio)
+      //let e = this.store.fetchGoalsWithPrio(this.chosenPrio) //deepCopy? tbd**
+      //const map = {}
+      const findSamePrio = (prio) => { //toPull into own function as used somewhere else above
+            //return this.retrieveSameStart(starty) 
+            //let highest = 0
+            let toRet = []
+            let allEvts = this.deepCopy(this.storedEvents)
+            console.log('findSamePrio.',prio,allEvts)
+            for (let evt of allEvts) {
+                //let one = this.getAnEvent(evt)
+                let e = this.parentGoalsMap.get(evt.parentGoal)
+                if (e.priority == prio){
+                  toRet.push(evt)
+                    //}else{console.log('findhigherPrio..ERROR no PARENT found?',one)}
+
+                }else{console.log('findSamePrio..skipping',e)}
+            }
+            //console.log('findhigherPrio..Highest priority be',toRet, highest)
+            return toRet
+        }
+
+        let e = findSamePrio(this.chosenPrio)
+        //this.allEvents = [...e]
+        //console.log('findSamePrio...eee',e)
+        this.events = this.addPropsEventsTo(this.currentDate,e)
+
+      this.updateButtons(false,true,false)
+
+      this.disableSaveSchedule = false
     },
     onReloadWithScore(){
       
