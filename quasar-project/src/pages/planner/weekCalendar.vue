@@ -1,14 +1,12 @@
 <template>
-    <q-page class="flex flex-center">
-        <div class="q-gutter-md">
-            <navigation-bar
+    <q-page> <!-- class="flex flex-center"-->
+        <navigation-bar
             @today="onToday"
             @prev="onPrev"
             @next="onNext"
-            />
-        </div>
-        <div style="max-width: 800px; width: 100%;"><!--class="row justify-center items-center" -->
-           
+        />
+        <div class="row justify-center">
+            <div style="display: flex; max-width: 800px; width: 100%;height: 400px;overflow: auto;"><!--class="row justify-center items-center" use 'no-scroll' to disallow scrolling border: 1px solid #ddd>>-->
                 <q-calendar
                 ref="calendar"
                 v-model="currentDate"
@@ -20,9 +18,9 @@
                 transition-prev="slide-right"
                 transition-next="slide-left"
                 no-active-date
-                :interval-start="6"
-                :interval-count="18"
-                :interval-height="28"
+                :interval-minutes="30"
+                :interval-count="48"
+                :interval-height="20"
                 @change="onChange"
                 @click-date="onClickDate"
                 @click-time="onClickTime"
@@ -49,8 +47,8 @@
                       </div>
                     </template>
                   </template>
-
                 </q-calendar>
+            </div>
         </div>
         <div class="row justify-center items-center">
             <q-btn
@@ -92,10 +90,6 @@ import {
   addToDate,
   parseTimestamp,
   isBetweenDates,
-  diffTimestamp,
-  getDateTime,
-  getDayTimeIdentifier,
-  getDayIdentifier,
   parsed,
   parseDate,
   parseTime
@@ -132,11 +126,7 @@ export default defineComponent({
     }
   },
   beforeMount() {
-    //let e = this.store.getSubGoals
-    //let b = this.store.getAllDates   //so gotta also massage this to get the parentGoal(for color) and the goal itself for more info smh
-    //console.log(`beforeMount`,e, b)
-    //this.events = e//this.store.getSubGoals //this.returnNewEvts //(true)
-    this.returnNewEvts()
+    this.loadEvts()
   },
   mounted() {
     console.log(`mounted`)
@@ -202,7 +192,7 @@ export default defineComponent({
     },
   },
   methods: {
-    returnNewEvts(){
+    loadEvts(){
         let pMap = this.parentGoalsMap
         let mGoals = this.storedGoalsMap
         let allEvts = this.allEvents
@@ -218,8 +208,8 @@ export default defineComponent({
                     //console.log("allEvents:", dateKey, allEvts[dateKey])
                     let dEvts = allEvts[dateKey]
                     for (let evtId in dEvts) {
-                        let euh = parseInt(evtId)
-                        let e = mGoals.get(euh)
+                        //let euh = parseInt(evtId)
+                        let e = mGoals.get(parseInt(evtId))
                         //console.log("eeee",evtId,euh,e,f)
                         if(e){
                             let prt = pMap.get(e.parentGoal)

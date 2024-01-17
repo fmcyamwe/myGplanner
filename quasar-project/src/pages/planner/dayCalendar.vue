@@ -417,6 +417,8 @@ export default defineComponent({
     //in onChange is where to setDate and other props...prolly..unless there is a reason that not doable there?
     //this.events = this.addPropsEventsTo(null, this.returnNewEvts(true)) //[...e] //does update!
     this.events = this.returnNewEvts(true)
+    this.doReset = false //to not load up defaults too
+
   },
   beforeUnmount() {
     clearInterval(this.intervalId)
@@ -1568,7 +1570,7 @@ export default defineComponent({
       this.$refs.calendar.prev()
     },
     onNext () {
-      //this.doReset = true  //umm should do it here too right? 
+      this.doReset = true  //umm should do it here too right? 
       this.$refs.calendar.next()
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
@@ -1581,13 +1583,16 @@ export default defineComponent({
       if (data.start == this.currentDate && this.currentDate == isToday){
         console.log('onChange today and hasEvents?',hasEvents)
         if(hasEvents){
-          this.loadSaved(data.start)
+          this.fetchEventsForDate(this.currentDate)
+          this.updateButtons(false,true,false)
+          this.reset()
+          //this.loadSaved(data.start) //just loads up everything
           //this.askUser(hasEvents)  //toSee if better than above? >> nah seems weird.
         }else{
           this.updateCurrentSchedule()  //just to set the map...or get some error!
         }
         
-        this.doReset = false //reset flag...what was point of this again?
+        this.doReset = false
         
         return
 
@@ -1601,7 +1606,8 @@ export default defineComponent({
 
       }
     },
-    loadSaved(sDate){
+    loadSaved(sDate){//--should remove! TODO**
+      console.log('loadSaved',sDate, this.events, this.doReset)
       this.events = this.addPropsEventsTo(sDate,this.doReset ? this.returnNewEvts(true) : this.events)
 
       let e = this.updateCurrentSchedule()
@@ -1824,7 +1830,7 @@ export default defineComponent({
       let inDates = this.store.hasEventsForDate(this.currentDate)
 
       this.updateButtons(inDates,false,true)
-      this.disableSaveSchedule = true //reset saveSchedule button
+      this.disableSaveSchedule = false //enable saveSchedule button
 
       this.chosenScore = null 
 

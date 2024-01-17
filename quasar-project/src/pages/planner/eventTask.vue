@@ -96,7 +96,7 @@
       </div>
     </div>
     <br>
-    <div class="column justify-center items-center"> <!--should show this when there is no summary>>TODO**-->
+    <div class="column justify-center items-center" v-if="tasks.length <= 0">
       <q-card>
         1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
       </q-card>
@@ -202,7 +202,7 @@
             })
         return
       }
-      this.tasks = e //works? >>YEEEE
+      this.tasks = e
 
       console.log("weeee tasks:", this.tasks)
       
