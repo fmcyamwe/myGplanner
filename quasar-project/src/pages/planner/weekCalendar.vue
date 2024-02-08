@@ -200,11 +200,11 @@ export default defineComponent({
         //let e = this.store.fetchAllTaskSummary() 
         //should prolly have a diff method for just allEvents instead of doing it all here!!--TODO**
 
-        //console.log("returnNewEvts:", pMap,mGoals,allEvts)
+        console.log("returnNewEvts:", pMap,mGoals,allEvts)
       
         if (mGoals && pMap) {
             if (allEvts) {
-                for (let dateKey in allEvts) { 
+                for (let dateKey in allEvts) {
                     //console.log("allEvents:", dateKey, allEvts[dateKey])
                     let dEvts = allEvts[dateKey]
                     for (let evtId in dEvts) {
@@ -224,7 +224,7 @@ export default defineComponent({
                                 bgcolor:prt.bgcolor //'orange'
                             })
 
-                        }else{console.log("ERROR?!?:", evtId,dEvts)}
+                        }else{console.log("ERROR?!?:", evtId,dateKey, dEvts)}  //prolly when deleted?!? ToReview**
                     }
 
                 }

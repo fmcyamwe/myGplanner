@@ -104,9 +104,9 @@ export const useGoalStore = defineStore('allGoals', () => {
       return newID
     }
 
-    function addSubGoal(pGoal,title,score,time, duration, canMove) {
+    function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults) {
         
-        console.log(pGoal+ ' ' +title + ' ' +score + ' ' +time + ' ' +duration +' ' +canMove)
+        console.log(pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
         
         let current = this.getSubGoals
         //let id = current !== null ? current.length + 1 : 0
@@ -118,7 +118,8 @@ export const useGoalStore = defineStore('allGoals', () => {
                 score: score,
                 time:time,//'19:00',
                 duration: duration,
-                canMove: canMove
+                canMove: canMove,
+                inDefaults:inDefaults,
             }]))
             return
         }
@@ -137,7 +138,8 @@ export const useGoalStore = defineStore('allGoals', () => {
             score: score,
             time:time,//'19:00',
             duration: duration,
-            canMove: canMove
+            canMove: canMove,
+            inDefaults:inDefaults
         })
 
         $q.localStorage.set('subGoals', JSON.stringify(current))
@@ -146,7 +148,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         return newID
     }
 
-    function editSubGoal(goalId, title,score,time, duration, canMove){
+    function editSubGoal(goalId, title,score,time, duration, canMove, inDefaults){
         let current = this.getSubGoals
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) {
@@ -155,6 +157,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[i].time = time,//'19:00',
                 current[i].duration = duration,
                 current[i].canMove = canMove
+                current[i].inDefaults = inDefaults
                 console.log("editSubGoal for",current[i], i)
                 break
             }
@@ -290,6 +293,30 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         return [false, hasSome] //.size > 0  ..should just return true, true?//so not in AllDates but *could* be saved as normal?
         */
+
+    }
+
+    function fetchDefaults(){
+        const map = []
+        let inDefault = function(t){
+            return t.inDefaults && t.inDefaults  //if exist and true? 
+        }
+
+        let allSubGoals = this.getSubGoals
+        if(!allSubGoals) {
+            console.log("No subgoals to fetch defaults :(")
+            return map
+        }
+
+        allSubGoals.forEach(event => {
+            if (inDefault(event)){ //add those  inDefault
+                map.push(event)
+            }//else {
+                //    console.log(`subGoal is less than scorey ${event.title}`, parsey)
+                //}
+        })
+
+        return map 
 
     }
 
@@ -481,6 +508,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         hasEventsForDate,
         fetchAllTaskSummary,  //testTasks,
         fetchGoalsWithMinScore,
-        fetchAllPrio
+        fetchAllPrio,
+        fetchDefaults
     }
 })

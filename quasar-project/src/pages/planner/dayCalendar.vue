@@ -198,7 +198,7 @@
            </template>
            <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
              <template
-               v-for="event in getEvents(timestamp.date)"
+               v-for="event in getDateEvents(timestamp.date)"
                :key="event.id"
              >
                <div
@@ -392,7 +392,7 @@ export default defineComponent({
     let intervalId = null
 
     let doReset = false //when going backward..reload defaults
-    let disableUpdates = false //not allow changes for past events
+    //let disableUpdates = false //not allow changes for past events..redudant
 
     let possibleRange = null //for adhoc scheduling...keep track of selected time range
 
@@ -417,6 +417,7 @@ export default defineComponent({
       showGoalForm: ref(false), //showing addGoal form
       pickEventDialog:ref(false), //showing pick event to schedule dialog
       addEventDialog: ref(false),
+      inPast: ref(false),
       adHocEventDialog:ref(true),  //true by default 
 
       conflictReso:ref(false), //resolve conflict radiobutton dialog
@@ -470,7 +471,7 @@ export default defineComponent({
     },
     showForm() {return this.showGoalForm},
     doDisableSaveSchedule(){
-        return this.disableSaveSchedule 
+        return this.disableSaveSchedule  //prolly redudant and could replace with 'this.events.length > 0' ? ToReview**
     },
     eventsMap () {// convert the events into a map of lists keyed by date
       const map = {}
@@ -807,7 +808,7 @@ export default defineComponent({
       //}
     },
     // get all events for the specified date--use scheduleMap instead...prolly**
-    getEvents (dt) {
+    getDateEvents (dt) {
       const events = this.eventsMap[ dt ] || []
       if (events.length === 1) {
         events[ 0 ].side = 'full'
@@ -1074,6 +1075,7 @@ export default defineComponent({
       this.chosenScore = null
 
       this.possibleRange = null //enable after test**
+      this.inPast = false
     },
     doNotify(messg, colorNotif = undefined, position = 'top'){
       this.$q.notify({ // also see about using >> this.$q.dialog
@@ -1129,7 +1131,7 @@ export default defineComponent({
       //data.start == 
       if (this.currentDate && this.currentDate == isToday){
         //console.log('onChange', data, this.currentDate, isToday, inDates)
-        this.disableUpdates = false
+        //this.disableUpdates = false
         return false
       }
 
@@ -1138,10 +1140,10 @@ export default defineComponent({
 
       if (viewing >= onToday) {
         //console.log('isViewingPast..nope future >', isToday, this.currentDate)
-        this.disableUpdates = false
+        //this.disableUpdates = false
         return false
       }
-      this.disableUpdates = true //so do not allow changes...
+      //this.disableUpdates = true //so do not allow changes...redundant
       
       return true
     },
@@ -1517,9 +1519,9 @@ export default defineComponent({
 
      //not allowed to change past loaded schedule--todo
       if(this.isViewingPast()){ //should prolly also check saved? shouldnt make no diff though
-          this.doNotify("Adding to the past is a no no!")
-          //this.targetDrop = null 
-          return
+          //this.doNotify("Adding to the past is a no no!")
+          this.inPast = true //flag that it's adding to past...
+          //return
       }
 
       //so here propose selection to add an event to the schedule
@@ -1626,6 +1628,8 @@ export default defineComponent({
         }
         
         this.doReset = false
+
+        this.disableSaveSchedule = true //just for now..could be changed later in different callers
         
         return
 
@@ -1857,16 +1861,24 @@ export default defineComponent({
       //let e = this.deepCopy(this.storedEvents) //see if resets reference >>does!
       //e = this.addPropsEventsTo(this.currentDate, e)
 
-      this.events = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
+      let e = this.store.fetchDefaults() //deepCopy? tbd**
 
-      //this.events = e //[...e] 
+      console.log('inDefaults:', this.currentDate, e)
+
+      e = this.addPropsEventsTo(this.currentDate, e)
+
+      this.events = [...e]  //e
+
+      //let e = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true)) //instead of assigning with >> this.events = ...
+
+      //this.events = [...e]  //e  //this seems explicit and shows results?
       
       this.updateCurrentSchedule() //should also check conflicts here...todo**
 
       let inDates = this.store.hasEventsForDate(this.currentDate)
 
       this.updateButtons(inDates,false,true)
-      this.disableSaveSchedule = false //enable saveSchedule button
+      this.disableSaveSchedule = this.events.length > 0//false //enable saveSchedule button
 
       this.chosenScore = null
       this.chosenPrio = null
@@ -1906,7 +1918,7 @@ export default defineComponent({
 
       this.updateButtons(false,true,false)
 
-      this.disableSaveSchedule = false
+      this.disableSaveSchedule = this.events.length > 0//false
     },
     onReloadWithScore(){
       
@@ -1921,13 +1933,13 @@ export default defineComponent({
 
       e = this.addPropsEventsTo(this.currentDate, e)
 
-      this.events = e//[...e]
+      this.events = e//[...e]  //toTest if works proper here!
 
       this.updateCurrentSchedule() //should also check conflicts here...todo**
 
       this.updateButtons(false,true,true)
 
-      this.disableSaveSchedule = false
+      this.disableSaveSchedule = this.events.length > 0
 
     },
     deepCopy(obj){ //deep copy object

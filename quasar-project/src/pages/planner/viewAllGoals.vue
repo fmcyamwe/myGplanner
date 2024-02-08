@@ -17,8 +17,8 @@
     <div>
         <q-form @submit="onSubmit" class="q-gutter-md" >
             <div class="q-gutter-sm">
-                <q-radio v-model="goalType" @click="reset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
-                <q-radio v-model="goalType" @click="reset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
+                <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
+                <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
             </div>
 
             <q-input class="q-ml-md"
@@ -97,9 +97,24 @@
                     color="orange" floating
                     style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer"
                     >?
-                        <q-tooltip>Need to confirm any timeslot change</q-tooltip>
+                        <q-tooltip>Have to confirm any timeslot change</q-tooltip>
                     </q-badge>
                 </q-toggle>
+
+                <br>
+                <q-toggle
+                v-model="inDefaults"
+                label="Load with defaults"
+                left-label
+                color="blue"
+            >
+                <q-badge 
+                color="orange" floating
+                style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer"
+                >?
+                    <q-tooltip>Is scheduled as default</q-tooltip>
+                </q-badge>
+            </q-toggle>
             </div>
 
             <div>
@@ -130,34 +145,39 @@
             </q-item-section>
          </q-item>
     
-     <q-separator spaced />
-     <transition-group name="dalist">
-      <q-expansion-item v-for="goal in allMGoals" :key="goal.id" v-model="expanded[goal.id]" class="q-my-sm" :label="goal.title"
-        :caption="goal.details" clickable>
-        <!--<template v-slot:header></template> -->
+        <q-separator spaced />
+    
+        <transition-group name="dalist">
+            <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
+            v-model="expanded[goal.id]"
+            :key="goal.id"
+            :label="goal.title"
+            :caption="goal.details" 
+            clickable>
+            <!--<template v-slot:header></template> -->
         
-        <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a card works?>>huh not without adding >>:key="event.id" -->
-          <!--<q-card-section>
-            {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}} 
-          </q-card-section> -->
-          <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
-            <template v-slot:left> <!--had no need for @left="onLeft" in q-slide-item above BUT using it to edit here -->
-            Edit
-            </template>
-            <template v-slot:right>
-            Delete
-            </template>
+             <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a card works?>>huh not without adding >>:key="event.id" -->
+                <!--<q-card-section>
+                    {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}} 
+                </q-card-section> -->
+                <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
+                    <template v-slot:left> <!--had no need for @left="onLeft" in q-slide-item above BUT using it to edit here -->
+                    Edit
+                    </template>
+                    <template v-slot:right>
+                    Delete
+                    </template>
 
-            <q-item>
-            <q-item-section>{{subGoal.title}} >> at {{subGoal.time}} :: {{subGoal.score}} :: Move?{{subGoal.canMove}}</q-item-section>
-            </q-item>
-          </q-slide-item>
-        </q-card>
+                    <q-item>
+                    <q-item-section>{{subGoal.title}} >> at {{subGoal.time}} :: {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}}</q-item-section>
+                    </q-item>
+                </q-slide-item>
+             </q-card>
 
-        <q-card v-if="!hasSubG(goal.id)">
-            <q-btn label="Delete?" type="reset" color="primary" flat class="q-ml-sm"  @click.prevent="(e) => onClickDelete(e, goal.id)" />
-        </q-card>
-      </q-expansion-item>
+             <q-card v-if="!hasSubG(goal.id)">
+                <q-btn label="Delete?" type="reset" color="primary" flat class="q-ml-sm"  @click.prevent="(e) => onClickDelete(e, goal.id)" />
+             </q-card>
+            </q-expansion-item>
      </transition-group>
     </q-list>
 
@@ -177,7 +197,7 @@
         color="white"
         text-color="blue"
         elevated
-        label="Do Print"
+        label="Print"
         no-caps
         @click="doPrint"
     />
@@ -186,7 +206,7 @@
         color="white"
         text-color="red"
         elevated
-        label="Do reset"
+        label="Reset GoalType"
         no-caps
         @click="doReset"
     />
@@ -215,6 +235,8 @@ export default {
         const duration = ref(30) //min of 30
         const score = ref('')
         const canMove = ref(false)
+        const inDefaults = ref(false) //NOT by default?!?
+
         const goalType = ref('line') //so nothing is selected at first
         const pGoal = ref(null)
 
@@ -344,7 +366,7 @@ export default {
 
                     buttonLabel.value = "Submit"
                 } else{
-                    store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value)
+                    store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value)
                     console.log("Subgoal Goal added for parent:",pId.title)
                 }
                 
@@ -359,12 +381,12 @@ export default {
                     icon: 'thumb_up'
                 })
             
-            reset() //reset variables
+            hardReset() //reset variables
             //reload() //no need here even and have to interact with page to see list change smh
         }
         function editSuGoal(){
             if(updatingSubG){
-                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value) 
+                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value) 
                 //bon no need to pass parentGoal in case it has changed(should add this later as would involve more work to change both stored maps!!)
 
             }else{
@@ -441,6 +463,7 @@ export default {
                 score.value = subby[0].score
                 duration.value = parseInt(subby[0].duration)
                 canMove.value = subby[0].canMove
+                inDefaults.value = subby[0].inDefaults
 
                 updatingSubG = subId  //keep track of this for submit
 
@@ -483,7 +506,21 @@ export default {
             console.log("reloadin...", subGoals.value,mainGoals.value)
         }
 
-        function reset(){
+        function softReset(){ //for when changing goalType..keep stuff
+            goalTitle.value = goalTitle.value  || ' ' //subvert the rule check with space tho and add an extra space in beginnin..toReview***
+            priority.value = priority.value || 3
+
+            //bon just in case...toReview prolly?
+            time.value = time.value ||''
+            duration.value = duration.value || 30
+            details.value = details.value || ''
+            bgcolor.value = bgcolor.value || ''
+            canMove.value = canMove.value || false
+
+            inDefaults.value = inDefaults.value || false
+        }
+
+        function hardReset(){
             goalTitle.value = ' ' //subvert the rule check with space tho and add an extra space in beginnin..toReview***
             priority.value = 3
             //score.value = ''
@@ -492,6 +529,8 @@ export default {
             //goalType.value = 'line' //huh makes it unselectable smh
             details.value = ''
             bgcolor.value = ''
+            canMove.value = false
+            inDefaults.value = false
 
             updatingSubG = null
         }
@@ -506,11 +545,11 @@ export default {
             expanded, //see if can trigger close >>does!
             buttonLabel,
             allGoals,
-            goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,
+            goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,
             hasSubG,
             doPrint,
             onSubmit,doReset,getSubGoals,
-            onRightDelete,onLeftEdit,reset,onClickDelete,refresh,
+            onRightDelete,onLeftEdit,softReset,onClickDelete,refresh,
             getMainGoals
         }
     }
