@@ -48,7 +48,7 @@ const routes = [
       },
       {
         path: 'dayCalendar', 
-        component: () => import('pages/planner/dayCalendar.vue') //oldie>> daySchedule //scheduleDrag.vue in scratch
+        component: () => import('pages/planner/dayView.vue') //oldie>> daySchedule //scheduleDrag.vue in scratch
       },
       {
         path: 'viewGoals', 

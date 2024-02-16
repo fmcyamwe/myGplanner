@@ -527,6 +527,7 @@ export default {
             time.value = ''
             duration.value = 30
             //goalType.value = 'line' //huh makes it unselectable smh
+            pGoal.value = null
             details.value = ''
             bgcolor.value = ''
             canMove.value = false
