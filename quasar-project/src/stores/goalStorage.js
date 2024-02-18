@@ -1,6 +1,6 @@
 import {computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { useQuasar } from 'quasar'
+import { event, useQuasar } from 'quasar'
 
 //see from Blu file original Option store to this Setup Store
 //ref()s become 'state' properties
@@ -238,7 +238,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     //saves map of events that were completed...for summary retrieval
     //First adds date to AllDates key and then store the events by that date.
-    function saveDailySchedule(aDate, events){
+    function saveDailySchedule(aDate, events = null){
         let current = this.getAllDates
 
         if (!current){
@@ -246,13 +246,20 @@ export const useGoalStore = defineStore('allGoals', () => {
             console.log(`Adding new schedule for ${aDate}`)
             current = {}
             current[`${aDate}`] = events //umm to see if no need to put {}  or do push? //aDate
-            $q.localStorage.set("AllDates", JSON.stringify(current)) //[aDate]
+            //$q.localStorage.set("AllDates", JSON.stringify(current)) //[aDate]
         }else{
             //current.push(aDate) //unshift ...
             ////map[ event.date ].push(event)
-            current[`${aDate}`] = events //hopefully doesnt overwrite?!? or use the .push
-            $q.localStorage.set("AllDates", JSON.stringify(current))
+            if(!events){//clearing day schedule
+                if (aDate in current){
+                    delete current[`${aDate}`] //delete user.age;
+                }else{console.log(`ERROR? deleting schedule of ${aDate} not found!`)}//shouldnt happen..prolly
+            }else {
+                current[`${aDate}`] = events //hopefully doesnt overwrite?!? or use the .push
+            }
         }
+        
+        $q.localStorage.set("AllDates", JSON.stringify(current))
 
         //$q.localStorage.set(`${aDate}`, JSON.stringify(events)) //this is what grabs events per day
     }
