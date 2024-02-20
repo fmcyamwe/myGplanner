@@ -372,12 +372,12 @@ export default defineComponent({
 
     const currentTime = ref(null)
 
-    const endTimesSet = ref(null) //set of end times for scheduled events for lookup when adjusting time!
-    const startTimesSet = ref(null) //bon same as above--just to know when starting an event
+    //const endTimesSet = ref(new Set())//ref(null) //set of end times for scheduled events for lookup when adjusting time!
+    //const startTimesSet = ref(new Set())//ref(null) //bon same as above--just to know when starting an event
     
     const allEvents = ref(null)  //bring up all subgoals from storage by default //keep reference to it without change and not reload too much from storage?
 
-    const dailyScheduled = ref() //shall be the daily scheduled and for currently viewed day--for saveSchedule..prolly
+    //const dailyScheduled = ref()//ref(new Map()) //shall be the daily scheduled and for currently viewed day--for saveSchedule..prolly
 
     const $q = useQuasar()
     let intervalId = null
@@ -392,7 +392,11 @@ export default defineComponent({
       scoreOptions:ref([1,2,3,4,5]),
       chosenScore:ref(null),
       chosenPrio:ref(null),
-      scheduledEvents: [], //for scheduled events currently viewed--can change
+      scheduledEvents: [], //for scheduled events currently viewed--can change...prolly no need to put in return BUT have to in order to be set initially and accessed.
+      dailyScheduled:ref(new Map()), //not sure about using ref here and the two Sets below...toReview**
+      endTimesSet: ref(new Set()),
+      startTimesSet: ref(new Set()),
+      
       //prioOptions:ref([]), //for priorities
 
       calendar: ref(null),
@@ -434,9 +438,10 @@ export default defineComponent({
     //this.scheduledEvents = 
     this.resetGoalEvts(true)
     //this.doReset = this.hasEventsForDate// oldie ..toSee if works...>>false //to not load up defaults too
+    
+    //this.startTimesSet = new Set()
+    //this.dailyScheduled = new Map()  //here it's not a proxy map...
 
-
-    //this.setGoalsPrio() //oldie >> 'this.store.fetchAllPrio()
 
   },
   beforeUnmount() {
@@ -492,7 +497,7 @@ export default defineComponent({
     },
     parentGoalsMap() {
         const map = new Map()
-        let mG = this.store.getMainGoals
+        let mG = this.storedMainG //this.store.getMainGoals
         if (!mG){
             console.log('parentGoalsMap is empty or null', mG)
             return map
@@ -576,7 +581,7 @@ export default defineComponent({
     setGoalsPrio(){ //add flag if have to filter current scheduled?--TBD
         let e = this.store.fetchAllPrio()
         if(e.size > 0){
-            this.prioOptions = e.values()
+            //this.prioOptions = e.values()
             console.log('allPrio', e.values())
         }
         return e.values()
@@ -587,6 +592,52 @@ export default defineComponent({
         return getDayTimeIdentifier(timey)
       }
       return false
+    },
+    hasUncompletedEvents(){
+        for (let entry in this.disabledScoreEvts) { //could also use >> let value of Object.values(user)
+            //console.log("hasUncompletedEvents", entry,this.disabledScoreEvts[entry])
+            if (this.disabledScoreEvts[entry]) return true
+        }
+        return false
+    },
+    hasDate (days) {
+      return this.currentDate
+        ? days.find(day => day.date === this.currentDate)
+        : false
+    },
+    getEventsForDate(dt){ //couldnt put into methods section huh 
+        return this.store.getEventsForDate(dt)
+    },
+    badgeClasses (event, type) {
+      return applyClasses(event, type)
+    },
+    badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
+      return applyStyles(event, type, timeStartPos, timeDurationHeight)
+    },
+    isViewingToday(){
+        return today() == this.currentDate
+    },
+    isViewingPast(){ ///should return bool for past, futur ?
+      let isToday = today()
+
+      //data.start == 
+      if (this.currentDate && this.currentDate == isToday){
+        //console.log('onChange', data, this.currentDate, isToday, inDates)
+        //this.disableUpdates = false
+        return false
+      }
+
+      let onToday = getDayIdentifier(parsed(isToday))
+      let viewing = getDayIdentifier(parsed(this.currentDate))
+
+      if (viewing >= onToday) {
+        //console.log('isViewingPast..nope future >', isToday, this.currentDate)
+        //this.disableUpdates = false
+        return false
+      }
+      //this.disableUpdates = true //so do not allow changes...redundant
+      
+      return true
     },
     adjustCurrentTime() {
       const now = parseDate(new Date())
@@ -629,52 +680,31 @@ export default defineComponent({
         }
      }
     },
-    hasUncompletedEvents(){
-        for (let entry in this.disabledScoreEvts) { //could also use >> let value of Object.values(user)
-            //console.log("hasUncompletedEvents", entry,this.disabledScoreEvts[entry])
-            if (this.disabledScoreEvts[entry]) return true
+    resetGoalEvts(newish = false){
+        if (this.scheduledEvents === this.allEvents){ //triple equal sign for reference check..never goes here though smh
+          console.log("resetGoalEvts SAME")
         }
-        return false
+
+        if (newish){
+          let e = this.deepCopy(this.storedEvents)
+          this.allEvents = [...e]
+          return e
+        }
+        return this.allEvents  //here return same stuff...beware that not null***
     },
-    hasDate (days) {
-      return this.currentDate
-        ? days.find(day => day.date === this.currentDate)
-        : false
-    },
-    badgeClasses (event, type) {
-      return applyClasses(event, type)
-      /*const isHeader = type === 'header'
-      return {
-        [ `text-white bg-${ event.bgcolor.toLocaleLowerCase() }` ]: true, //adding toLocaleLowerCase() to account for colors with uppercased first letter
-        'full-width': !isHeader && (!event.side || event.side === 'full'),
-        'left-side': !isHeader && event.side === 'left',
-        'right-side': !isHeader && event.side === 'right',
-        'rounded-border': true
-      }*/
-    },
-    badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
-      return applyStyles(event, type, timeStartPos, timeDurationHeight)
-      /*const s = {}
-      if (timeStartPos && timeDurationHeight) {
-        s.top = timeStartPos(event.time) + 'px'
-        s.height = timeDurationHeight(event.duration) + 'px'
-      }
-      s[ 'align-items' ] = 'flex-start'
-      return s*/
-    },
-    getAnEvent(id){
-        for(let i = 0; i< this.scheduledEvents.length;i++){
-            if (this.scheduledEvents[i].id === id) return this.scheduledEvents[i]
+    getLocalEvt(id){ //from the allEvents array that "should" contain all evts--might not be originals--see warning in reloadEvtsTo()
+        for(let i = 0; i< this.allEvents.length;i++){
+            if (this.allEvents[i].id === id) return this.allEvents[i]
         }
         return null
     },
-    addAnEvent(toAdd){
-        console.log("oooh addAnEvent..ORIG",toAdd, this.currentDate)
-
-        let e = this.addPropsEventsTo(this.currentDate, [toAdd])
-
-        //console.log("addAnEvent..after",e[0], toAdd) //normally the same 
-
+    getScheduledEvent(id){
+        for(let i = 0; i< this.scheduledEvents.length;i++){
+            if (this.scheduledEvents[i].id == id) return this.scheduledEvents[i]  //bon dbl == works better smh
+        }
+        return null
+    },
+    addEvtToSchedule(toAdd){
         this.scheduledEvents.push(toAdd) //should push e[0]
         let startTime = addToDate(parsed(toAdd.date), { minute: parseTime(toAdd.time) })
         let endTime = addToDate(startTime, { minute: toAdd.duration })
@@ -691,18 +721,17 @@ export default defineComponent({
         this.endTimesSet.add(endTime.time)
         this.startTimesSet.add(startTime.time)
 
+        return
     },
-    resetGoalEvts(newish = false){
-        if (this.scheduledEvents === this.allEvents){ //triple equal sign for reference check..never goes here though smh
-          console.log("resetGoalEvts SAME")
-        }
+    addAnEvent(toAdd){
+        console.log("oooh addAnEvent..ORIG",toAdd, this.currentDate)
 
-        if (newish){
-          let e = this.deepCopy(this.storedEvents)
-          this.allEvents = [...e]
-          return e
-        }
-        return this.allEvents  //here return same stuff...beware that not null***
+        //let e = 
+        this.addPropsEventsTo(this.currentDate, [toAdd])
+
+        //console.log("addAnEvent..after",e[0], toAdd) //normally the same 
+
+        this.addEvtToSchedule(toAdd)
     },
     addPropsEventsTo(aDate, events){
       let pMap = this.parentGoalsMap  //assumes that parentGoals present...
@@ -725,7 +754,7 @@ export default defineComponent({
         }
       })
 
-      console.log("addPropsEventsTo", aDate,events) //events, typeof events
+      //console.log("addPropsEventsTo", aDate,events) //events, typeof events
 
       return events
     },
@@ -770,7 +799,7 @@ export default defineComponent({
           //}
         })
 
-        this.dailyScheduled = mappy 
+        this.dailyScheduled = mappy
 
         this.endTimesSet = endTimes
         this.startTimesSet = startTimes
@@ -805,6 +834,24 @@ export default defineComponent({
         //this.hasStarted[evtID] = false
       //}
     },
+    enableEditScore(timeEnd) { //enables the editing of score after event has passed.
+        //search for corresponding eventID and enable that one only //this.disabledScoreEvts[0] = false
+        
+        let evtIDs = this.retrieveSameEnd(timeEnd)
+        //console.log("enableEditScore...FOUND", evtIDs) //shouldnt be multiple but 'could'
+        for (let i of evtIDs){
+            this.disabledScoreEvts[i] = false
+        }
+
+        /* //oldie that was ok...
+        for (let [entry, val] of this.dailyScheduled) { //allEvents
+            //console.log("changeEditScore", entry, val)
+            if (val.end.time == timeEnd){
+                console.log("changeEditScore...FOUND", entry, val)
+                this.disabledScoreEvts[entry] = false
+            }
+        }*/
+    },
     // get all events for the specified date--use scheduleMap instead...prolly**
     getDateEvents (dt) {
       const events = this.eventsMap[ dt ] || []
@@ -838,7 +885,7 @@ export default defineComponent({
       let targetStartAt = addToDate(targetTimestamp,{ minute: 0}) 
       let targetEndsAt = addToDate(targetStartAt, { minute: duration}) //end of dropped event
 
-      console.log("overlapOtherEvent...targetTimes",targetStartAt.time,targetEndsAt.time)
+      //console.log("overlapOtherEvent...targetTimes",targetStartAt.time,targetEndsAt.time)
       let tStart = this.getTimeNumber(targetStartAt)
       let tEnd = this.getTimeNumber(targetEndsAt)
       
@@ -848,7 +895,7 @@ export default defineComponent({
       }
 
       this.dailyScheduled.forEach( (value, key, map) => {
-        if (key == evID){ 
+        if (key == evID){
             //console.log("skipping sameness overlapOtherEvent")//, evID, value //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
         }else {
           let eStart = this.getTimeNumber(value.start)
@@ -861,7 +908,7 @@ export default defineComponent({
           let totalOverlap = (eStart >= tStart && tEnd >= eEnd) //totalOverlap as it's larger event
 
             if (isTwix || totalOverlap) {
-              console.log(`${key} overlapOtherEvent added`, isTwix,totalOverlap)
+              console.log(`Key:${key} overlaping event added`, isTwix,totalOverlap) //, value
               mappy.push(key)
             } //else {console.log(`${key} overlapOtherEvent Good`)}
           } else {console.log("ERROR... overlapOtherEvent eventTimestamp error",value)}
@@ -872,7 +919,7 @@ export default defineComponent({
     recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false) { // goForward to push down overlapping evts as it's more natural
   
         let overlappedEvt = this.dailyScheduled.get(overlappingEvtID)
-        if (overlappedEvt){                
+        if (overlappedEvt){            
             console.log(`dragDirection...target>>${targetTimestamp.time}`) //, oldie at`,tEvt, overlappedEvt
             //direction of drag(up or down) >>either - or + 
             let dragDirection = parseTime(targetTimestamp.time) - parseTime(tEvt.time)
@@ -898,7 +945,7 @@ export default defineComponent({
                 
                 let i = 0
                 let sizey = anyOtherOverlap.length
-                let draggy = this.getAnEvent(overlappingEvtID)
+                let draggy = this.getScheduledEvent(overlappingEvtID)
                 
                 do {
                     console.log("CASCADE recurChangeTime:",anyOtherOverlap[i], overlappedEvtNew.time, draggy.title)
@@ -948,24 +995,6 @@ export default defineComponent({
         }
         return retVal
     },
-    enableEditScore(timeEnd) { //enables the editing of score after event has passed.
-        //search for corresponding eventID and enable that one only //this.disabledScoreEvts[0] = false
-        
-        let evtIDs = this.retrieveSameEnd(timeEnd)
-        //console.log("enableEditScore...FOUND", evtIDs) //shouldnt be multiple but 'could'
-        for (let i of evtIDs){
-            this.disabledScoreEvts[i] = false
-        }
-
-        /* //oldie that was ok...
-        for (let [entry, val] of this.dailyScheduled) { //allEvents
-            //console.log("changeEditScore", entry, val)
-            if (val.end.time == timeEnd){
-                console.log("changeEditScore...FOUND", entry, val)
-                this.disabledScoreEvts[entry] = false
-            }
-        }*/
-    },
     updateScheduleMaps(evID, timeyStart){
         if(this.dailyScheduled.has(evID)){
             let evt = this.dailyScheduled.get(evID)
@@ -1013,7 +1042,50 @@ export default defineComponent({
     },
     changeEvtTime(evID, timeyStart, skipAsk = false) {
         console.log("changeEventTime",evID, timeyStart.time,this.scheduledEvents.length)
-        for(let i = 0; i < this.scheduledEvents.length; i++) {
+        let evt = this.getScheduledEvent(evID)
+        if (evt){
+            if (!evt.canMove){ //ask move un-movable
+                this.$q.dialog({
+                    title: 'Alert',
+                    cancel: true, //to have cancel button
+                    // position: 'bottom',
+                    message: `Move evt: ${evt.title} around to ${timeyStart.time}?`
+                }).onOk(() => {
+                    evt.time = timeyStart.time   //does this mean same this as saveSubProp below?!? or just changes for this day?
+                    //also prolly no need to ask when inPast?!?
+                }).onCancel(() => {
+                    // this.doNotify(`${obj.title} Cancelled moving ...`)
+                    console.log("Nope cool, coolios")
+                })//.onDismiss(() => {
+                            // console.log('I am triggered on both OK and Cancel')
+                        //})
+                    //break
+            } else {
+                let oldy = evt.time 
+                  
+                //ask if should be default...too much asking? >>see with skipAsk flag!
+                if (!skipAsk) {
+                    this.$q.dialog({
+                        title: 'Alert',
+                        cancel: "No", //huh can also use string for labelling! sweet!
+                        // position: 'bottom',
+                        message: `From ${oldy}. Make ${timeyStart.time} the default time for ${evt.title} ?`
+                    }).onOk(() => {
+                        //obj.time = timeyStart.time
+                        this.store.saveSubProp(evID, timeyStart.time, null)
+                    }).onCancel(() => {
+                        //this.doNotify(`${obj.title} Cancelled moving ...`)
+                        console.log("Nope cool, coolios")
+                    })
+                }
+                evt.time = timeyStart.time //do change to new time
+            }
+            return true //here work? yup
+        }
+        
+        console.log('ERROR not found?',evt, evID, timeyStart) //shouldnt get here...toMonitor***
+        return false
+        /*for(let i = 0; i < this.scheduledEvents.length; i++) {
             let obj = this.scheduledEvents[i] //will changes stick ahubwo?!? seems so...but break doesnt return true? or seems to be evaluated earlier than dialog close?!?
             if (obj.id === evID){
                 if (!obj.canMove){ //ask move un-movable
@@ -1033,7 +1105,7 @@ export default defineComponent({
                         //})
                     //break
                 } else {
-                  obj.time = timeyStart.time //do change to new time
+                  let oldy = obj.time 
                   
                   //ask if should be default...too much asking? >>see with skipAsk flag!
                   if (!skipAsk) {
@@ -1041,7 +1113,7 @@ export default defineComponent({
                       title: 'Alert',
                       cancel: "No", //huh can also use string for labelling! sweet!
                       // position: 'bottom',
-                      message: `Make ${timeyStart.time} the default time for ${obj.title} ?`
+                      message: `From ${oldy}. Make ${timeyStart.time} the default time for ${obj.title} ?`
                     }).onOk(() => {
                       //obj.time = timeyStart.time
                       this.store.saveSubProp(evID, timeyStart.time, null)
@@ -1050,36 +1122,12 @@ export default defineComponent({
                       console.log("Nope cool, coolios")
                     })
                   }
+                  obj.time = timeyStart.time //do change to new time
                 }
                 return true //here work? yup
             }
-        }
-        return false 
-    },
-    isViewingToday(){
-        return today() == this.currentDate
-    },
-    isViewingPast(){ ///should return bool for past, futur ?
-      let isToday = today()
-
-      //data.start == 
-      if (this.currentDate && this.currentDate == isToday){
-        //console.log('onChange', data, this.currentDate, isToday, inDates)
-        //this.disableUpdates = false
-        return false
-      }
-
-      let onToday = getDayIdentifier(parsed(isToday))
-      let viewing = getDayIdentifier(parsed(this.currentDate))
-
-      if (viewing >= onToday) {
-        //console.log('isViewingPast..nope future >', isToday, this.currentDate)
-        //this.disableUpdates = false
-        return false
-      }
-      //this.disableUpdates = true //so do not allow changes...redundant
-      
-      return true
+        } */
+        //return false 
     },
     confirmAction(message, executeOk, executeCancel){
         this.$q.dialog({
@@ -1165,31 +1213,37 @@ export default defineComponent({
             this.updateButtons(true, viewingPast ? false : true, viewingPast ? false : true)
         }
     },
-    fetchScheduledEvents(aDate) {
+    //make the below a lambda func?!?
+    reloadEvtsTo(dt, evts){ 
+        
+        let e = this.allEvents //**WARNING** >>below updates also changes this array when used later (times)**
+        //oldie >> this.deepCopy(this.storedEvents)
 
-      let evts = this.store.getEventsForDate(aDate)
+        let toReload = []
+
+        e.forEach((obj) => {
+            let sav = evts[obj.id]
+            if (sav){
+                obj.date = dt,//oldie >> sav.date, hopefully good?
+                obj.time = sav.time, //save.time is what it was changed to...
+                obj.duration = sav.duration, //umm just in case..but redundant
+                //obj.score = sav.atScore
+
+                toReload.push(obj)
+            } //else{console.log(`Evt: ${obj.title} wasnt present!`)} 
+        })
+        return toReload
+    },
+    scheduleSavedEvents(aDate) {
+
+      let evts = this.getEventsForDate(aDate) //oldie that workd >> this.store.getEventsForDate(aDate)
 
       if (!evts) {console.log(`ERROR no evts found for ${aDate}...`, evts); return}
 
-      console.log(`evts for ${aDate}`,evts)
+      console.log(`evts for ${aDate}`,evts,this.scheduledEvents, this.dailyScheduled, this.startTimesSet)
     
-      let e = this.allEvents //oldie >> this.deepCopy(this.storedEvents)
-      let toReload = []
-
-      e.forEach((obj) => {
-        let sav = evts[obj.id]
-        if (sav){
-          obj.date = aDate,//oldie >> sav.date, hopefully good?
-          obj.time = sav.time, //save.time is what it was changed to...
-          obj.duration = sav.duration, //umm just in case..but redundant
-          //obj.score = sav.atScore
-
-          toReload.push(obj)
-        } //else{console.log(`Evt: ${obj.title} wasnt present!`)} 
-      })
-
-
-      //toReload 
+      let toReload = this.reloadEvtsTo(aDate, evts)
+     
       this.scheduledEvents = this.addPropsEventsTo(null, toReload)
 
        //toReload //[...toReload]
@@ -1197,100 +1251,16 @@ export default defineComponent({
       return this.updateCurrentSchedule()
 
     },
-    pickConflictReso(pick, conflicts){// keep only pick, removing the others...
-        //this.conflictReso = false
-        for (let e of conflicts) {
-            if (e.id == pick.id) { //skip the pick
-                console.log('Skipping choice!', e) 
-            }else {
-                console.log('Removing conflict event!', e) 
-                this.doRemove(e) 
-                    //any possibility of erasing something that is looked up in next conflicts iteration? Tbd and test!! 
-                    //or add them to an array and do so after this loop?
-                }
-        }
-        return
-    },
-    loadForDate(onDate, hasSavedEvents, inPast){
-        let doLoad = () => {
-            //this.scheduledEvents = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true))
-            let e = this.fetchScheduledEvents(onDate)
-            //let e = this.updateCurrentSchedule()
-            if (e.size > 0){
-                console.log('loadForDate..REVIEW',e, onDate, hasSavedEvents)
-                this.fixConflicts(e)
-
-                //should also this.disableSaveSchedule = false when there are conflicts as user could change schedule?TBD**
-            }
-            this.doNotify(`Loaded schedule for ${onDate}`, "positive",'bottom')
-        }
-        
-        if(hasSavedEvents) {
-            doLoad()
-        } else{
-            console.log("nada...")
-
-            //oldie >> 
-            //this.resetEmptySchedule(onDate,inPast) //to see if not needed when adding evt in past when jumping from populated prev. day
-            
-            //this.disableSaveSchedule = true  
-            //this.updateButtons(true, true, true)
-            //this.resetButtons(hasSavedEvents, inPast)
-            //return
-            this.scheduledEvents = []
-            this.updateCurrentSchedule() //just to reset maps as well...
-            this.showReloadBtn = false
-        }
-     
-        if(inPast || onDate !== today()) { 
-            console.log("adjusting time for past/future", onDate)
-            this.adjustCurrentTime()
-        }
-        this.reset() //point of this again?
-        this.disableSaveSchedule = true
-        this.resetButtons(hasSavedEvents,inPast)
-
-    },
-    loadDefaultEvts(){
-      //console.log('doLoadDefault:',this.currentDate,this.scheduledEvents)
-      this.scheduledEvents = null
-      
-      console.log('doLoadDefault:',this.currentDate) //,this.scheduledEvents, this.allEvents
-
-      //let e = this.deepCopy(this.storedEvents) //see if resets reference >>does!
-      //e = this.addPropsEventsTo(this.currentDate, e)
-
-      let e = this.deepCopy(this.store.fetchDefaults()) //deepCopy? tbd**
-
-      console.log('inDefaults:', this.currentDate, e)
-
-      //e = 
-
-      this.scheduledEvents = this.addPropsEventsTo(this.currentDate, e) //[...e]  //e
-
-      //let e = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true)) //instead of assigning with >> this.scheduledEvents = ...
-      
-      this.updateCurrentSchedule() //should also check conflicts here...todo**
-
-      this.showReloadBtn = this.hasEventsForDate // oldie >> this.store.hasEventsForDate(this.currentDate)
-
-      //this.updateButtons(false,true, true)
-      this.resetButtons(true,this.isViewingPast()) //not using this.hasEventsForDate as shows default button again! 
-      this.disableSaveSchedule = false
-
-      this.reset()
-      //this.chosenScore = null
-      //this.chosenPrio = null
-
-    },
     fixConflicts(conflicts){ //walk through conflict and resolve by scheduling higher priority evts..choose higher priority or use score...alert too!
 
-        const findhigherPrio = allEvts => { //or find the parent's priority here? toReview
+        console.log("fixConflicts...Start", conflicts)
+        //or find the parent's priority here? toReview
+        const findhigherPrio = allEvts => {
             //return this.retrieveSameStart(starty) 
             let highest = 0
             let toRet = null
             for (let evt of allEvts) {
-                let one = this.getAnEvent(evt)
+                let one = this.getScheduledEvent(evt)
                 if (one){
                     let prt = this.parentGoalsMap.get(one.parentGoal) //would this work?--seems so!
                     if (prt){
@@ -1305,7 +1275,9 @@ export default defineComponent({
             console.log('findhigherPrio..Highest priority be',toRet, highest)
             return toRet
         }
-        let parseScore = function(t){ //parses score and returns the difference btween the interval
+
+        //parses score and returns the difference btween the interval
+        let parseScore = function(t){
             const tokens = t.split(/on/)
             if (tokens.length != 2) {//should be at most two variables....
                 console.log(`parseScore error?${t}`, tokens)
@@ -1314,6 +1286,7 @@ export default defineComponent({
             //console.log(`parseScore for ${t}`, tokens)
             return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!**to add guardrails...
         }
+        
         const mapToLabels = anEvt => {
             return { label: anEvt.title + " at " + anEvt.score, value: anEvt.id } // color: 'secondary' >>should prolly see look**
         }
@@ -1326,7 +1299,7 @@ export default defineComponent({
             let conflictEvts = [] 
             let label = ""
             for (let id of cIDs) {
-                let one = this.getAnEvent(id)
+                let one = this.getScheduledEvent(id)
                 if (one){
                     conflictEvts.push(one)
                     label += one.title +','
@@ -1366,7 +1339,7 @@ export default defineComponent({
                                     },
                             }).onOk((data) => {
                                 console.log('Chosen Manually', data)
-                                let one = this.getAnEvent(data)
+                                let one = this.getScheduledEvent(data)
                                 if(one){
                                     pick = one //proper? //s.push(data)
                                 }else{console.log('ERROR...Manually choice not find', data)}
@@ -1417,8 +1390,170 @@ export default defineComponent({
                 })
         
         }
+
         return true //should return false in error? tbd**
         
+    },
+    pickConflictReso(pick, conflicts){// keep only pick, removing the others...
+        //this.conflictReso = false
+        for (let e of conflicts) {
+            if (e.id == pick.id) { //skip the pick
+                console.log('Skipping choice!', e) 
+            }else {
+                console.log('Removing conflict event!', e) 
+                this.doRemove(e) 
+                    //any possibility of erasing something that is looked up in next conflicts iteration? Tbd and test!! 
+                    //or add them to an array and do so after this loop?
+                }
+        }
+        return
+    },
+    handleOverlaps(conflicts){
+        for (let key in conflicts) {
+            //key is scheduled evt
+            let curr = this.getScheduledEvent(key)
+            
+            //value is the one to fix 
+            let o = conflicts[key]
+            let toAdd = null
+            if(o){
+                toAdd = this.getLocalEvt(o.id)
+            }else{
+                console.log("handleOverlaps...ERROR not found",key, conflicts)
+                return
+            }
+    
+            //then dialog to pick one...do by prio/score?!?TBD
+            console.log(`handlingOverlaps ${key}`,curr,toAdd) 
+
+            //TODO** handle 
+        }
+
+    },
+    loadWithOverlapCheck(dt) {
+        let evts = this.getEventsForDate(dt)
+        if (!evts) {console.log(`ERROR no evts found for today:${dt} ?!?`, evts); return}
+
+        console.log(`evts loadWithOverlap ${dt}`,evts) //,this.scheduledEvents, this.dailyScheduled
+
+        let toReload = this.reloadEvtsTo(dt, evts)
+
+        const overlaps = {} //[]//{}
+
+        // check that no overlap now!!
+        for(let i = 0; i < toReload.length; i++){
+            
+           let obj = toReload[i] //should be found so no need to check existence...
+
+           let startTime = addToDate(parsed(obj.date), { minute: parseTime(obj.time) })
+            //let endTime = addToDate(startTime, { minute: obj.duration })
+
+            let anyOverlap = this.overlapOtherEvent(obj.id, startTime, obj.duration)
+            if(anyOverlap.length > 0){
+                console.log("WARNING some overlaps..adding",anyOverlap.length, startTime.time, obj.title)
+                let j = 0
+                do {
+                    //key = currentScheduled
+                    //value = conflict evts to add!
+                    overlaps[anyOverlap[j]] = obj //hopefully shouldnt overlap with many evts?!?--TOTEST with more than oone**
+                    //hold ref to it? toReview if better to return something else...       
+                } while (++j < anyOverlap.length)
+                
+
+                //this.fixConflicts(anyOverlap) //not good enough as checks in scheduledEvts when it has not been added yet!
+            } else{
+                this.addPropsEventsTo(dt,[obj])
+                this.addEvtToSchedule(obj)
+                //console.log("Added evt",obj.id, obj.title)
+            }
+        }
+        
+        Object.keys(overlaps).length > 0  ? 
+        this.doNotify(`${dt} with Some overlaps to fix!`, "warning",'bottom') :
+        this.doNotify(`Loaded schedule for ${dt}`, "positive",'bottom')
+
+        return overlaps
+    },
+    loadForDate(onDate, hasSavedEvents, inPast){
+        let doLoad = () => {
+            let e = this.scheduleSavedEvents(onDate) //just checks for startTimes only TOFIX**
+           
+            if (e.size > 0){ 
+                console.log('loadForDate..REVIEW overlaps!!',e, onDate)
+                this.fixConflicts(e)
+
+                //should also this.disableSaveSchedule = false when there are conflicts as user could change schedule?TBD**
+            }
+            this.doNotify(`Loaded schedule for ${onDate}`, "positive",'bottom')
+        }
+        
+        if(hasSavedEvents) {
+            if (this.isViewingToday()){ 
+                //do overlap check for today only...
+                //this should not overdo it when looking at other days!
+                let toHandle = this.loadWithOverlapCheck(onDate)
+
+                if (toHandle) {
+                    console.log("handle overlaps >>", toHandle) //also it might get re-ordered as keys be int?!?TOREVIEW & TEST***
+                    
+                    this.handleOverlaps(toHandle)
+                }
+
+                //check enableScoreEdit && showEndButton here?
+
+
+            }else {
+                doLoad()
+            }
+        } else{
+            console.log("nada...")
+
+            this.scheduledEvents = []
+            this.updateCurrentSchedule() //just to reset maps as well...
+            //prolly not needed but prolly for clearing when viewing diff days?!? tbd
+            this.showReloadBtn = false
+        }
+     
+        if(inPast || onDate !== today()) { 
+            console.log("adjusting time for past/future", onDate)
+            this.adjustCurrentTime()
+        }
+        this.reset() //point of this again?
+        this.disableSaveSchedule = true
+        this.resetButtons(hasSavedEvents,inPast)
+
+    },
+    loadDefaultEvts(){
+      //console.log('doLoadDefault:',this.currentDate,this.scheduledEvents)
+      this.scheduledEvents = null
+      
+      console.log('doLoadDefault:',this.currentDate) //,this.scheduledEvents, this.allEvents
+
+      //let e = this.deepCopy(this.storedEvents) //see if resets reference >>does!
+      //e = this.addPropsEventsTo(this.currentDate, e)
+
+      let e = this.deepCopy(this.store.fetchDefaults()) //deepCopy? tbd**
+
+      console.log('inDefaults:', this.currentDate, e)
+
+      //e = 
+
+      this.scheduledEvents = this.addPropsEventsTo(this.currentDate, e) //[...e]  //e
+
+      //let e = this.addPropsEventsTo(this.currentDate, this.returnNewEvts(true)) //instead of assigning with >> this.scheduledEvents = ...
+      
+      this.updateCurrentSchedule() //should also check conflicts here...todo**
+
+      this.showReloadBtn = this.hasEventsForDate // oldie >> this.store.hasEventsForDate(this.currentDate)
+
+      //this.updateButtons(false,true, true)
+      this.resetButtons(true,this.isViewingPast()) //not using this.hasEventsForDate as shows default button again! 
+      this.disableSaveSchedule = false
+
+      this.reset()
+      //this.chosenScore = null
+      //this.chosenPrio = null
+
     },
     deepCopy(obj){ //deep copy object
       if (obj === null || typeof obj !== "object") {
@@ -1441,7 +1576,8 @@ export default defineComponent({
     /////////////////////////////// EVENT HANDLERS //////////////////////////
     onRefresh(done) {  //test to drag for refresh
         setTimeout(() => {
-          this.fetchScheduledEvents(this.currentDate) //this.loadSavedEvents(this.currentDate) //, false
+          //oldie >> this.fetchScheduledEvents(this.currentDate) //this.loadSavedEvents(this.currentDate) //, false
+          this.loadForDate(this.currentDate,this.hasEventsForDate,this.isViewingPast())
           console.log('Refreshing...', this.currentDate)
           done()
         }, 1000)
@@ -1534,15 +1670,12 @@ export default defineComponent({
             time: timeStart.time,
             score: '1on5',
             duration: duration,
-            canMove: false //this default though?!?toReview if cannot move...
+            canMove: parentGoal ? true : false //when pGoal then assume it can move otherwise, shouldnt by default...prolly 
         })
-
-        this.updateCurrentSchedule() //ToReview if needed...prolly though for saving to storage!!***
 
         //this.doSaveSchedule()  //bon toReview if shouldnt save immediately but give choice to user to add some more!!
         this.disableSaveSchedule = false 
 
-        //also resetButtons**TODO
       } else{
         console.log("BOO ERROR no subID:(",subID)
         this.doNotify("Error adding this event :(", "negative")
@@ -1564,10 +1697,12 @@ export default defineComponent({
 
       this.draggedItem = this.toAddE
 
-      let addy = this.getAnEvent(this.toAddE.id)
+      let addy = this.getScheduledEvent(this.toAddE.id)
+      let isNew = false //to skip ask for moving evt around
       if (!addy){
-        console.log("onAddEvent...NEW", addy, this.toAddE)
+        console.log("onPickEvent...NEW", addy, this.toAddE)
         addy = this.toAddE
+        isNew = true
         this.addAnEvent(this.toAddE)  // add it with default and then continue...
       }
 
@@ -1586,8 +1721,8 @@ export default defineComponent({
         
         //so already there...just change it
         if(this.dailyScheduled.has(addy.id)){
-            let [changed, worked] = this.changeEvtSchedule(addy.id, this.targetDrop.timestamp, false)
-            //console.log("AddEvent that was there complete",changed, worked,addy.id)
+            let [changed, worked] = this.changeEvtSchedule(addy.id, this.targetDrop.timestamp, !isNew)
+            console.log("AddEvent complete",changed, worked,addy.id,isNew) //that was there should not prompt confirmation dialog
         } else { 
             //not there...add new event to schedule--Should not get here!!
             console.log('ERROR ERROR NEW event with current events as:', this.scheduledEvents) //should NOT get here now**
@@ -1718,7 +1853,7 @@ export default defineComponent({
     },
     onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above
         console.log("onDrop", e, type, scope)//JSON.stringify(item)
-        let draggy = this.getAnEvent(this.draggedItem.id) //bon grab whole event..
+        let draggy = this.getScheduledEvent(this.draggedItem.id) //bon grab whole event..
 
         if (!draggy) {console.log("onDrop ERROR", draggy,this.draggedItem ); return}
 
@@ -1898,13 +2033,15 @@ export default defineComponent({
 
       let viewDate = data.start  //the day that calendar is on.
 
-      if (this.isViewingPast()) { //in the past
+      this.loadForDate(viewDate, hasEvents,this.isViewingPast())
+
+      //if (this.isViewingPast()) { //in the past
         //console.log('onChange..viewingPast', viewDate, hasEvents)
-        this.loadForDate(viewDate, hasEvents, true)
+      //  this.loadForDate(viewDate, hasEvents, true)
         
-      }else {
+      //}else {
         //console.log('onChange..present?',this.isViewingToday())
-        this.loadForDate(viewDate, hasEvents, false)  //today or future
+      //  this.loadForDate(viewDate, hasEvents, false)  //today or future
         /* //oldie
         if (isToday == this.currentDate){ //viewing today
             //this.loadPresent(hasEvents)
@@ -1913,7 +2050,7 @@ export default defineComponent({
             console.log('onChange..viewingFuture!', viewDate, isToday, hasEvents)
             this.loadForDate(viewDate, hasEvents, false)
         }*/
-      }
+      //}
     },
     onReloadSaved(conflicts = null){
 
@@ -1973,7 +2110,6 @@ export default defineComponent({
         let doCancel = () => { //do cancel is merge here maybe?!? TBD
             console.log('onReloadWithPrio..cancelling',this.scheduledEvents)
             this.reset()
-            //setGoalsPrio()
             return //no handling of buttons?*? TOTEST**
         }
 

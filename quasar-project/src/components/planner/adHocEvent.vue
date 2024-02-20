@@ -67,7 +67,7 @@
     methods: {
       onClicked () {
         //console.log('huh trying to add event', this.aTitle, this.daP)
-        this.$emit('saveEvent', this.aTitle, this.daP, this.own )
+        this.$emit('saveEvent', this.aTitle, this.daP, this.own)  //no need to reset vars??!? toTEST**
       }
     }
 }
