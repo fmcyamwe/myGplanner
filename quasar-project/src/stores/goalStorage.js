@@ -258,7 +258,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[`${aDate}`] = events //hopefully doesnt overwrite?!? or use the .push
             }
         }
-        
+
         $q.localStorage.set("AllDates", JSON.stringify(current))
 
         //$q.localStorage.set(`${aDate}`, JSON.stringify(events)) //this is what grabs events per day
@@ -448,7 +448,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let updateGoal = (task, withParent = null) => {
             let aTask = {
                 children: [],
-                title: withParent ? `${task.title}:(${task.score})`:task.title,
+                title: withParent ? `${task.title.trim()}:(${task.score})`: `${task.title.trim()} !P(${task.priority})!`,
                 key: withParent ? `${withParent}-${task.id}` : task.id,
                 logged:[], 
                 //logged: daDs[task.id] || [], //gotta assign empty eh!

@@ -4,17 +4,19 @@
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
         <div style="max-width: 25px; min-width: 25px;"></div> $emit('endNow', id)
       -->
-      {{ title }}
-      <q-tooltip>{{ startTime + ' - ' + details + ' :'+ score }}</q-tooltip>
+      {{ title +' : '+ score}}
+      <q-tooltip>{{ details + ' at: '+ startTime }}</q-tooltip>
 
         <q-btn
         no-caps
         class="button"
-        :label="labelBtnStyle"
+        label="End-Now"
         :style="endNowBtnStyle"
         @click="wannaEnd"
         />
-        <!--<div class="ellipsis">  :style="userStyle"
+        <!--
+        :label="EndNow"
+        <div class="ellipsis">  :style="userStyle"
           {{ title }}
           <q-tooltip>{{ endTime + ' - ' + details }}</q-tooltip>
         </div>-->
@@ -72,14 +74,14 @@
           cursor: 'pointer'
         }
       },
-      labelBtnStyle () { //for edit or end --toReview
-        return (this.disabledScore === false && this.happeningNow === true) ? 'Edit' : 'EndNow'
-        
-      },
+      //labelBtnStyle () { //for edit or end --not needed since using popup-edit?..or actually need it?~? FML....toTest***
+      //  return (this.disabledScore === false && this.happeningNow === true) ? 'Edit' : 'EndNow'
+      //},
       endNowBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
         return {
-          display: (this.happeningNow === true && this.disabledScore === true) ? 'block' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
-          'margin-left': '32em'
+          display: (this.disabledScore === true && this.happeningNow === true) ? 'block' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
+          'margin-left': '32em',
+          'height':'100%'   //toSee*** if takes container's row height //try >> inherit || auto
         }
       }
     },
