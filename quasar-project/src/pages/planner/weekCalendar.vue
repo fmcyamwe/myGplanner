@@ -210,7 +210,7 @@ export default defineComponent({
                     for (let evtId in dEvts) {
                         //let euh = parseInt(evtId)
                         let e = mGoals.get(parseInt(evtId))
-                        //console.log("eeee",evtId,euh,e,f)
+                        //console.log("eeee",evtId,e,parseInt(evtId))
                         if(e){
                             let prt = pMap.get(e.parentGoal)
                             //console.log("eeee",prt)

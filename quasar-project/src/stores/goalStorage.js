@@ -66,7 +66,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function addMainGoal(goal,details,color,priority) {
        
-        console.log(goal+ ' ' +details + ' ' +color + ' ' +priority)
+        //console.log(goal+ ' ' +details + ' ' +color + ' ' +priority)
         
         let current = this.getMainGoals
         if(!current){
@@ -100,7 +100,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
       $q.localStorage.set('mainGoals', JSON.stringify(current))
 
-      console.log("done adding mainGoal", newID)
+      //console.log("done adding mainGoal", newID)
       return newID
     }
 
@@ -144,7 +144,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         $q.localStorage.set('subGoals', JSON.stringify(current))
 
-        console.log("done adding subGoal", newID)
+        //console.log("done adding subGoal", newID)
         return newID
     }
 
@@ -406,7 +406,7 @@ export const useGoalStore = defineStore('allGoals', () => {
     function fetchAllTaskSummary(){
         let savedDates = this.getAllDates
         if(!savedDates){
-            console.log(`no savedTaskSummary..ERROR`) 
+            //console.log(`no savedTaskSummary..ERROR`) 
             return []
         }
         let mains = this.getMainGoals
@@ -448,7 +448,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let updateGoal = (task, withParent = null) => {
             let aTask = {
                 children: [],
-                title: withParent ? `${task.title.trim()}:(${task.score})`: `${task.title.trim()} !P(${task.priority})!`,
+                title: withParent ? `${task.title.trim()}(${task.score})`: `${task.title.trim()} !${task.priority}!`,
                 key: withParent ? `${withParent}-${task.id}` : task.id,
                 logged:[], 
                 //logged: daDs[task.id] || [], //gotta assign empty eh!

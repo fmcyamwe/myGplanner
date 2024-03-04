@@ -44,14 +44,21 @@
                 v-model="details"
                 label="Description/Details"
             />
-            <div v-if="!showSubG" class="q-gutter-sm">
-                <q-input
+            <div v-if="!showSubG" class="q-gutter-md">
+                <q-select class="q-pl-md"
+                 v-model="bgcolor"
+                 :options="avColors"
+                 :color="bgcolor"
+                 label="Color"
+                 />
+                <!-- umm no option value? >> option-value="id" , option-label="color?"
+                    <q-input
                     filled
                     v-model="bgcolor"
                     label="Color"
                     hint="a color"
-                />
-                
+                /> -->
+                <br>
                 <q-input
                     filled
                     v-model.number="priority"
@@ -230,6 +237,25 @@ export default {
         const goalTitle = ref('')
         const details = ref('')
         const bgcolor = ref('')
+        const avColors = ref(['blue-grey',
+'grey',
+'brown',
+'deep-orange',
+'orange',
+'amber',
+//'yellow', //just ugly...see if could use suffix (7 to 10) for better look?
+'lime',
+'light-green',
+'green',
+'teal',
+'cyan',
+'light-blue',
+'blue',
+'indigo',
+'deep-purple',
+'purple',
+'pink',
+'red']) //toRedo properly --TODO**
         const time = ref('')
         const priority = ref(3)
         const duration = ref(30) //min of 30
@@ -345,7 +371,7 @@ export default {
             }
         }
         function onSubmit() {
-            //console.log("Adding Goal of type:",goalType.value)
+            console.log("Adding Goal of type:",goalType.value,bgcolor.value)
 
             if (goalType.value ==='main') { //goal,details,color,priority
                 store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
@@ -367,13 +393,13 @@ export default {
                     buttonLabel.value = "Submit"
                 } else{
                     store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value)
-                    console.log("Subgoal Goal added for parent:",pId.title)
+                    //console.log("Subgoal Goal added for parent:",pId.title)
                 }
                 
 
             }
             
-            console.log("Done Adding Goal of type:",goalType.value)
+            //console.log("Done Adding Goal of type:",goalType.value)
             $q.notify({
                     color: 'positive',
                     position: 'top',
@@ -546,7 +572,7 @@ export default {
             expanded, //see if can trigger close >>does!
             buttonLabel,
             allGoals,
-            goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,
+            goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,
             hasSubG,
             doPrint,
             onSubmit,doReset,getSubGoals,

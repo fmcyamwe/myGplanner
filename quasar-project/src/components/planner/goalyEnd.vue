@@ -4,8 +4,8 @@
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
         <div style="max-width: 25px; min-width: 25px;"></div> $emit('endNow', id)
       -->
-      {{ title +' : '+ score}}
-      <q-tooltip>{{ details + ' at: '+ startTime }}</q-tooltip>
+      {{ title +':'+ score}}
+      <q-tooltip>{{ details }}</q-tooltip>
 
         <q-btn
         no-caps
@@ -18,7 +18,7 @@
         :label="EndNow"
         <div class="ellipsis">  :style="userStyle"
           {{ title }}
-          <q-tooltip>{{ endTime + ' - ' + details }}</q-tooltip>
+          <q-tooltip>{{ details + ' at: '+ startTime }}</q-tooltip>
         </div>-->
 
         <q-popup-edit v-model="aScore" :disable="disabledScore" v-slot="scope" auto-save>
