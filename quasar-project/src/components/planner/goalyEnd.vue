@@ -16,26 +16,51 @@
         />
         <!--
         :label="EndNow"
-        <div class="ellipsis">  :style="userStyle"
+        <div class="ellipsis">  :style="userStyle"  class="inputBtn"
           {{ title }}
           <q-tooltip>{{ details + ' at: '+ startTime }}</q-tooltip>
         </div>-->
 
         <q-popup-edit v-model="aScore" :disable="disabledScore" v-slot="scope" auto-save>
            <!--disabledScoreEvts[event.id] for disable && onSaveScore(e,id). 
-          rmv this to see >> @save="(e)=>$emit('saveScore', e, id)"-->
-            <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set" /> 
+          rmv this to see >> @save="(e)=>$emit('saveScore', e, id)" 
+        -->
+       
+          <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set">
+            <template #after>
+              <q-btn
+              flat dense color="positive" icon="check_circle"
+              @click.stop.prevent="scope.set"
+              />
+              <q-separator :vertical="true"/>
+                  <q-btn
+                  label="Del"
+                  flat dense color="negative" icon="delete_forever"
+                  @click="onDelete"
+                  />
+              </template>
+            </q-input>
             <!-- >>oldie >>counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...
             now though no need for @keyup.enter="scope.set" toSee how it works!-->
+
+            <!--<template> --doesnt like the v-slot it seems---have to be in input as above!!===also having >> v-slot="after" seems to bork it(have to use #after)...see why later!!
+              <q-btn
+              flat dense color="negative" icon="cancel"
+              @click.stop.prevent="scope.cancel"
+               :disable="scope.validate(scope.value) === false || scope.initialValue === scope.value"
+            />
+            </template> -->
         </q-popup-edit>
       </div>
 </template>
   
 <script>
-  export default {  //this be Options Vue notation
+import { defineComponent,ref } from 'vue'
+
+  export default defineComponent ({  //this be Options Vue notation
     name: 'GoalyEnd',
     props: {
-      disabledScore: Boolean, //was modelValue--toSee if rename causes issue....
+      disabledScore: Boolean,
       title: String, //g.Title
       id: Number, //
       startTime: String, //redundant--toRemove
@@ -51,7 +76,8 @@
     emits: [
       //'update:model-value', //redundant since not writing back to parent?--or should have this still for binding via v-model? >>no need
       'saveScore',
-      'endNow'
+      'endNow',
+      'deleteNow'
     ],
     computed: { //bon use other methods as these are not useful...
       aScore:{
@@ -59,6 +85,9 @@
         set(value){
           console.log(`aScore getting set`,value, this.id) 
           this.$emit('saveScore', value, this.id) //check if auto-save does update it...
+        },
+        cancel(){ //doesnt do anything...toRemove
+          console.log(`aScore remove?`, this.id) 
         }
       },
       overdueIconStyle () {
@@ -91,18 +120,20 @@
       }
     },
     methods: {
-      onClicked () {
-         console.log('huh a click doing nothing')
-        this.$emit('update:model-value', !this.disabledScore)
+      onDelete () { //no need for @click="(e) => onDelete(e)"...phew!
+        //console.log('huh delete?',this.id)
+        this.$emit('deleteNow', this.id) //no need for this.id either!!--toReview**
       },
       wannaEnd(){
         console.log("eeeuh wish to end for", this.id, this.disabledScore ,this.happeningNow )
         this.$emit('endNow', this.id)
       }
     }
-  }
+  })
 </script>
 <style lang="sass" scoped>
+.inputBtn
+  text-align: center
 .goal-item
   border: 1px solid transparent
   box-shadow: 0 1px 5px rgb(0 0 0 / 20%), 0 2px 2px rgb(0 0 0 / 14%), 0 3px 1px -2px rgb(0 0 0 / 12%)

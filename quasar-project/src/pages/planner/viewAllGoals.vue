@@ -148,7 +148,7 @@
     <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
         <q-item>
             <q-item-section>
-              <q-item-label overline>Swipe toEdit or Delete A goal.</q-item-label>
+              <q-item-label overline>Swipe to Edit or Delete Goal</q-item-label>
             </q-item-section>
          </q-item>
     
@@ -159,13 +159,14 @@
             v-model="expanded[goal.id]"
             :key="goal.id"
             :label="goal.title"
-            :caption="goal.details" 
+            :caption="goal.details"
+            expandSeparator
             clickable>
             <!--<template v-slot:header></template> -->
         
              <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a card works?>>huh not without adding >>:key="event.id" -->
                 <!--<q-card-section>
-                    {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}} 
+                    {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}   class="q-my-sm"  color="red"
                 </q-card-section> -->
                 <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
                     <template v-slot:left> <!--had no need for @left="onLeft" in q-slide-item above BUT using it to edit here -->
@@ -176,9 +177,11 @@
                     </template>
 
                     <q-item>
-                    <q-item-section>{{subGoal.title}} >> at {{subGoal.time}} :: {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}}</q-item-section>
+                    <q-item-section>{{subGoal.title}} > {{subGoal.time}}({{subGoal.duration}}) </q-item-section>
+                    <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}}</q-item-section>
                     </q-item>
                 </q-slide-item>
+                <q-separator :color="goal.bgcolor.toLocaleLowerCase()"/>
              </q-card>
 
              <q-card v-if="!hasSubG(goal.id)">
@@ -222,7 +225,7 @@
 </template>
 <script>
 //import draggable from 'vuedraggable'
-import { computed, ref, onMounted, onBeforeUnmount, nextTick, watchEffect } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watchEffect } from 'vue'  //nextTick
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
 //import { storeToRefs } from 'pinia' 
@@ -371,7 +374,7 @@ export default {
             }
         }
         function onSubmit() {
-            console.log("Adding Goal of type:",goalType.value,bgcolor.value)
+            //console.log("Adding Goal of type:",goalType.value,bgcolor.value)
 
             if (goalType.value ==='main') { //goal,details,color,priority
                 store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
