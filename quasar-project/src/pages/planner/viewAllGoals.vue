@@ -36,7 +36,9 @@
                  :options="mainGoals"
                  option-value="id"
                  option-label="title"
-                 label="Parent Goal" />
+                 label="Parent Goal"
+                 popupContentClass="q-gutter-md"
+                />
             </div> 
 
             <q-input v-else
@@ -50,13 +52,9 @@
                  :options="avColors"
                  :color="bgcolor"
                  label="Color"
+                 popupContentClass="q-gutter-md"
                  />
-                <!-- umm no option value? >> option-value="id" , option-label="color?"
-                    <q-input
-                    filled
-                    v-model="bgcolor"
-                    label="Color"
-                    hint="a color"
+                <!--popupContentStyle="justify-content: center"
                 /> -->
                 <br>
                 <q-input
@@ -71,6 +69,8 @@
             <div v-if="showSubG" class="q-gutter-sm">
                 <q-input v-model="time" filled type="time" hint="Default time" />
                 
+                <br>
+
                 <q-input v-model="score" 
                 filled 
                 label="Score" 
@@ -79,7 +79,7 @@
                 :rules="[ val => val && val.includes('on') && val.length > 3 || 'hint, hint!']"
                 /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview -->
 
-                Duration
+                Duration (min)
                 <q-knob
                     :min="15"
                     :max="120"
@@ -96,7 +96,7 @@
                 <br>
                 <q-toggle
                     v-model="canMove"
-                    label="Can be Moved"
+                    label="Can Move"
                     left-label
                     color="green"
                 >
@@ -111,7 +111,7 @@
                 <br>
                 <q-toggle
                 v-model="inDefaults"
-                label="Load with defaults"
+                label="In Defaults"
                 left-label
                 color="blue"
             >
@@ -119,7 +119,7 @@
                 color="orange" floating
                 style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer"
                 >?
-                    <q-tooltip>Is scheduled as default</q-tooltip>
+                    <q-tooltip>Is scheduled by default</q-tooltip>
                 </q-badge>
             </q-toggle>
             </div>

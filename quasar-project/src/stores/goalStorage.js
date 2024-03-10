@@ -264,10 +264,10 @@ export const useGoalStore = defineStore('allGoals', () => {
         //$q.localStorage.set(`${aDate}`, JSON.stringify(events)) //this is what grabs events per day
     }
 
-    function getEventsForDate(aDate){//get by date or all of them in one go? tbd--todo
+    function getEventsForDate(aDate){
         //return JSON.parse($q.localStorage.getItem(`${aDate}`))
         let savedDates = this.getAllDates
-        if (savedDates) {return savedDates[`${aDate}`]} //bon see if this works....
+        if (savedDates) {return savedDates[`${aDate}`]}
     }
 
     function hasEventsForDate(aDate){ 
@@ -306,7 +306,7 @@ export const useGoalStore = defineStore('allGoals', () => {
     function fetchDefaults(){
         const map = []
         let inDefault = function(t){
-            return t.inDefaults && t.inDefaults  //if exist and true? 
+            return t?.inDefaults //&& t.inDefaults  //if exist and true? 
         }
 
         let allSubGoals = this.getSubGoals
