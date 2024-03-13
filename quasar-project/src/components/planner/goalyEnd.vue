@@ -109,6 +109,7 @@ import { defineComponent,ref } from 'vue'
       endNowBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
         return {
           display: (this.disabledScore === true && this.happeningNow === true) ? 'block' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
+          'text-align': 'center',
           'margin-left': '32em',
           'height':'100%'   //toSee*** if takes container's row height //try >> inherit || auto
         }

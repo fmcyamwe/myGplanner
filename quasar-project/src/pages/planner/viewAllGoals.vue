@@ -374,7 +374,8 @@ export default {
             }
         }
         function onSubmit() {
-            //console.log("Adding Goal of type:",goalType.value,bgcolor.value)
+            //console.log("onSubmit Goal of type:",goalType.value, buttonLabel.value)
+            let action = buttonLabel.value === "Save" ? 'Save' : 'Add'
 
             if (goalType.value ==='main') { //goal,details,color,priority
                 store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
@@ -389,7 +390,7 @@ export default {
                     return
                 }
                 let pId = pGoal.value
-                if(buttonLabel.value === "Save"){
+                if(action === "Save"){
                     editSuGoal()
                     expanded.value[pId.id] = false //just so that it can be updated!
 
@@ -398,15 +399,13 @@ export default {
                     store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value)
                     //console.log("Subgoal Goal added for parent:",pId.title)
                 }
-                
-
             }
+        
             
-            //console.log("Done Adding Goal of type:",goalType.value)
             $q.notify({
                     color: 'positive',
                     position: 'top',
-                    message: `Success action for ${goalTitle.value}`,
+                    message: `Success ${action} for "${goalTitle.value}"`,
                     icon: 'thumb_up'
                 })
             

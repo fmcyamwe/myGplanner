@@ -17,6 +17,7 @@
             :options="pGoals"
             option-value="id"
             option-label="title"
+            :disable="own!='misc'"
             label="Parent Goal" />
         </div> 
         <div class="radio-select">
