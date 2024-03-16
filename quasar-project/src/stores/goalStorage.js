@@ -452,12 +452,15 @@ export const useGoalStore = defineStore('allGoals', () => {
                 key: withParent ? `${withParent}-${task.id}` : task.id,
                 logged:[], 
                 //logged: daDs[task.id] || [], //gotta assign empty eh!
-                expanded:false //true works? >>does!
+                expanded:false, //true works? >>does!
+                color:task?.bgcolor, //only parents have colors...
+                isChild: withParent ? true : false
             }
             if(withParent){ //subgoal
                 let euh = daDs[task.id] || []
                 //console.log(`Subgoals logged for ${task.title}`, euh)
                 aTask.logged = [...euh]  //huh important to unfurl**
+                //aTask.isChild=true
             }/* else { //for main parentGoal in order to have them shown! >>no need as logs the child stuff under parent below
                 let loggedSize = getRandomIndex(2) //bon not more than 2 logged events--ToChange
                 console.log(`Logging for Parent G: ${task.title}`, loggedSize)

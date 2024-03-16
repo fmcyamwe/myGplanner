@@ -24,9 +24,10 @@
         <q-popup-edit v-model="aScore" :disable="disabledScore" v-slot="scope" auto-save>
            <!--disabledScoreEvts[event.id] for disable && onSaveScore(e,id). 
           rmv this to see >> @save="(e)=>$emit('saveScore', e, id)" 
+          autofocus 
         -->
        
-          <q-input v-model="scope.value" dense autofocus @keyup.enter="scope.set">
+          <q-input v-model="scope.value" dense @keyup.enter="scope.set">
             <template #after>
               <q-btn
               flat dense color="positive" icon="check_circle"
@@ -90,13 +91,13 @@ import { defineComponent,ref } from 'vue'
           console.log(`aScore remove?`, this.id) 
         }
       },
-      overdueIconStyle () {
+      /*overdueIconStyle () {
         return {
           color: (this.daysOver === 0 ? 'inherit' : 'red'),
           'max-width': '25px',
           'min-width': '25px'
-        }
-      },
+        
+      },}*/
       userIconStyle () {
         return {
           color: this.disabledScore === true ? 'red' : 'blue',
@@ -109,9 +110,9 @@ import { defineComponent,ref } from 'vue'
       endNowBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
         return {
           display: (this.disabledScore === true && this.happeningNow === true) ? 'block' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
-          'text-align': 'center',
+          'text-align': 'right',
           'margin-left': '32em',
-          'height':'100%'   //toSee*** if takes container's row height //try >> inherit || auto
+          'height':'auto'   // auto
         }
       }
     },

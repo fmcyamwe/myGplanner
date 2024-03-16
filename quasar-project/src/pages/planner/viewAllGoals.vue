@@ -15,7 +15,7 @@
     </div>-->
     <q-pull-to-refresh @refresh="refresh">
     <div>
-        <q-form @submit="onSubmit" class="q-gutter-md" >
+        <q-form @submit="onSubmit" class="q-gutter-md form" >
             <div class="q-gutter-sm">
                 <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
                 <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
@@ -586,6 +586,9 @@ export default {
 </script>
 
 <style lang="scss">
+.form {
+    margin: 0 auto;
+}
 .page--table {
   .page {
     &__table {

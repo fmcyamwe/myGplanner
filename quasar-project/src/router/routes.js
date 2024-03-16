@@ -40,11 +40,11 @@ const routes = [
       },*/
       {
         path: '',
-        component: () => import('pages/planner/weekCalendar.vue') //oldie >>pages/planner/weekViewPlanner.vue
+        component: () => import('pages/planner/homeWeekView.vue') //oldie >>pages/planner/weekViewPlanner.vue
       },
       {
         path: 'summary', 
-        component: () => import('pages/planner/eventTask.vue')
+        component: () => import('pages/planner/summaryView.vue')
       },
       {
         path: 'dayCalendar', 

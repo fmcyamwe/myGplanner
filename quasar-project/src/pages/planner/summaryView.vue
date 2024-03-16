@@ -51,9 +51,9 @@
               :key="task.key"
             >
               <div class="header ellipsis">
-                <div class="issue ellipsis">
+                <div class="issue ellipsis" :style="badgeStyles(scope.task)" >
                   {{ scope.task.title }}
-                    <!--here for child, try to indent somehow...toDO**-->
+                    <!--here for child, try to indent somehow as well as color for parentGoal...toDO**  -->
                 </div>
                 <div class="key">{{ scope.task.key }}</div>
                 <div class="logged">{{ sum(scope.start, scope.end, scope.task) }}</div>
@@ -160,6 +160,12 @@
       }
     },
     computed: {
+      /*badgeStyles (scope) {
+        console.log("badgeStyles",scope)
+        //const s = {}
+        //s[ 'align-items' ] = 'flex-start'
+        return {'color': 'gold'}
+      }, */
       /**
        * Returns tasks between startDate and endDate (captured via onChange event)
        */
@@ -187,9 +193,9 @@
     },
     beforeMount () {
       // adjust all the dates for the current month
-      const date = new Date()
-      const year = date.getFullYear()
-      const month = padNumber((date.getMonth() + 1), 2)
+      //const date = new Date()
+      //const year = date.getFullYear()
+      //const month = padNumber((date.getMonth() + 1), 2)
 
       let e = this.store.fetchAllTaskSummary()//testTasks()
 
@@ -210,9 +216,9 @@
         task.logged.forEach(logged => {
           // get last 2 digits from current date (day)
           const day = logged.date.slice(-2)
-          //logged.
-          const datey = [ year, padNumber(month, 2), padNumber(day, 2) ].join('-')
-          //console.log("taks woulda been", datey, logged.date)
+          //logged.date = 2024-03-14 == 2024-03-14
+          //const datey = [ year, padNumber(month, 2), padNumber(day, 2) ].join('-')
+          //console.log("taks woulda been", datey, day, logged.date)
         })
       }
   
@@ -224,10 +230,21 @@
       })
     },
     methods: {
+      badgeStyles (task) {
+        //console.log("badgeStyles",scope)
+        //const s = {}
+        //s[ 'align-items' ] = 'flex-start'
+        let c = task.isChild ? 'white' : (task.color !== void 0 ? task.color : 'gold')  // default to white for child and gold for parent...
+        //let b = task.isChild ? '20px' : '50px' //bon seem to work!
+        return {
+          'color': c,
+          //'padding':b,
+        }
+      },
       getLogged (date, logged, extra = null) {  //extra for scope.task.title..just for logging below but prolly redundant!
         const val = []
         if (logged.length == 0){
-          console.log("Empty getLogged?!?", date, extra) //just in case as should be caught at storage level
+          console.log("ERROR...Empty getLogged?!?", date, extra) //just in case as should be caught at storage level
           return val
         }
         for (let index = 0; index < logged.length; ++index) {
@@ -236,14 +253,17 @@
             break
           }
         }
+        //console.log("getLogged",val, extra)
         return val
       },
   
       getLoggedSummary (date) {
         let total = 0
+        //let num = 0
   
-        const reducer = (accumulator, currentValue) => {
+        const reducer = (accumulator, currentValue) => { 
           if (date === currentValue.date) {
+            //num++ //this expensive!
             return accumulator + currentValue.logged
           }
           return accumulator
@@ -254,7 +274,8 @@
           total += task.logged.reduce(reducer, 0)
         }
   
-        return total
+        //console.log("getLoggedSummary",date, total, num) 
+        return total.toFixed(2)
       },
   
       /**
@@ -288,22 +309,48 @@
             break
           }
         }
+        //console.log("getTasks", start, end, task, tasks.length)
         return tasks
       },
   
       weekdayClass (data) {
+        //console.log("weekdayClass", data)
         return {
           'task__weekday--style': true
         }
       },
   
       dayClass (data) {
+        //console.log("dayClass", data.scope.task)
         return {
           'task__day--style': true
         }
+
+        //bon doesnt seem to hold these values >>better approach above in badgeStyles()
+        /*return {
+          'task__day--style':false,
+          'padding-left': data.scope.task?.isChild ? '100px' : '2px', 
+          'color': data.scope.task?.color ? "white" : "red"
+        } */
+        /*if (data.scope.task?.color){
+          console.log("PGoal", data.scope.task.color)
+          s['background-color'] = data.scope.task.color
+          s['color'] = data.scope.task.color
+          //s.color = data.scope.task?.color
+        }
+        if (data.scope.task?.isChild){
+          console.log("subGoal", data.scope.task?.isChild)
+          s['padding-left'] = '1px'
+        }*/
+
+        //return s
+        //return {
+        //  'task__day--style': true
+        //}
       },
   
       footerDayClass (data) {
+        //console.log("footerDayClass", data)
         return {
           'task__footer--day__style': true
         }
@@ -327,7 +374,7 @@
           total += this.tasks[ task ].logged.reduce(reducer, 0)
         }
   
-        return total
+        return total.toFixed(2)
       },
   
       onToday () {
@@ -364,109 +411,6 @@
         console.log('onClickHeadDay', data)
       }
     }
-    //original Task data 
-        /* {
-            title: 'Task 1',
-            key: 'TSK-584',
-            logged: [
-              { date: '2021-03-02', logged: 0.5 },
-              { date: '2021-03-05', logged: 2.0 }
-            ]
-          },
-          {
-            title: 'Task 2',
-            key: 'TSK-592',
-            logged: [
-              { date: '2021-03-06', logged: 3.5 },
-              { date: '2021-03-08', logged: 4.0 }
-            ]
-          },
-          {
-            title: 'Task 3',
-            key: 'TSK-593',
-            logged: [
-              { date: '2021-03-10', logged: 9 },
-              { date: '2021-03-11', logged: 4.8 }
-            ],
-            expanded: false,
-            children: [
-              {
-                title: 'Subtask 3.1',
-                key: 'TSK-593.1',
-                logged: [
-                  { date: '2021-03-10', logged: 4.5 },
-                  { date: '2021-03-11', logged: 2.4 }
-                ]
-              },
-              {
-                title: 'Subtask 3.2',
-                key: 'TSK-593.2',
-                logged: [
-                  { date: '2021-03-10', logged: 4.5 },
-                  { date: '2021-03-11', logged: 2.4 }
-                ]
-              }
-            ]
-          },
-          {
-            title: 'Task 4',
-            key: 'TSK-594',
-            logged: [
-              { date: '2021-03-14', logged: 6.5 },
-              { date: '2021-03-15', logged: 2.0 }
-            ]
-          },
-          {
-            title: 'Task 5',
-            key: 'TSK-595',
-            logged: [
-              { date: '2021-03-12', logged: 1.5 },
-              { date: '2021-03-18', logged: 2.0 }
-            ]
-          },
-          {
-            title: 'Task 6',
-            key: 'TSK-596',
-            logged: [
-              { date: '2021-03-13', logged: 1.5 },
-              { date: '2021-03-23', logged: 3.5 }
-            ]
-          },
-          {
-            title: 'Task 7',
-            key: 'TSK-597',
-            logged: [
-              { date: '2021-03-19', logged: 0.75 },
-              { date: '2021-03-26', logged: 2.25 }
-            ]
-          },
-          {
-            title: 'Task 8',
-            key: 'TSK-598',
-            logged: [
-              { date: '2021-03-21', logged: 1.5 },
-              { date: '2021-03-22', logged: 4.0 }
-            ]
-          },
-          {
-            title: 'Task 9',
-            key: 'TSK-599',
-            logged: [
-              { date: '2021-03-26', logged: 6.5 },
-              { date: '2021-03-27', logged: 3.5 }
-            ]
-          },
-          {
-            title: 'Task 10',
-            key: 'TSK-600',
-            logged: [
-              { date: '2021-03-12', logged: 0.5 },
-              { date: '2021-03-14', logged: 2.0 },
-              { date: '2021-03-28', logged: 4.5 },
-              { date: '2021-03-30', logged: 1.0 }
-            ]
-          }
-        ],*/
   })
 </script>
 <style lang="sass" scoped>

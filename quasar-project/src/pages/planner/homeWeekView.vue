@@ -20,14 +20,14 @@
                 no-active-date
                 :interval-minutes="30"
                 :interval-count="48"
-                :interval-height="20"
+                :interval-height="mostEvts * 3"
                 @change="onChange"
                 @click-date="onClickDate"
                 @click-time="onClickTime"
                 @click-interval="onClickInterval"
                 @click-head-intervals="onClickHeadIntervals"
                 @click-head-day="onClickHeadDay"
-                >
+                > <!--way to calculate interval-height and set it dynamically to see all events properly>> if too many add more height space...-->
 
                 <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
                     <template
@@ -95,10 +95,10 @@ import {
   parseTime
 } from '@quasar/quasar-ui-qcalendar/src/index.js'
 import NavigationBar from '../../components/NavigationBar.vue'
-import { isMobile } from '../util/isMobile'
 import { applyClasses, applyStyles } from '../util/utiFunc'
 import { useGoalStore } from 'stores/goalStorage'
 //import { useQuasar } from 'quasar'
+//import { isMobile } from '../util/isMobile'
 
 const CURRENT_DAY = new Date()
 function getCurrentDay (day) {
@@ -123,6 +123,7 @@ export default defineComponent({
       calendar: ref(null),
       currentDate: ref(today()),
       events: [], //should rename this...
+      mostEvts:0 //huh just to set the interval-height for proper spacing..toReview
     }
   },
   beforeMount() {
@@ -208,28 +209,26 @@ export default defineComponent({
                     //console.log("allEvents:", dateKey, allEvts[dateKey])
                     let dEvts = allEvts[dateKey]
                     for (let evtId in dEvts) {
-                        //let euh = parseInt(evtId)
-                        let e = mGoals.get(parseInt(evtId))
-                        //console.log("eeee",evtId,e,parseInt(evtId))
-                        if(e){
-                            let prt = pMap.get(e.parentGoal)
-                            //console.log("eeee",prt)
-                            this.events.push({
-                                id: e.id,
-                                title: e.title,//'1st of the Month',
-                                details: "from:"+ prt.title,
-                                time: dEvts[evtId].time,//'10:00',
-                                duration: dEvts[evtId].duration, //120,
-                                date: dateKey,//getCurrentDay(1),
-                                bgcolor:prt.bgcolor //'orange'
-                            })
-
-                        }else{console.log("ERROR?!?:", evtId,dateKey, dEvts)}  //prolly when deleted?!? ToReview**
+                      let e = mGoals.get(parseInt(evtId))
+                      //console.log("eeee",evtId,e,parseInt(evtId))
+                      if(e){
+                        let prt = pMap.get(e.parentGoal)
+                        //console.log("eeee",prt)
+                        let eS = addToDate(parsed(dateKey), { minute: parseTime(dEvts[evtId].time)})
+                        let eE = addToDate(eS, { minute: parseInt(dEvts[evtId].duration)}) 
+                        this.events.push({
+                          id: e.id,
+                          title: e.title,
+                          details: `${eS.time} - ${eE.time}`, // or should add them as prop? tbd //oldie >> "from:"+ prt.title, 
+                          time: dEvts[evtId].time,//'10:00',
+                          duration: dEvts[evtId].duration, //120,
+                          date: dateKey,//getCurrentDay(1),
+                          bgcolor:prt.bgcolor //'orange'
+                        })
+                      }else{console.log("ERROR?!?:", evtId,dateKey, dEvts)}  //prolly when deleted?!? ToReview**
                     }
-
                 }
             }
-
         } else {
             console.log("ERROR--no parent or goals!!REVIEW**")
             return
@@ -255,6 +254,7 @@ export default defineComponent({
         events[ 0 ].side = 'full'
       }
       else if (events.length === 2) {
+        console.log("getEvents...LENGTH is 2?!?",dt, events)
         // this example does no more than 2 events per day
         // check if the two events overlap and if so, select
         // left or right side alignment to prevent overlap
@@ -271,7 +271,11 @@ export default defineComponent({
           events[ 1 ].side = 'full'
         }
       }
-      //console.log(`getEvents ${dt}`, events)
+      //console.log(`getEvents ${dt}`, events.length) //number of evts scheduled on this day...can use to calc largest interval height?
+      if (events.length > this.mostEvts){
+        console.log(`getEvents hiiigh ${dt}`,events.length)
+        this.mostEvts = events.length
+      }
       return events
     },
     badgeClasses (event, type) {
