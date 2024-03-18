@@ -29,6 +29,36 @@
                 @click-head-day="onClickHeadDay"
                 > <!--way to calculate interval-height and set it dynamically to see all events properly>> if too many add more height space...-->
 
+                <template #head-day-event="{ scope: { timestamp } }">
+                  <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
+                    <template
+                      v-for="event in eventsMap[timestamp.date]"
+                      :key="event.id"
+                    >
+                      <q-badge
+                        v-if="!event.time"
+                        :class="badgeClasses(event, 'header')"
+                        :style="badgeStyles(event, 'header')"
+                        style="width: 100%; cursor: pointer; height: 12px; font-size: 10px; margin: 1px;"
+                      >
+                        <div class="title q-calendar__ellipsis">
+                          {{ event.title }}
+                          <q-tooltip>{{ event.details }}</q-tooltip>
+                        </div>
+                      </q-badge>
+                      <q-badge
+                        v-else
+                        :class="badgeClasses(event, 'header')"
+                        :style="badgeStyles(event, 'header')"
+                        style="margin: 1px; width: 10px; max-width: 10px; height: 10px; max-height: 10px; cursor: pointer"
+                        @click="scrollToEvent(event)"
+                      >
+                        <q-tooltip>{{ event.time + ' - ' + event.title }}</q-tooltip>
+                      </q-badge>
+                    </template>
+                  </div>
+                </template><!--huh get stuff from diff places..for head-day-event vs day-body below...toReview? -->
+
                 <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
                     <template
                       v-for="event in getEvents(timestamp.date)"
@@ -225,7 +255,8 @@ export default defineComponent({
                           date: dateKey,//getCurrentDay(1),
                           bgcolor:prt.bgcolor //'orange'
                         })
-                      }else{console.log("ERROR?!?:", evtId,dateKey, dEvts)}  //prolly when deleted?!? ToReview**
+                      } else{console.log(`ERROR: ${evtId} no exist!! on`,dateKey)}  
+                      // when deleted >> toHANDLE***
                     }
                 }
             }
@@ -298,6 +329,9 @@ export default defineComponent({
       }
       s[ 'align-items' ] = 'flex-start'
       return s*/
+    },
+    scrollToEvent (event) {
+    this.$refs.calendar.scrollToTime(event.time, 350)
     },
     onToday () {
       this.$refs.calendar.moveToToday()
