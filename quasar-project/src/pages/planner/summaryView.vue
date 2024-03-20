@@ -230,17 +230,6 @@
       })
     },
     methods: {
-      badgeStyles (task) {
-        //console.log("badgeStyles",scope)
-        //const s = {}
-        //s[ 'align-items' ] = 'flex-start'
-        let c = task.isChild ? 'white' : (task.color !== void 0 ? task.color : 'gold')  // default to white for child and gold for parent...
-        //let b = task.isChild ? '20px' : '50px' //bon seem to work!
-        return {
-          'color': c,
-          //'padding':b,
-        }
-      },
       getLogged (date, logged, extra = null) {  //extra for scope.task.title..just for logging below but prolly redundant!
         const val = []
         if (logged.length == 0){
@@ -291,7 +280,8 @@
           }
           return accumulator
         }
-        return task.logged.reduce(reducer, 0)
+        let sT = task.logged.reduce(reducer, 0)
+        return sT.toFixed(2)
       },
   
       /**
@@ -312,7 +302,17 @@
         //console.log("getTasks", start, end, task, tasks.length)
         return tasks
       },
-  
+      badgeStyles (task) {
+        //console.log("badgeStyles",scope)
+        //const s = {}
+        //s[ 'align-items' ] = 'flex-start'
+        let c = task.isChild ? 'white' : (task.color !== void 0 ? task.color : 'gold')  // default to white for child and gold for parent...
+        //let b = task.isChild ? '20px' : '50px' //bon seem to work!
+        return {
+          'color': c,
+          //'padding':b,
+        }
+      },
       weekdayClass (data) {
         //console.log("weekdayClass", data)
         return {

@@ -153,7 +153,7 @@ export default defineComponent({
       calendar: ref(null),
       currentDate: ref(today()),
       events: [], //should rename this...
-      mostEvts:0 //huh just to set the interval-height for proper spacing..toReview
+      mostEvts:5 //huh just to set the interval-height for proper spacing..default or things are squished badly when empty
     }
   },
   beforeMount() {

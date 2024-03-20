@@ -449,7 +449,7 @@ beforeMount() {
   //this should just load all events--nothing else--prolly
   //in onChange is where to setDate and other props...prolly..unless there is a reason that not doable there?
   //this.scheduledEvents = this.addPropsEventsTo(null, this.returnNewEvts(true)) //[...e] //does update!
-  //this.scheduledEvents = 
+
   this.resetGoalEvts(true)
   //this.doReset = this.hasEventsForDate// oldie ..toSee if works...>>false //to not load up defaults too
   
@@ -713,6 +713,8 @@ computed: {
       if (newish){
         let e = this.deepCopy(this.storedEvents)
         this.allEvents = [...e]
+
+        //console.log("resetGoalEvts",JSON.parse(JSON.stringify(this.allEvents)))
         return e
       }
       return this.allEvents  //here return same stuff...beware that not null***
@@ -720,7 +722,7 @@ computed: {
   //from the allEvents array that "should" contain all evts--might not be originals
   getLocalEvt(id){
       for(let i = 0; i< this.allEvents.length;i++){
-          if (this.allEvents[i].id === id) return this.allEvents[i]  //OH freaking type check!!
+          if (this.allEvents[i].id === id) return this.allEvents[i]  //OH freaking type check!!smh
       }
       return null
   },
@@ -734,157 +736,7 @@ computed: {
     this.store.saveSubProp(evtID, timey, score)  //should just send whole event?
     return 
   },
-  //this is redundant and actually wrong as could access wrong index--toreplace with  
-  filterEvtsTo(dt, evts){ 
-      
-      let e = this.allEvents 
-      //**WARNING** >>below updates also changes this array when used later (times)**
-      //oldie >> this.deepCopy(this.storedEvents)
-
-      let toReload = []
-
-      e.forEach((obj) => {
-          let sav = evts[obj.id]
-          if (sav){
-              obj.date = dt,//oldie >> sav.date, hopefully good?
-              obj.time = sav.time, //save.time is what it was changed to...
-              obj.duration = sav.duration, //umm just in case..but redundant
-              //obj.score = sav.atScore
-
-              toReload.push(obj)
-          } //else{console.log(`Evt: ${obj.title} wasnt present!`)} 
-      })
-      return toReload
-  },
-  updateCurrentSchedule() { //should add flag to also check canEnableEditScore && enableEndNowBtn--todo**
-    const mappy = new Map()
-
-    let endTimes = new Set() //[]
-    //const now = parseDate(new Date())
-
-    let sameTime = new Set()
-    let startTimes = new Set()
-
-    
-    if(this.scheduledEvents.length < 1){
-      //console.log("updateCurrentSchedule NOTHING..returning....",this.dailyScheduled.size,this.startTimesSet.size) 
-      this.dailyScheduled = mappy
-
-      this.endTimesSet = endTimes
-      this.startTimesSet = startTimes
-
-      return sameTime //consistency!
-    }
-    
-    //let notToday = this.isViewingPast() || (this.currentDate != today())
-    //let isToday = this.currentDate == today()
-    
-    this.scheduledEvents.forEach(event => {
-      let startTime = addToDate(parsed(event.date), { minute: parseTime(event.time) })
-      let endTime = addToDate(startTime, { minute: event.duration })
-
-      mappy.set(event.id, { //startsEnds
-        start: startTime,
-        end: endTime,
-        on: event.date,
-        originalAt: event.time,
-        for: event.duration,
-        score:event.score
-      })
-      
-      //endTimes.push(endTime.time) //for checking when adjustCurrentTime()
-      endTimes.add(endTime.time) 
-        
-      startTimes.has(startTime.time) ? sameTime.add({at:startTime.time, id:event.id}) : startTimes.add(startTime.time)
-       
-      //this.disabledScoreEvts[event.id] = true  //uncomment when doing drag/drop stuff
-
-    })
-
-    this.dailyScheduled = mappy
-
-    this.endTimesSet = endTimes
-    this.startTimesSet = startTimes
-      
-    //console.log(`updateCurrentSchedule with sameTime ${sameTime.size}`, startTimes,this.scheduledEvents.length, this.dailyScheduled.size) 
-   //,this.dailyScheduled, this.scheduledEvents, typeof this.endTimesSet)
-
-    return sameTime
-
-  },
-  addEvtInScheduleMaps(evt){  //toUSE**
-    if(this.dailyScheduled.has(evt.id)){
-      console.log("addEvtInScheduleMaps with evt already added...ERROR?", evt)
-      return false
-    }
-
-    let startTime = addToDate(parsed(evt.date), { minute: parseTime(evt.time) })
-    let endTime = addToDate(startTime, { minute: evt.duration })
-
-    this.dailyScheduled.set(evt.id, {
-      on: evt.date,
-      originalAt: evt.time, //keep original...needed still? tbd***
-      for: evt.duration,
-      start: startTime,
-      end: endTime,
-      score: evt.score
-    })
-
-    this.endTimesSet.add(endTime.time)
-    this.startTimesSet.add(startTime.time)  //check for sameStart?!?
-
-    //return true //return true?
-  },
-  updateEvtInScheduleMaps(evID, timeyStart){ //add flag to add? toSee**
-      if(this.dailyScheduled.has(evID)){
-          let evt = this.dailyScheduled.get(evID)
-          //console.log("updateEvtInScheduleMaps",evt,timeyStart)
-          let forsy = evt.for
-          let oAt = evt.originalAt
-          let oldStart = evt.start
-          let oldEnd = evt.end
-          let newEndy = addToDate(timeyStart, { minute: forsy })
-          let scorey = evt.score
-
-          this.dailyScheduled.set(evID, {
-            on: timeyStart.date,
-            originalAt: oAt, //timeyStart.time, >>keep origin time
-            for: forsy,
-            start: timeyStart,
-            end: newEndy,
-            score: scorey  //gaah dont leave stuff or think they take the original value smh
-          })
-
-          let hadEnd = this.endTimesSet.delete(oldEnd.time)
-          if (hadEnd){
-              //console.log(`endTimesSet rem/add for ${evID} :: ${oldEnd.time} to ${newEndy.time}`)
-              this.endTimesSet.add(newEndy.time) 
-          }else{console.log("updateEvtInScheduleMaps-endTimesSet NOT FOUND?!?")} //this could happen? ToTest
-
-          let hadStart = this.startTimesSet.delete(oldStart.time)
-          if (hadStart){
-              this.startTimesSet.add(timeyStart.time) 
-          } else {
-            console.log("updateEvtInScheduleMaps-startTimesSet NOT FOUND?!?",evID, timeyStart)
-            //this could happen? yes....
-          } 
-          
-
-          let isToday = this.currentDate == today() 
-          if (isToday || !this.isViewingPast()){ //only allow for today and future
-            //console.log(`updateEvtInScheduleMaps --editScore today for: ${evID}`,timeyStart.time, newEndy.time)
-            this.canEnableEditScore(evID,newEndy)
-            this.enableEndNowBtn(evID, timeyStart, newEndy)
-          }
-
-          return true
-      }else{
-          console.log("updateEvtInScheduleMaps--euh not found?ERROR?",evID, timeyStart) 
-          return false 
-      }  
-      
-  },
-  evtStartedOrPassed(currentTime){ //evtID, endTime
+  evtStartedOrPassed(currentTime){
     const mappy = []
    
     let compareTime = addToDate(currentTime,{ minute: 0})
@@ -1316,12 +1168,131 @@ computed: {
       }
       return
   },
-  //using isOverlappingDates lib function 
-  //---for Testing and remove as doesnt tell overlap direction...
-  //kinda sucky!--does it test for dates only?!?seems so smh--toRemove***
-  //evtIsOverlappingDates(tStart, tEnd, eStart, eEnd){
-  //   return isOverlappingDates(tStart, tEnd, eStart, eEnd)
-  //},
+  updateCurrentSchedule() { //should add flag to also check canEnableEditScore && enableEndNowBtn--todo**
+    const mappy = new Map()
+
+    let endTimes = new Set() //[]
+    //const now = parseDate(new Date())
+
+    let sameTime = new Set()
+    let startTimes = new Set()
+
+    
+    if(this.scheduledEvents.length < 1){
+      //console.log("updateCurrentSchedule NOTHING..returning....",this.dailyScheduled.size,this.startTimesSet.size) 
+      this.dailyScheduled = mappy
+
+      this.endTimesSet = endTimes
+      this.startTimesSet = startTimes
+
+      return sameTime //consistency!
+    }
+    
+    //let notToday = this.isViewingPast() || (this.currentDate != today())
+    //let isToday = this.currentDate == today()
+    
+    this.scheduledEvents.forEach(event => {
+      let startTime = addToDate(parsed(event.date), { minute: parseTime(event.time) })
+      let endTime = addToDate(startTime, { minute: event.duration })
+
+      mappy.set(event.id, { //startsEnds
+        start: startTime,
+        end: endTime,
+        on: event.date,
+        originalAt: event.time,
+        for: event.duration,
+        score:event.score
+      })
+      
+      //endTimes.push(endTime.time) //for checking when adjustCurrentTime()
+      endTimes.add(endTime.time) 
+        
+      startTimes.has(startTime.time) ? sameTime.add({at:startTime.time, id:event.id}) : startTimes.add(startTime.time)
+       
+      //this.disabledScoreEvts[event.id] = true  //uncomment when doing drag/drop stuff
+
+    })
+
+    this.dailyScheduled = mappy
+
+    this.endTimesSet = endTimes
+    this.startTimesSet = startTimes
+
+    return sameTime
+
+  },
+  addEvtInScheduleMaps(evt){
+    if(this.dailyScheduled.has(evt.id)){
+      console.log("addEvtInScheduleMaps with evt already added...ERROR?", evt)
+      return false
+    }
+
+    let startTime = addToDate(parsed(evt.date), { minute: parseTime(evt.time) })
+    let endTime = addToDate(startTime, { minute: evt.duration })
+
+    this.dailyScheduled.set(evt.id, {
+      on: evt.date,
+      originalAt: evt.time, //keep original...needed still? tbd***
+      for: evt.duration,
+      start: startTime,
+      end: endTime,
+      score: evt.score
+    })
+
+    this.endTimesSet.add(endTime.time)
+    this.startTimesSet.add(startTime.time)  //check for sameStart?!?
+
+    return true //return true?
+  },
+  updateEvtInScheduleMaps(evID, timeyStart){ //add flag to add? toSee**
+      if(this.dailyScheduled.has(evID)){
+          let evt = this.dailyScheduled.get(evID)
+          //console.log("updateEvtInScheduleMaps",evt,timeyStart)
+          let forsy = evt.for
+          let oAt = evt.originalAt
+          let oldStart = evt.start
+          let oldEnd = evt.end
+          let newEndy = addToDate(timeyStart, { minute: forsy })
+          let scorey = evt.score
+
+          this.dailyScheduled.set(evID, {
+            on: timeyStart.date,
+            originalAt: oAt, //timeyStart.time, >>keep origin time
+            for: forsy,
+            start: timeyStart,
+            end: newEndy,
+            score: scorey  //gaah dont leave stuff or think they take the original value smh
+          })
+
+          let hadEnd = this.endTimesSet.delete(oldEnd.time)
+          if (hadEnd){
+              //console.log(`endTimesSet rem/add for ${evID} :: ${oldEnd.time} to ${newEndy.time}`)
+              this.endTimesSet.add(newEndy.time) 
+          }else{console.log("updateEvtInScheduleMaps-endTimesSet NOT FOUND?!?")} //this could happen? ToTest
+
+          let hadStart = this.startTimesSet.delete(oldStart.time)
+          if (hadStart){
+              this.startTimesSet.add(timeyStart.time) 
+          } else {
+            console.log("updateEvtInScheduleMaps-startTimesSet NOT FOUND?!?",evID, timeyStart)
+            //this could happen? yes....
+          } 
+          
+
+          let isToday = this.currentDate == today() 
+          if (isToday || !this.isViewingPast()){ //only allow for today and future
+            //console.log(`updateEvtInScheduleMaps --editScore today for: ${evID}`,timeyStart.time, newEndy.time)
+            this.canEnableEditScore(evID,newEndy)
+            this.enableEndNowBtn(evID, timeyStart, newEndy)
+          }
+
+          return true
+      }else{
+          console.log("updateEvtInScheduleMaps--euh not found?ERROR?",evID, timeyStart) 
+          return false 
+      }  
+      
+  },
   evtIsOverlappingTimes(tStart, tEnd, eStart, eEnd){ 
     //custom to also return more info whether overlapping left(haut?), right(bas?), totalO(surrounding)
     //also uses getTimeIdentifier lib function via this.getTimeyNumber(timey) above
@@ -1358,7 +1329,8 @@ computed: {
 
   },
   //rework of 'overlapOtherEvent' below and should replace it prolly
-  //supposes that evID is not in dailyScheduled yet and return array of scheduled evts that might overlap!
+  //supposes that evID is not in dailyScheduled yet and return array of scheduled evts that might overlap!>>No longer true!
+  //actually return the FIRST overlapping event as going through the whole map might find evts that are being added**BEWARE--tofix sometimes!
   hasOverlappingEvent(evID, targetTimestamp, duration) {
     //const mappyO = {}  //umm?!
     const mappyA = [] //grr bon this!
@@ -1368,7 +1340,7 @@ computed: {
 
     //console.log(`hasOverlappingEvent for ${evID} at ${targetTimestamp.time} for ${duration}`, tStartAt, tEndsAt)
 
-    this.dailyScheduled.forEach( (value, key, map) => {
+    this.dailyScheduled.forEach((value, key, map) => {
       if (key == evID){
         //skip self!
         //console.log(`${evID} skippin self ${key}`,value) //toSee if .for updates properly***
@@ -1383,59 +1355,20 @@ computed: {
             mappyO[key]= []
           }*/
         
-          mappyA.push({ //sheesh hopefully order is kept? prolly actually..better than object above prolly!!
+          mappyA.push({ 
             target:evID,
             targetStart:tStartAt,
             direction:oDirection,
             inConflict:key 
           })
-        } 
+        }
       }
     })
+
     return mappyA //mappyO
   },
-  //checks all overlapps in existing dailyScheduled--toREmove**
-  /*overlapOtherEvent(evID, targetTimestamp, duration) {
-    const mappy = []//{}
-    let targetStartAt = addToDate(targetTimestamp,{ minute: 0}) 
-    let targetEndsAt = addToDate(targetStartAt, { minute: duration}) //end of dropped event
-
-    //console.log("overlapOtherEvent...targetTimes",targetStartAt.time,targetEndsAt.time)
-    let tStart = this.getTimeNumber(targetStartAt)
-    let tEnd = this.getTimeNumber(targetEndsAt)
-    
-    if (tStart === false || tEnd === false) {
-      console.log("ERROR... overlapOtherEvent targetTimestamp error",targetTimestamp)
-      return mappy
-    }
-
-    this.dailyScheduled.forEach( (value, key, map) => {
-      if (key == evID){
-          //console.log("skipping sameness overlapOtherEvent")//, evID, value //umm should not skip this in case it's ad-hoc? >>meh could get into infi loop so prolly not!
-      }else {
-        let eStart = this.getTimeNumber(value.start)
-        let eEnd = this.getTimeNumber(value.end)
-        //should use this.getTimeyNumber?!?(toSEE**)
-
-        if (eStart !== false && eEnd !== false){
-
-        //target overlap with event (at start OR end) 
-        //>>could prolly just have used 'isOverlappingDates' smh
-        //umm what if it's just at the line though? >>gets included...so removing '=' for endTime..prolly others too but ToReview!!
-        let isTwix = (tStart >= eStart && tStart < eEnd) || (tEnd >= eStart && tEnd <= eEnd) 
-        let totalOverlap = (eStart >= tStart && tEnd >= eEnd) //totalOverlap as it's larger event
-
-          if (isTwix || totalOverlap) {
-            console.log(`overlapOtherEvent: ${evID} overlaping with Key:${key}`, totalOverlap)
-            mappy.push(key)
-          } //else {console.log(`${key} overlapOtherEvent Good`)}
-        } else {console.log("ERROR... overlapOtherEvent eventTimestamp error",value)}
-      }
-    });
-    return mappy
-  },*/
-  //check for overlap while adding evts, doAdd for skipping adding
-  overlapCheckEvtsAdd(evts, dt = null, doAdd = false){
+  //check for overlap while adding evts
+  overlapCheckEvtsAdd(evts){ //, dt = null, doAdd = false
     //const overlaps = {} //[]//{}
     let euhOverlaps = {}  //umm into objects?!?
 
@@ -1482,8 +1415,7 @@ computed: {
           }    
         } while (++j < oOth.length) //anyOverlap
       } else{
-        //oldie..prolly didnt update fast enough?
-        this.addEvtPropsIntoSchedule(dt,obj)
+        this.addEvtPropsIntoSchedule(obj) //dt,
         
         //this.scheduledEvents.push(this.addPropsEventsTo(dt, [obj]))
         //let s = 
@@ -1496,16 +1428,21 @@ computed: {
 
     return euhOverlaps //overlaps
   },
-  addEvtPropsIntoSchedule(aDate, event){ 
+  addEvtPropsIntoSchedule(event){ //maybe add flag here?...and //todo** change method to handle arrays?
     
-    //addPropsEventsTo
-    this.addPropsEventsTo(aDate, [event]) //beware it returns an array!!
+    //addPropsEventsTo  //beware it returns an array!!
+    //this.addPropsEventsTo(aDate, [event]) //prolly no need?!? toTest***
     
-    //see if push the returned array is
     this.scheduledEvents.push(event) //event
 
-    return this.updateCurrentSchedule()  //not too expensive to do all evts when just adding one?!? toReview**
+    //return this.updateCurrentSchedule()  //not too expensive to do all evts when just adding one?!? prolly...
 
+    let added = this.addEvtInScheduleMaps(event) //toSee if better than above..this could be multiple?!? toSEE**
+
+    if(!added){
+      console.log(`addEvtPropsIntoSchedule:${event.title}..ERROR...NOT added?!?`, added)
+    }
+    
     //do below too prolly?!?...or let adjustCurrentTime?!? >>prolly have to...toDo***
     //let isToday = this.currentDate == today()
     //if (isToday){ //only allow for today
@@ -1517,60 +1454,100 @@ computed: {
   addPropsEventsTo(aDate, events){
     let pMap = this.parentGoalsMap  //assumes that parentGoals present...
 
+    //let e = this.allEvents 
+
     if (!events) { //|| !pMap
       this.doNotify("addPropsEventsTo BUT no goals to schedule...")
       return []
     }
-    
-    events.forEach((obj) => {
-      obj.date = aDate != null ? aDate : obj.date //umm set to itself and better to null this and change in the onChange //"date": "2023-07-22"
-      let pgoal = pMap.get(obj.parentGoal)
-      if(!pgoal){
-          console.log("no parent goal for:", obj)
-          obj.bgcolor = "grey" //default for goals (could be ad-hoc goals)
-          obj.details = "unknown"
-      } else {
-          obj.bgcolor = pgoal.bgcolor  //for weird colors, becomes transparent--beware**
-          obj.details = `${pgoal.title.trim()} (${pgoal?.priority}) - ${obj?.duration}min`
-      }
-    })
-    //console.log("addPropsEventsTo", aDate,events) //events, typeof events
+    let toReload = []
 
-    return events
+    let fromParent = (evt) =>{
+      let pgoal = pMap.get(evt.parentGoal)
+      if(!pgoal){
+          console.log("ERROR?!? no parent goal for:", evt) //could happen when adding ad-hoc
+          evt.bgcolor = "grey" //default for goals (could be ad-hoc goals)
+          evt.details = `${evt?.title}: ${evt?.time} -- ${evt?.duration}min`  
+          evt.title  = `Ad-hoc:${evt?.title}` //oldie for evt.title >> "unknown"
+      } else {
+        evt.bgcolor = pgoal.bgcolor  //for weird colors, becomes transparent--beware**
+        evt.details = `${pgoal.title.trim()}: ${evt?.time} -- ${evt?.duration}min` // (${pgoal?.priority})
+      }
+      return evt
+    }
+
+    events.forEach((obj) => {
+          //let sav = events[obj.id]  //oldie that wasnt good with indexes...
+          //let evt = fromParent(obj)
+          let sav = this.getLocalEvt(obj.id)
+          //console.log("addPropsEventsTo",JSON.parse(JSON.stringify(sav)),JSON.parse(JSON.stringify(obj)))
+          if (sav){
+              //obj.date = aDate, //OR  do >> aDate != null ? aDate : obj.date //umm set to itself and better to null this and change in the onChange //"date": "2023-07-22"
+              //obj.time = sav.time, //save.time is what it was changed to...
+              //obj.duration = sav.duration,//def gotta use duration in case it has changed!
+              //obj.score = sav.atScore
+
+              sav.duration = obj.duration
+              sav.time = obj.time
+              sav.date = aDate //OR  do >> aDate != null ? aDate : obj.date //umm set to itself and better to null this and change in the onChange //"date": "2023-07-22"
+
+              //oldie oldie >> toReload.push(obj)
+              //oldie >> toReload.push(fromParent(obj)) //works but should be 'sav' as it's the proper object with parentGoal, etc...below
+              toReload.push(fromParent(sav))
+
+          } else{console.log(`ERROR in addPropsEventsTo...Evt:not present!`,obj) } 
+    })
+
+    //console.log("addPropsEventsTo", aDate,JSON.parse(JSON.stringify(toReload))) //events, typeof events
+
+    return toReload
   },
   //skipAsk to skip asking user--force flag
-  changeEvtTime(evID, timeyStart, skipAsk) {
-    console.log(`changeEventTime ${evID} with skip:${skipAsk}`, timeyStart.time,this.scheduledEvents.length)
+  changeEvtTime(evID, timeyStart, skipAsk, doAdd=false) {
+    console.log(`changeEventTime ${evID} to ${timeyStart.time} with skip:${skipAsk}`,this.scheduledEvents.length)
     let evt = this.getScheduledEvent(evID)
     if (!evt){
-      console.log('ERROR in changeEvtTime not found?',evt, evID, timeyStart) //toMonitor***
-      return false
+      if(doAdd){
+        let e = this.getLocalEvt(evID)
+        if (!e){
+          console.log('ERROR in changeEvtTime STILL NOT found?!?',e, evID, timeyStart, doAdd) //shouldnt happen!! typeof evID,
+          return false
+        }
+        //console.log("changeEventTime addin...",JSON.parse(JSON.stringify(evt)))
+        //let samey = this.addPropsEventsTo(this.currentDate,[addy])
+        let evtArr = this.addPropsEventsTo(this.currentDate, [e])
+        //console.log("changeEventTime afterProps",JSON.parse(JSON.stringify(evtArr)))
+        this.addEvtPropsIntoSchedule(evtArr[0]) //this.currentDate,
+        //console.log("changeEventTime addin...",JSON.parse(JSON.stringify(evt)))
+        evt = evtArr[0] //should be one item....prolly
+      } else {
+        console.log('ERROR in changeEvtTime not found, not adding!', evID, timeyStart, doAdd)
+        return false
+      }
     }
 
-    let doUpdateEvt = () => {  //this.skipAsk ?
-      //this.addPropsEventsTo(this.currentDate,[addy])
-      //this.addEvtToSchedule(addy)
-      console.log(`doUpdateEvt for ${evID} from ${evt.time} to ${timeyStart.time}`) 
-      
+      let doUpdateEvt = () => {
 
-      evt.time = timeyStart.time
-      this.updateEvtInScheduleMaps(evID, timeyStart) //should also change in scheduledEvents?!? tbd**
+        console.log(`doUpdateEvt for ${evID} from ${evt.time} to ${timeyStart.time}`) 
 
-      //see if proper here....should be done in updateEvtInScheduleMaps() above---toTest**
-      let endy = addToDate(timeyStart, { minute: parseInt(evt.duration)})
-      this.canEnableEditScore(evID,endy)
-      this.enableEndNowBtn(evID, timeyStart, endy)
-    }
+        evt.time = timeyStart.time  //this works even?!?
+        this.updateEvtInScheduleMaps(evID, timeyStart) //should also change in scheduledEvents?!? tbd**
 
-    //see if works...could pass in flag to also remove || add from `updateEvtInScheduleMaps`--toSEE
-    let changeSubProp = (flag) => {
-      //this.store.saveSubProp(evID, timeyStart.time, null)
-      this.doSaveEvtProp(evID, timeyStart.time, null)
-      doUpdateEvt()
-      
+        //see if proper here....should be done in updateEvtInScheduleMaps() above---toTest**
+        let endy = addToDate(timeyStart, { minute: parseInt(evt.duration)})
+        this.canEnableEditScore(evID,endy)
+        this.enableEndNowBtn(evID, timeyStart, endy)
+      }
 
-      return flag
-    }
+      //see if works...could pass in flag to also remove || add from `updateEvtInScheduleMaps`--toSEE
+      let changeSubProp = (flag) => {
+        //this.store.saveSubProp(evID, timeyStart.time, null)
+        this.doSaveEvtProp(evID, timeyStart.time, null)
+        doUpdateEvt()
+        
+
+        return flag
+      }
 
     let oldy = evt.time 
     let mess = `Evt '${evt.title.trim()}' scheduled at ${oldy}. \n Change default time to ${timeyStart.time}? \n Cancel to Temp add.`
@@ -1601,7 +1578,7 @@ computed: {
     
   },
   // goForward to push down overlapping evts as it's more natural
-  recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false, skipAsk = false) {
+  recurChangeTime(overlappingEvtID, tEvt, targetTimestamp, goForward = false, skipAsk = false, doAdd = false) {
     let overlappedEvt = this.dailyScheduled.get(overlappingEvtID)
     if (overlappedEvt){
 
@@ -1613,7 +1590,7 @@ computed: {
       
       let dName = `${dragTimeInterval > 0 ? "DOWN": "UP"}` //so down is forward in time..prlly
       //let dggyName = `${draggyInterval > 0 ? "DOWN": "UP"}`
-      console.log(`${overlappingEvtID} moving due to evt ${tEvt.id} at: ${targetTimestamp.time} ...:GoFwd:${goForward} >> ${dName}`, dragTimeInterval,skipAsk) //overlappedEvt
+      console.log(`${overlappingEvtID} moving ${dName} due to evt:${tEvt.id} at ${targetTimestamp.time} ...DrgInterval:${dragTimeInterval} and skipAsk:${skipAsk}`) //overlappedEvt
 
       //tEvt.time >> original Evt time but the targetTimestamp.time >> WHEN it should be scheduled at
 
@@ -1624,7 +1601,7 @@ computed: {
         console.log(`recurChangeTime:${overlappingEvtID}...FORWARD ${dragTimeInterval}`,overlappedEvt.for,tEvt.duration, overlappedEvtNew.time, alternative.time)
       } else {//remove instead of add.
         overlappedEvtNew = addToDate(targetTimestamp, { minute: -(parseInt(overlappedEvt.for) + 10)})
-        console.log(`recurChangeTime:${overlappingEvtID}...BACKWARD ${dragTimeInterval}`, overlappedEvtNew)
+        console.log(`recurChangeTime:${overlappingEvtID}...BACKWARD ${dragTimeInterval}`, overlappedEvtNew.time)
       }
       
       //console.log(`recurChangeTime...from>>${targetTimestamp.time}, to ${overlappedEvtNew.time}`, tEvt.duration)
@@ -1647,9 +1624,10 @@ computed: {
       //umm not doing direction here?!? TOSEE***
       //is this the correct flow for time change?!?
       //use tEvt.duration?!? or should use direction +- timeDiff?!?
-      this.changeEvtTime(overlappingEvtID, overlappedEvtNew, skipAsk)
+      this.changeEvtTime(overlappingEvtID, overlappedEvtNew, skipAsk) 
+      //oldie >> overlappingEvtID //for overlapped it shouldnt need to add it...toMonitor though as passing in wrong evt!
 
-      console.log(`recurChangeTime...OVERLAPPED:${overlappingEvtID} done to ${overlappedEvtNew.time}`,dName,skipAsk)
+      console.log(`recurChangeTime...OVERLAPPED:${overlappingEvtID} moved to ${overlappedEvtNew.time}`,dName,skipAsk)
 
       
       //umm targetDrop should stays the same here!!--for dragging up keep interval of 10 minutes? prolly better for separation?
@@ -1658,7 +1636,7 @@ computed: {
       
       //the evt doing displacement stays the same...toReview**
       //changed = 
-      this.changeEvtTime(tEvt.id, draggedNewTime, skipAsk)
+      this.changeEvtTime(tEvt.id, draggedNewTime, skipAsk, doAdd) //flag to add target in case...
       //worked = this.updateEvtInScheduleMaps(tEvt.id, draggedNewTime)
 
       console.log(`recurChangeTime...TARGET:${tEvt.id} at time>> ${draggedNewTime.time}`,goForward, dName,skipAsk)
@@ -1693,25 +1671,28 @@ computed: {
     //when picks the unscheduled one > have to remove it and add unscheduled evt!
     const removeReplace = (toRem,toAdd) => { //do like this in order to keep context of `this.()`
         this.doRemove(toRem)
-        //this.addAnEvent(toAdd)
         console.log(`fixAnOverlap, adding ${toAdd.title} at ${toAdd.time}`, aConf) //prolly not correct time...and ugly!
-        this.addEvtPropsIntoSchedule(this.currentDate,toAdd) //could this overlap again?!? prolly not?!?
+        toAdd = this.addPropsEventsTo(this.currentDate,[toAdd]) //just in case...
+
+        this.addEvtPropsIntoSchedule(toAdd[0]) //this.currentDate, //could this overlap again?!? prolly not?!?
         return //here?
     }
 
     const forceAdd = (toChange, toAdd,conf) => {
       let goF = conf.direction == 'haut'
-      this.addEvtPropsIntoSchedule(this.currentDate,toAdd)
+
+      toAdd = this.addPropsEventsTo(this.currentDate,[toAdd])
+      //oldie >> this.addEvtPropsIntoSchedule(this.currentDate,toAdd)
 
       //let starty= addToDate(parsed(toAdd.date), { minute: parseTime(toAdd.time) }) 
       //no need as already in conf.targetStart >>toMonitor continued use!
 
-      console.log(`forceAdd changing ${toChange.id} due to ${toAdd.title}. goFwd>>${goF}`, conf)
+      console.log(`forceAdd changing evt:${toChange.id}  goFwd>>${goF}`,conf) //due to ${.title}.  //toAdd, 
       
       //toChange is the one changing time...to which though?!?
       
       //skipAsk user as should force!
-      this.recurChangeTime(toChange.id,toAdd,conf.targetStart,goF, true)
+      this.recurChangeTime(toChange.id,toAdd[0],conf.targetStart,goF, true, true) //last flag?!? as removed addEvtPropsIntoSchedule() above
 
       //this.changeEvtTime(toChange.id,starty,false) 
       // not better than above as doesnt space evts properly nor check overlapps!!
@@ -1808,102 +1789,129 @@ computed: {
 
   },
   loadForDate(onDate, hasSavedEvents, inPast){
-    let doLoadNotPresent = () => {
-      let evts = this.getEventsForDate(onDate)
-      if (!evts) {console.log(`ERROR no evts found for ${onDate}...`, evts); return}
-      
-      console.log(`doLoadNotPresent for ${onDate}`,evts,this.scheduledEvents, this.dailyScheduled.size)
-        
-      let toReload = this.filterEvtsTo(onDate, evts)
-      this.scheduledEvents = this.addPropsEventsTo(null, toReload)
-        
-      let e = this.updateCurrentSchedule() //just checks for startTimes only TOFIX**
-        
-      if (e.size > 0 && !inPast){//review overlaps in futur only
-        console.log('doLoadNotPresent..FIX overlaps!!',e, onDate, inPast)
-        this.doNotify(`${inPast ? 'past': 'future'}: ${onDate} with Some overlaps to fix!`, "warning",'bottom')
-
-        this.fixConflicts(e)
-        
-        //this.disableSaveSchedule = false  //conflicts as user could change schedule?TBD**
-      }else {
-        this.showReloadBtn = false
-        this.disableSaveSchedule = true
-        this.doNotify(`Loaded schedule for ${inPast ? 'past': 'future'}:: ${onDate}`, "positive",'bottom')
+      let savedEvtFunc = (key, val) => {
+          return {
+            id:parseInt(key),
+            duration: val.duration, //30,
+            time: val.time //"01:30"
+          }
       }
-    }
 
-    let OverlapCheckLoadToday = () => {
-      let evts = this.getEventsForDate(onDate)
-      if (!evts) {console.log(`ERROR no evts found for today:${onDate} ?!?`, evts); return}
+      let doLoadNotPresent = () => {
+        let evts = this.getEventsForDate(onDate)
+        if (!evts) {console.log(`ERROR no evts found for ${onDate}...`, evts); return}
+        
+        console.log("doLoadNotPresent:evts",JSON.parse(JSON.stringify(evts)))
+        
+        let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))
+        //this.scheduledEvents = this.addPropsEventsTo(null, toReload)
+        this.scheduledEvents = this.addPropsEventsTo(onDate, arr) //arr
+        
 
-      let toReload = this.filterEvtsTo(onDate, evts)
+        //console.log("doLoadNotPresent:scheduled",JSON.parse(JSON.stringify(this.scheduledEvents)))
+        //console.log(`doLoadNotPresent for ${onDate} with ${evts.length}`,toReload, this.scheduledEvents, this.dailyScheduled.size)
 
-      console.log(`OverlapCheckLoadToday ${onDate}`,evts,this.scheduledEvents, this.dailyScheduled.size) 
+        //should make sure that evts.length == this.scheduledEvents.length--todo**
+        //console.log(JSON.parse(JSON.stringify(c)))
+          
+        let e = this.updateCurrentSchedule() //just checks for startTimes only TOFIX**
+          
+        if (e.size > 0 && !inPast){//review overlaps in futur only
+          console.log('doLoadNotPresent..FIX overlaps!!',e, onDate, inPast)
+          this.doNotify(`${inPast ? 'past': 'future'}: ${onDate} with Some overlaps to fix!`, "warning",'bottom')
 
-      // check that no overlap !!
-      let euhOverlaps = this.overlapCheckEvtsAdd(toReload, onDate)
-  
-      Object.keys(euhOverlaps).length > 0  ?
-      this.doNotify(`${onDate} with Some overlaps to fix!`, "warning",'bottom') :
-      this.doNotify(`Loaded schedule for ${onDate}`, "positive",'bottom')
+          this.fixConflicts(e)
+          
+          //this.disableSaveSchedule = false  //conflicts as user could change schedule?TBD**
+        }else {
+          this.showReloadBtn = false
+          this.disableSaveSchedule = true
+          this.doNotify(`Loaded schedule for ${inPast ? 'past': 'future'}:: ${onDate}`, "positive",'bottom')
+        }
+      }
 
-      return euhOverlaps //overlaps
-    }
+      let OverlapCheckLoadToday = () => {
+        let evts = this.getEventsForDate(onDate)
+        if (!evts) {console.log(`ERROR no evts found for today:${onDate} ?!?`, evts); return}
 
-      // reset maps first...
-      this.scheduledEvents = []
-      this.updateCurrentSchedule()
+        console.log("OverlapCheckLoadToday:evts",JSON.parse(JSON.stringify(evts))) //not an array but object...smh
+
+
+        let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key])) //?!? ,id=key //[...evts[key]]
+
+        //let arry = Object.entries(evts).map((key) => savedEvtFunc(key[0],key[1])) //works as well but using above...toSee**
+
+        //console.log("OverlapCheckARR",JSON.parse(JSON.stringify(arr))) //, typeof arr
+        //console.log("OverlapCheckARRY", arry, typeof arry)
+
+        let toReload = this.addPropsEventsTo(onDate, arr) //evts
+
+        console.log(`OverlapCheckLoadToday ${onDate} loading:${toReload.length}`,this.scheduledEvents, this.dailyScheduled.size) 
+
+        // check that no overlap !!
+        let euhOverlaps = this.overlapCheckEvtsAdd(toReload) //, onDate
+    
+        Object.keys(euhOverlaps).length > 0  ?
+        this.doNotify(`${onDate} with Some overlaps to fix!`, "warning",'bottom') :
+        this.doNotify(`Loaded schedule for ${onDate}`, "positive",'bottom')
+
+        return euhOverlaps //overlaps
+      }
+
+    // reset maps first...
+    this.scheduledEvents = []
+    this.updateCurrentSchedule()
       
-      if(hasSavedEvents) {
-        if (this.isViewingToday()){
-          let toHandle = OverlapCheckLoadToday()
+    if(hasSavedEvents) {
+      if (this.isViewingToday()){
+        let toHandle = OverlapCheckLoadToday()
          
-          if(Object.keys(toHandle).length  > 0) {
-            console.log("Overlaps toHandle >>", toHandle) //object
-            //also it might get re-ordered as keys be int?!? >>yup does!! smh
+        if(Object.keys(toHandle).length  > 0) {
+          console.log("Overlaps toHandle >>", toHandle) //object
+          //also it might get re-ordered as keys be int?!? >>yup does!! smh
             
-            for (let key in toHandle) {
-              if (!toHandle[key] || !toHandle[key][0]){
-                console.log("loadForDate...ERROR no local found",key) //,conflicts
-                //return
-                continue //prolly continue?
-              }
-
-              let toH = toHandle[key]
-              //console.log(`handlin...${key}`)  //there could be multiple overlapps...
-
-              this.handleOverlaps(toH)
+          for (let key in toHandle) {
+            if (!toHandle[key] || !toHandle[key][0]){
+              console.log("loadForDate...ERROR no local found",key) //,conflicts
+              //return
+              continue //prolly continue?
             }
 
-            this.showReloadBtn = hasSavedEvents
-            this.disableSaveSchedule = false
+            let toH = toHandle[key]
+              //console.log(`handlin...${key}`)  //there could be multiple overlapps...
 
-            this.resetButtons(hasSavedEvents,inPast)
-
-            return //needed in order to properly enable btns! 
+            this.handleOverlaps(toH)
           }
 
-          this.evtStartedOrPassed(parseDate(new Date()))
-          this.disableSaveSchedule = true  //prolly better
-         
-        } else {//past || future 
-            doLoadNotPresent()  
-            this.allowScoreEdit(inPast) // enable scoreEdit...disable score edit in future!!
-        }
-      } else {
-        this.showReloadBtn = false //prolly for clearing when viewing diff days?!? tbd
-        this.disableSaveSchedule = true  //see if proper here
-      }
-   
-      if(inPast || onDate !== today()) { //adjustTime for past && futur 
-          //console.log("adjusting time for past/future", onDate,this.scheduledEvents.length)
-          this.adjustCurrentTime()
-      }
+          this.showReloadBtn = hasSavedEvents
+          this.disableSaveSchedule = false
 
-      console.log(`loadForDate...got here too fast? ${hasSavedEvents} >> inPast:${inPast}`) 
-      this.reset()
-      this.resetButtons(hasSavedEvents,inPast) //not using this.hasEventsForDate as shows default button again! 
+          this.resetButtons(hasSavedEvents,inPast)
+
+          return //needed in order to properly enable btns! 
+        }
+
+        this.evtStartedOrPassed(parseDate(new Date()))
+        this.disableSaveSchedule = true  //prolly better
+         
+      } else {//past || future 
+          doLoadNotPresent()  
+          this.allowScoreEdit(inPast) // enable scoreEdit...disable score edit in future!!
+      }
+    } else {
+      this.showReloadBtn = false //prolly for clearing when viewing diff days?!? tbd
+      this.disableSaveSchedule = true  //see if proper here
+    }
+   
+    if(inPast || onDate !== today()) { //adjustTime for past && futur 
+        //console.log("adjusting time for past/future", onDate,this.scheduledEvents.length)
+        this.adjustCurrentTime()
+    }
+
+    console.log(`loadForDate...got here too fast? ${hasSavedEvents} >> inPast:${inPast}`) 
+    this.reset()
+    this.resetButtons(hasSavedEvents,inPast) //not using this.hasEventsForDate as shows default button again!
+
   },
   scheduleDefaults(){
     this.scheduledEvents = []
@@ -1923,17 +1931,13 @@ computed: {
     this.reset()
 
     if(isTod){ //do overlap check for today only...
-      //dEvts.length > 0 &&
-      //let toReload = this.filterEvtsTo(this.currentDate, dEvts)  //adding date....>>wrong function for defaults as access wrong index--toReview
-      
-      //this better than filterEvtsTo()...affect the proper calculation of overlapCheck() below
+
       let toReload = this.addPropsEventsTo(this.currentDate, dEvts)
-     
   
       let euhOverlaps = this.overlapCheckEvtsAdd(toReload) //no need for date prolly  //this.currentDate
 
       if(Object.keys(euhOverlaps).length > 0) {
-        console.log(`Defaults overlaps on:${this.currentDate} ${dEvts.length} == ${toReload.length} ?!? and Length:`, Object.keys(euhOverlaps).length) 
+        console.log(`Defaults overlaps on:${this.currentDate} ${dEvts.length} == ${toReload.length} ?!? of size:`, Object.keys(euhOverlaps).length) 
         for (let key in euhOverlaps) {
           if (!euhOverlaps[key] || !euhOverlaps[key][0]){
             console.log("scheduleDefaults...ERROR no local found",key) //,conflicts
@@ -2045,7 +2049,8 @@ computed: {
     //below redundant when set the interval...smh
     let duration = Math.floor((diffTimestamp(timeStart, timeEnd)/1000)/60)  //(diffy / 60000)
 
-    console.log("With times as ", goalTitle, parentGoal, own, timeStart.time, timeEnd.time, duration)
+    console.log("With times as ", goalTitle, parentGoal, own)
+    console.log(`from ${timeStart.time} till ${timeEnd.time}.Duration:${duration}`)
     
     let subID = null 
     if(own == "self"){ //add it as self >>so create parent goal with this as subgoal
@@ -2085,12 +2090,11 @@ computed: {
     }
 
     if (subID) {
-      //this.addAnEvent({ //parentGoal map not updated at this point mais bon...
+      this.resetGoalEvts(true)//needed to refresh goals...//parentGoal map not updated at this point mais bon...
       
       let oOth = this.hasOverlappingEvent(subID, timeStart, duration)
       //this.resetGoalEvts(true) 
       if (oOth.length > 0) {
-        this.resetGoalEvts(true)//needed to refresh goals...prolly
         //console.log("onAddNewEvent...OVERLAPS", oOth)
         //let euhOverlaps = this.overlapCheckEvtsAdd(toReload, onDate) //no need for this and can invoke handleOverlaps()? or have to use this?!?
         for(let i = 0; i < oOth.length; i++){
@@ -2099,13 +2103,18 @@ computed: {
             this.fixAnOverlap(toH)
         }
       } else {
-        this.addEvtPropsIntoSchedule(this.currentDate,{
+        ////this definitely needed as prolly wont show event!!
+        let toAdd = this.addPropsEventsTo(this.currentDate,[{ //this.currentDate,
           id: subID,
           time: timeStart.time,
+          title: goalTitle,
           score: '1on5',
           duration: duration,
           canMove: parentGoal ? false : true  //when pGoal then assume it cannot move otherwise should by default...prolly 
-        })
+        }])
+        console.log(`onAddNewEvt, addEvtPropsIntoSchedule: ${subID} at ${timeStart.time}`) //,toAdd
+        
+        this.addEvtPropsIntoSchedule(toAdd[0])
       }
 
       //this.doSaveSchedule()  //bon toReview if shouldnt save immediately but give choice to user to add some more!!
@@ -2134,20 +2143,19 @@ computed: {
       console.log("onPickEvent...ERROR nill", this.toAddE)
       return 
     }
-    console.log(`I be picking ${this.toAddE.id} :: ${this.toAddE.title}`)
+    //console.log(`I be picking`,JSON.parse(JSON.stringify(this.toAddE))) //${this.toAddE.id} :: ${this.toAddE.title}
 
     let addy = this.getScheduledEvent(this.toAddE.id)
     //let isNew = false //to skip ask for moving evt around
-    if (!addy){ //>>redundant as filters for unscheduled evts anyway...
+
+    if (!addy){
       //console.log("onPickEvent...NEW", addy, this.toAddE)
       addy = this.toAddE
       
-      console.log(`onPickEvent...adding ${addy.id} from ${addy.time} to `,this.targetDrop.timestamp.time, this.skipAsk)
+      console.log(`onPickEvent...adding ${addy.id}:${addy.title.trim()} from ${addy.time} to`,this.targetDrop.timestamp.time, this.skipAsk)
 
-      let samey = this.addEvtPropsIntoSchedule(this.currentDate,addy) // add it with default and then continue..
-
-      //let anyOverlap = this.overlapOtherEvent(addy.id, this.targetDrop.timestamp, addy.duration)
-      //above kinda redundant as already added via addEvtPropsIntoSchedule() but as default so prolly ok..
+      //let samey = this.addPropsEventsTo(this.currentDate,[addy]) // add it with default and then continue....no need as added later
+      //console.log(`onPickEvent...after PropsEventsTo`,JSON.parse(JSON.stringify(samey)))
 
       //let oOtherO 
       let anyOverlap = this.hasOverlappingEvent(addy.id, this.targetDrop.timestamp, addy.duration)
@@ -2159,15 +2167,15 @@ computed: {
         //could be better to leave as is in order to handle recursive overlaps...prolly...toTest both and see**
         let i = 0
         do {
-            this.recurChangeTime(anyOverlap[i].inConflict,addy, this.targetDrop.timestamp, anyOverlap[i].direction=='haut', this.skipAsk) //anyOverlap[i] false
+            this.recurChangeTime(anyOverlap[i].inConflict,addy, this.targetDrop.timestamp, anyOverlap[i].direction=='haut', this.skipAsk, true) //watch out for doAdd flag....
         } while (++i < sizey)
 
         //return ?!? >>meh to set buttons below...toSee
-      }else {
+      } else {
 
-        console.log("onPickEvent NO overlaps...changing to targetDrop!", samey, this.skipAsk)
+        console.log("onPickEvent NO overlaps...changing to targetDrop!", this.skipAsk) //samey,
 
-        this.changeEvtTime(addy.id, this.targetDrop.timestamp, this.skipAsk)
+        this.changeEvtTime(addy.id, this.targetDrop.timestamp, this.skipAsk, true)//watch out for last flag....
       }
     } else {
       console.log("onPickEvent...NOT NEW?!?ERROR!", addy, this.toAddE) //shouldnt get here!!--ToSEE**
@@ -2296,15 +2304,14 @@ computed: {
         //this.scheduledEvents = []
         //this.updateCurrentSchedule()
         
-        //oldie>> this.loadDefaultEvts()
         this.scheduleDefaults()
       }
 
       if (this.scheduledEvents.length > 0){
           this.confirmAction("Overwrite current Evts?",doOk, doCancel)
       }else{
-          //this.loadDefaultEvts()
-          this.scheduleDefaults()
+          //this.scheduleDefaults()
+          doOk()
       }
 
   },
@@ -2368,17 +2375,12 @@ computed: {
           // filter out events that are already scheduled..not too expensive?
           toRet =  toRet.filter(x => !this.scheduledEvents.find(item => item.id == x.id))
 
-          console.log(`findSamePrio...ADDIN from ${this.scheduledEvents.length}`, toRet) //,this.scheduledEvents.length
+          console.log(`findSamePrio...ADDIN from ${this.scheduledEvents.length}`, toRet)
         }
       } else {
         toRet = filterCurrent()
         console.log('findSamePrio..filtering!!',this.chosenPrio,toRet)
       }
-
-      //this.scheduledEvents = this.addPropsEventsTo(this.currentDate,toRet)
-      //let samey = this.updateCurrentSchedule()
-
-      //let toSche = this.addPropsEventsTo(this.currentDate, toRet)
 
       if (this.isViewingToday()){
         let overlaps = this.overlapCheckEvtsAdd(toRet)
@@ -2495,8 +2497,6 @@ computed: {
           // filter out events that are already scheduled..not too expensive?
           e =  e.filter(x => !this.scheduledEvents.find(item => item.id == x.id))
 
-          
-          //console.log(`reloadEvtsWithScore...ADDIN from ${this.scheduledEvents.length}`, e) //,this.scheduledEvents.length
         }
       } else {
       //  console.log('filtering by score:',this.chosenScore, flag)

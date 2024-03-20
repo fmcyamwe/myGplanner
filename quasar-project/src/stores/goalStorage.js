@@ -516,7 +516,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         removeMaingoal,
         getEventsForDate,
         hasEventsForDate,
-        fetchAllTaskSummary,  //testTasks,
+        fetchAllTaskSummary,
         fetchGoalsWithMinScore,
         fetchAllPrio,
         fetchDefaults
