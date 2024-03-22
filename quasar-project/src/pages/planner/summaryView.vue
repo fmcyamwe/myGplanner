@@ -96,7 +96,7 @@
       </div>
     </div>
     <br>
-    <div class="column justify-center items-center" v-if="tasks.length <= 0">
+    <div v-if="tasks.length <= 0" class="column justify-center items-center">
       <q-card>
         1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
       </q-card>
@@ -116,6 +116,22 @@
       <q-card>
         5. Check out the summary of all goals here!
       </q-card>
+    </div>
+  
+    <div v-else class="q-pa-xl bg-grey-9 text-white" style="max-width: 350px">
+      <q-tree
+        :nodes="treeGoals"
+        node-key="label"
+        v-model:expanded="expanded"
+        dark
+      />
+        <!--<template v-slot:default-header="prop">
+          <div class="row items-center">
+            <q-icon :name="prop.node.icon || 'share'" color="orange" size="28px" class="q-mr-sm" />
+            <div class="q-mr-sm text-weight-bold text-primary" size="28px" :color="prop.node.color">{{ prop.node.label }}</div>
+          </div>
+        </template>
+      </q-tree>-->
     </div>
   </div>
 </template>
@@ -156,7 +172,9 @@
         footerTasks: [
           { title: 'TOTALS' }
         ],
-        $q : useQuasar() //umm $?
+        $q : useQuasar(), //umm $?
+        treeGoals:[],
+        expanded:[] //to hold expanding parentGoals...
       }
     },
     computed: {
@@ -228,6 +246,8 @@
           task.children.forEach(child => { updateTask(child) })
         }
       })
+      
+      this.constructTree()
     },
     methods: {
       getLogged (date, logged, extra = null) {  //extra for scope.task.title..just for logging below but prolly redundant!
@@ -265,6 +285,12 @@
   
         //console.log("getLoggedSummary",date, total, num) 
         return total.toFixed(2)
+      },
+
+      constructTree(){
+      //let tree =  
+      this.treeGoals = this.store.fetchGoalsTree()
+      console.log("constructTree", this.treeGoals)
       },
   
       /**

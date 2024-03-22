@@ -19,3 +19,25 @@ export function applyStyles (event, type, timeStartPos = undefined, timeDuration
     s[ 'align-items' ] = 'flex-start'
     return s
   }
+
+export function pGColors() {
+  return ['blue-grey',
+  'grey',
+  'brown',
+  'deep-orange',
+  'orange',
+  'amber',
+  //'yellow', //just ugly...see if could use suffix (7 to 10) for better look?
+  'lime',
+  'light-green',
+  'green',
+  'teal',
+  'cyan',
+  'light-blue',
+  'blue',
+  'indigo',
+  'deep-purple',
+  'purple',
+  'pink',
+  'red']
+}

@@ -52,6 +52,7 @@
 </template>
 
 <script>
+//import { defineComponent } from 'vue' --see about using this...
   export default {  //this be Options Vue notation
     name: 'adHocEvent',
     props: {

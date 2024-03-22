@@ -110,6 +110,15 @@
                no-caps
             />
           </div>
+
+          <div class="q-pa-xl bg-grey-9 text-white" style="max-width: 350px">
+            <q-tree
+              :nodes="treeGoals"
+              node-key="label"
+              v-model:expanded="expanded"
+              dark
+            />
+          </div>
     </q-page>
 </template>
 <script>
@@ -130,7 +139,7 @@ import { useGoalStore } from 'stores/goalStorage'
 //import { useQuasar } from 'quasar'
 //import { isMobile } from '../util/isMobile'
 
-const CURRENT_DAY = new Date()
+/*const CURRENT_DAY = new Date()
 function getCurrentDay (day) {
   const newDay = new Date(CURRENT_DAY)
   newDay.setDate(day)
@@ -138,6 +147,7 @@ function getCurrentDay (day) {
   const tm = parseDate(newDay)
   return tm.date
 }
+*/
 
 export default defineComponent({
   name: 'weekCalendar',
@@ -146,18 +156,21 @@ export default defineComponent({
     QCalendar
   },
   data () {
-    const draggedItem = ref(null)
-    const targetDrop = ref(null)
+    //const draggedItem = ref(null)
+    //const targetDrop = ref(null)
     return {
       store:useGoalStore(),
       calendar: ref(null),
       currentDate: ref(today()),
       events: [], //should rename this...
-      mostEvts:5 //huh just to set the interval-height for proper spacing..default or things are squished badly when empty
+      mostEvts:5, //huh just to set the interval-height for proper spacing..default or things are squished badly when empty
+      treeGoals:ref([]), //umm ref does anything?!?
+      expanded:ref([]) //to hold expanding parentGoals...
     }
   },
   beforeMount() {
     this.loadEvts()
+    this.constructTree()
   },
   mounted() {
     console.log(`mounted`)
@@ -231,7 +244,7 @@ export default defineComponent({
         //let e = this.store.fetchAllTaskSummary() 
         //should prolly have a diff method for just allEvents instead of doing it all here!!--TODO**
 
-        console.log("returnNewEvts:", pMap,mGoals,allEvts)
+        //console.log("loadEvts:", pMap,mGoals,allEvts)
       
         if (mGoals && pMap) {
             if (allEvts) {
@@ -277,6 +290,12 @@ export default defineComponent({
           icon: 'fas fa-handshake'
         },*/
     },
+    constructTree(){
+      //let tree =  
+      this.treeGoals = this.store.fetchGoalsTree()
+      console.log("constructTree", this.treeGoals)
+
+    },
     getEvents (dt) {
       // get all events for the specified date
       const events = this.eventsMap[ dt ] || []
@@ -311,24 +330,9 @@ export default defineComponent({
     },
     badgeClasses (event, type) {
         return applyClasses(event, type)
-      /*const isHeader = type === 'header'
-      return {
-        [ `text-white bg-${ event.bgcolor }` ]: true,
-        'full-width': !isHeader && (!event.side || event.side === 'full'),
-        'left-side': !isHeader && event.side === 'left',
-        'right-side': !isHeader && event.side === 'right',
-        'rounded-border': true
-      }*/
     },
     badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
         return applyStyles(event, type, timeStartPos, timeDurationHeight)
-        /*const s = {} 
-      if (timeStartPos && timeDurationHeight) {
-        s.top = timeStartPos(event.time) + 'px'
-        s.height = timeDurationHeight(event.duration) + 'px'
-      }
-      s[ 'align-items' ] = 'flex-start'
-      return s*/
     },
     scrollToEvent (event) {
     this.$refs.calendar.scrollToTime(event.time, 350)

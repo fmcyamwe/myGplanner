@@ -279,28 +279,6 @@ export const useGoalStore = defineStore('allGoals', () => {
         if(!savedDates){return false} //[false, false]
         if (savedDates[`${aDate}`]){return true}
         return false //[false, false]
-
-        /*
-        if (savedDates[`${aDate}`]){
-            let hasSome= this.getEventsForDate(aDate)
-            console.log(`hasEventsForDate hasSome for ${aDate}`, hasSome) //(typeof hasSome)  hasSome[6]
-            return [true, hasSome != null] //.size > 0 but it's an object now...Or should just grab em? 
-        } else {console.log(`hasEventsForDate No hasSome ${aDate}`, savedDates[`${aDate}`])}
-
-        /*for( var i = 0; i < savedDates.length; i++){ //oldie
-            if ( savedDates[i] == `${aDate}`) {
-                let hasSome= this.getEventsForDate(aDate)
-                console.log(`hasEventsForDate hasSome for ${aDate}`, hasSome) //(typeof hasSome)  hasSome[6]
-                return [true, hasSome != null] //.size > 0 but it's an object now...Or should just grab em? 
-            } else {console.log(`hasEventsForDate No hasSome ${aDate}`, savedDates[i])}
-        }*/
-        /*
-        let hasSome= this.getEventsForDate(aDate) //just double check just to make sure? toReview if needed esti as have to check null too much
-        if(!hasSome){return [false, false]}
-
-        return [false, hasSome] //.size > 0  ..should just return true, true?//so not in AllDates but *could* be saved as normal?
-        */
-
     }
 
     function fetchDefaults(){
@@ -402,6 +380,71 @@ export const useGoalStore = defineStore('allGoals', () => {
         //}
         return parseFloat(fixed)  //the annoying string had to be parsed back into a number!!! 
     }
+    
+    //local method to get all subgoals by parentID--weird that it borks at this.getSubGoals..?!?
+    //doesnt run even after removing the local var for getSubGoals....huh?!?
+    function getSubGoalsByParent(id) {
+        //let subs = this.getSubGoals
+        console.log(`getSubGoalsByParent`, this.getSubGoals)
+        let map = []
+        //let allSubGoals = this.getSubGoals
+        if(!this.getSubGoals) { //allSubGoals
+            //console.log("No subgoals")
+            return map
+        }
+        //map = subs.filter(x => x.parentGoal == parentID)
+
+        this.getSubGoals.forEach(event => {
+            if (event.parentGoal == id) {
+                map.push(event)
+            }
+        })
+        return map  
+    }
+
+    function fetchGoalsTree(){
+        let mains = this.getMainGoals
+        let subs =  this.getSubGoals
+
+        let findSubGoals = parentID => {
+            let map = []
+            //let allSubGoals = this.getSubGoals
+            if(!subs) { //allSubGoals
+                //console.log("No subgoals")
+                return map
+            }
+            //map = subs.filter(x => x.parentGoal == parentID)
+
+            subs.forEach(event => {
+                if (event.parentGoal == parentID) {
+                    map.push(event)
+                }
+            })
+            return map  
+        }
+
+        let tree = []
+
+        mains.forEach(goal => {
+            let toAdd = {//add something else?!?--details?!?
+                label: `${goal.id}--${goal?.title.trim()}`, 
+                color:`${goal?.bgcolor}`,
+                prio: goal?.priority,
+                children:[]
+            }
+
+            let subG = findSubGoals(goal.id) //really dont wanna work >> getSubGoalsByParent(goal.id)
+            for (let i = 0; i < subG.length; i++) { 
+                toAdd.children.push({
+                    label: `${subG[i].id}--${subG[i]?.title.trim()}`, 
+                })
+            }
+
+            tree.push(toAdd)
+        })
+
+        return tree
+    }
 
     function fetchAllTaskSummary(){
         let savedDates = this.getAllDates
@@ -428,7 +471,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
         //console.log(`DaDs`, daDs)
 
-        let findSubGoals = parentID => {
+        
+        let findSubGoals = parentID => { //see about moving this outside...toDO***
             let map = []
             //let allSubGoals = this.getSubGoals
             if(!subs) { //allSubGoals
@@ -473,11 +517,12 @@ export const useGoalStore = defineStore('allGoals', () => {
 
             return aTask
         }
+
         let tasks = []
         
         mains.forEach(goal => {
             let toAdd = updateGoal(goal)
-            let subG = findSubGoals(goal.id)
+            let subG = findSubGoals(goal.id) //getSubGoalsByParent(goal.id)
 
             for (let i = 0; i < subG.length; i++) { //if(toAdd.children.length > 0) {
                 let uSub = updateGoal(subG[i], goal.id)
@@ -502,6 +547,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         getHeaders, 
         getMainGoals,
         getSubGoals,
+        //getSubGoalsByParent,
         getAllDates,
         addMainGoal,
         addSubGoal,
@@ -519,6 +565,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         fetchAllTaskSummary,
         fetchGoalsWithMinScore,
         fetchAllPrio,
-        fetchDefaults
+        fetchDefaults,
+        fetchGoalsTree
     }
 })

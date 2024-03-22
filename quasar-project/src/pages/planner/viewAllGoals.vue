@@ -164,7 +164,7 @@
             clickable>
             <!--<template v-slot:header></template> -->
         
-             <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a card works?>>huh not without adding >>:key="event.id" -->
+             <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
                 <!--<q-card-section>
                     {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}   class="q-my-sm"  color="red"
                 </q-card-section> -->
@@ -185,7 +185,7 @@
              </q-card>
 
              <q-card v-if="!hasSubG(goal.id)">
-                <q-btn label="Delete?" type="reset" color="primary" flat class="q-ml-sm"  @click.prevent="(e) => onClickDelete(e, goal.id)" />
+                <q-btn label="Delete goal?" type="reset" color="primary" noWrap push align="evenly" class="q-ml-sm"  @click.prevent="(e) => onParentDelete(goal.id,goal.title)" />
              </q-card>
             </q-expansion-item>
      </transition-group>
@@ -228,6 +228,7 @@
 import { computed, ref, onMounted, onBeforeUnmount, watchEffect } from 'vue'  //nextTick
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
+import { pGColors } from '../util/utiFunc'
 //import { storeToRefs } from 'pinia' 
 
 export default {
@@ -240,25 +241,7 @@ export default {
         const goalTitle = ref('')
         const details = ref('')
         const bgcolor = ref('')
-        const avColors = ref(['blue-grey',
-'grey',
-'brown',
-'deep-orange',
-'orange',
-'amber',
-//'yellow', //just ugly...see if could use suffix (7 to 10) for better look?
-'lime',
-'light-green',
-'green',
-'teal',
-'cyan',
-'light-blue',
-'blue',
-'indigo',
-'deep-purple',
-'purple',
-'pink',
-'red']) //toRedo properly --TODO**
+        const avColors = ref(pGColors())
         const time = ref('')
         const priority = ref(3)
         const duration = ref(30) //min of 30
@@ -299,6 +282,7 @@ export default {
             return euh.length > 0
         }) //getSubGoals(id) false : true */
 
+        /*
         const allGoals = computed(() => {  //what is the point of this again? toRemove**
             let map = new Map()
             if(!mainGoals.value){//try to use store.getMainGoals to see if updates on delete! >>nope
@@ -319,7 +303,7 @@ export default {
             })
             console.log("allGoals be",map.entries()) //JSON.stringify(allGoals,null,1)
             return map
-        })
+        })*/
 
         watchEffect(() => {
             // tracks A0 and A1
@@ -363,6 +347,7 @@ export default {
                 console.log(JSON.stringify(subGoals.value,null,1)) //store.getSubGoals
             }
         }
+
         function doReset () {
             if (goalType.value ==='main') {
                 store.resetMain() //shoulg confirm AND also remove the subgoals!!
@@ -373,6 +358,7 @@ export default {
                 store.resetAll()
             }
         }
+
         function onSubmit() {
             //console.log("onSubmit Goal of type:",goalType.value, buttonLabel.value)
             let action = buttonLabel.value === "Save" ? 'Save' : 'Add'
@@ -412,6 +398,7 @@ export default {
             hardReset() //reset variables
             //reload() //no need here even and have to interact with page to see list change smh
         }
+
         function editSuGoal(){
             if(updatingSubG){
                 store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value) 
@@ -431,9 +418,11 @@ export default {
             let euh = this.getSubGoals(parentID)
             return euh.length > 0
         }
+
         function getMainGoals(){ //for testing updates but doesnt either smh
             return mainGoals.value //store.getMainGoals
         }
+
         function getSubGoals(parentID){
             const map = []
             if(!subGoals.value) {
@@ -447,11 +436,13 @@ export default {
             })
             return map  
         }
+
         function finalize(reset) {
             timer = setTimeout(() => {
                 reset()
             }, 0)
         }
+
         function onRightDelete({reset},id, pID) {
             //console.log("onRightDelete", e, id) 
 
@@ -471,6 +462,7 @@ export default {
     
             //e.reset() //just reset how things looked--not helpful
         }
+
         function onLeftEdit ({reset},subId, pID) {
 
             console.log(`Editing subgoal ${subId} and ${pID}...`)
@@ -509,13 +501,32 @@ export default {
             finalize(reset) //umm use this or below? prolly both really
             expanded.value[pID] = true
         }
-        function onClickDelete(e, id){
-            console.log(`onClickDelete ${id}`, e )
 
-            store.removeMaingoal(id, false)
-            //then what?
-            //this.$emit('update:model-value', !this.modelValue)
+        //function getParent(id){ //kinda redundant...
+        //    return mainGoals.value.filter(element => element.id == id)
+        //}
+        
+        function onParentDelete(id,title){ //annoyance that need to reload page to see change
+            //let pG = getParent(id)
+            console.log(`onParentDelete ${id}`, title)
+
+            $q.dialog({
+                title: 'Warning',
+                cancel: true,
+                message: `Delete Parent Goal "${title}" ?`  //also check & remove past scheduled evts?!? tbd*** 
+                }).onOk(() => {
+                    store.removeMaingoal(id, false)
+                }).onCancel(() => {
+                    console.log('Cancelled!!')
+                    expanded.value[id] = false
+                })//.onDismiss(() => {
+                  //  console.log('dismiss!!') //toUse*** for cleanup maybe?!?
+                  //  reload()
+                //})            
+                //return //?
+            //store.removeMaingoal(id, false)
         }
+        
         function refresh(done) {  //test to drag for refresh--toREview***
             setTimeout(() => {
                 reload()
@@ -532,6 +543,7 @@ export default {
             //window.location.reload() //so inelegant
 
             console.log("reloadin...", subGoals.value,mainGoals.value)
+            
         }
 
         function softReset(){ //for when changing goalType..keep stuff
@@ -573,12 +585,12 @@ export default {
             daRefs:hRefs,
             expanded, //see if can trigger close >>does!
             buttonLabel,
-            allGoals,
+           // allGoals,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,
             hasSubG,
             doPrint,
             onSubmit,doReset,getSubGoals,
-            onRightDelete,onLeftEdit,softReset,onClickDelete,refresh,
+            onRightDelete,onLeftEdit,softReset,onParentDelete,refresh,
             getMainGoals
         }
     }
