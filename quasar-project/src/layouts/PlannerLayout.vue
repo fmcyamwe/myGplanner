@@ -56,7 +56,7 @@
           v-bind="link"
         />
       </q-list>
-    </q-drawer> -->
+    </q-drawer>  style="background-color:black"-->
 
     <q-page-container>
       <router-view />

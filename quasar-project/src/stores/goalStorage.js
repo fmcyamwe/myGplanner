@@ -427,16 +427,19 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         mains.forEach(goal => {
             let toAdd = {//add something else?!?--details?!?
-                label: `${goal.id}--${goal?.title.trim()}`, 
+                label: `${goal.id}- ${goal?.title.trim()}(${goal?.priority})`, 
                 color:`${goal?.bgcolor}`,
-                prio: goal?.priority,
+                prio: goal?.priority, //for now in label...
                 children:[]
             }
 
             let subG = findSubGoals(goal.id) //really dont wanna work >> getSubGoalsByParent(goal.id)
-            for (let i = 0; i < subG.length; i++) { 
+            for (let i = 0; i < subG.length; i++) {
+                let def = subG[i].inDefaults ? 'D' : '#'
+                let cM = subG[i].canMove ? 'M' : '#'
                 toAdd.children.push({
-                    label: `${subG[i].id}--${subG[i]?.title.trim()}`, 
+                    label: `${subG[i].id}-- ${subG[i]?.title.trim()}(${subG[i]?.score}) at ${subG[i]?.time}..${subG[i]?.duration} ::${def}${cM}`, 
+                    //should add canMove and inDefault....prolly
                 })
             }
 
