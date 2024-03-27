@@ -240,42 +240,36 @@ export default defineComponent({
         let pMap = this.parentGoalsMap
         let mGoals = this.storedGoalsMap
         let allEvts = this.allEvents
-
-        //let e = this.store.fetchAllTaskSummary() 
-        //should prolly have a diff method for just allEvents instead of doing it all here!!--TODO**
-
-        //console.log("loadEvts:", pMap,mGoals,allEvts)
       
         if (mGoals && pMap) {
-            if (allEvts) {
-                for (let dateKey in allEvts) {
-                    //console.log("allEvents:", dateKey, allEvts[dateKey])
-                    let dEvts = allEvts[dateKey]
-                    for (let evtId in dEvts) {
-                      let e = mGoals.get(parseInt(evtId))
-                      //console.log("eeee",evtId,e,parseInt(evtId))
-                      if(e){
-                        let prt = pMap.get(e.parentGoal)
-                        //console.log("eeee",prt)
-                        let eS = addToDate(parsed(dateKey), { minute: parseTime(dEvts[evtId].time)})
-                        let eE = addToDate(eS, { minute: parseInt(dEvts[evtId].duration)}) 
-                        this.events.push({
-                          id: e.id,
-                          title: e.title,
-                          details: `${eS.time} - ${eE.time}`, // or should add them as prop? tbd //oldie >> "from:"+ prt.title, 
-                          time: dEvts[evtId].time,//'10:00',
-                          duration: dEvts[evtId].duration, //120,
-                          date: dateKey,//getCurrentDay(1),
-                          bgcolor:prt.bgcolor //'orange'
-                        })
-                      } else{console.log(`ERROR: ${evtId} no exist!! on`,dateKey)}  
-                      // when deleted >> toHANDLE***
-                    }
-                }
+          if (allEvts) {
+            for (let dateKey in allEvts) {
+              //console.log("allEvents:", dateKey, allEvts[dateKey])
+              let dEvts = allEvts[dateKey]
+              for (let evtId in dEvts) {
+                let e = mGoals.get(parseInt(evtId))
+                //console.log("eeee",evtId,e,parseInt(evtId))
+                if(e){
+                  let prt = pMap.get(e.parentGoal)
+                  //console.log("eeee",prt)
+                  let eS = addToDate(parsed(dateKey), { minute: parseTime(dEvts[evtId].time)})
+                  let eE = addToDate(eS, { minute: parseInt(dEvts[evtId].duration)})
+                  this.events.push({
+                    id: e.id,
+                    title: e.title,
+                    details: `${eS.time} - ${eE.time}`, //oldie >> "from:"+ prt.title, 
+                    time: dEvts[evtId].time,//'10:00',
+                    duration: dEvts[evtId].duration, //120,
+                    date: dateKey,//getCurrentDay(1),
+                    bgcolor:prt.bgcolor //'orange'
+                  })
+                } //else{console.log(`ERROR: ${evtId} no exist!! on`,dateKey)}// when deleted >> toHANDLE***
+              }
             }
+          }
         } else {
-            console.log("ERROR--no parent or goals!!REVIEW**")
-            return
+          console.log("ERROR--no parent or goals!!REVIEW**")
+          return
         }
 
         /*   
@@ -293,8 +287,7 @@ export default defineComponent({
     constructTree(){
       //let tree =  
       this.treeGoals = this.store.fetchGoalsTree()
-      console.log("constructTree", this.treeGoals)
-
+      //console.log("constructTree", this.treeGoals)
     },
     getEvents (dt) {
       // get all events for the specified date

@@ -1,8 +1,8 @@
 <template>
-    <div class="q-calendar__ellipsis">
-        <div class="text-h6">adHocEvent</div>
+        <div class="text-h3">Ad hoc Event</div>
         <q-space />
-        <div class="q-ml-md q-gutter-md">
+        <q-separator />
+        <div class="q-ml-md">
             <q-input
                 v-model="evName"
                 filled
@@ -12,20 +12,21 @@
                 :rules="[ val => val && val.length > 0 || 'Please type a goal']"
             />
             <div class="radio-select">
-                <q-radio v-model="own" val="misc" label="Misc" />
-                <q-space />
-                <q-radio v-model="own" val="self" label="Self" />
+                <q-radio class="q-mx-md" v-model="own" val="misc" label="Misc" />
+                <q-radio class="q-mx-md" v-model="own" val="self" label="By Self" />
             </div>
             <div v-if="pGoals" ><!--style="width: 100%;"-->
-                <q-select class="q-ml-md"
+                <q-select class="q-mx-md"
                 v-model="daP" 
                 :options="pGoals"
                 option-value="id"
                 option-label="title"
                 :disable="own!='misc'"
-                label="Parent Goal" />
+                label="Select Parent Goal" />
             </div>
+        
             <div>
+                Duration
                 <q-knob
                 :min="15"
                 :max="120"
@@ -47,8 +48,7 @@
             label="Add" 
             color="primary" 
             @click="onClicked"/> 
-        </div>  
-    </div>
+        </div> 
 </template>
 
 <script>
@@ -85,16 +85,19 @@
     methods: {
       onClicked () {
         //console.log('huh trying to add event', this.aTitle, this.daP)
-        this.$emit('saveEvent', this.aTitle, this.daP, this.own,this.duration)  //no need to reset vars??!? toTEST**
+        this.$emit('saveEvent', this.aTitle, this.daP, this.own,this.duration)
+
+        //reset--toTest**
+        this.own = 'own'
+        this.P = null
+        this.duration = 15
       }
     }
 }
 </script>
 <style lang="sass" scoped>
 .radio-select
-  display: flex
-  justify-content: center
-  margin:0 auto
+  margin: 0 auto
+  padding: 20px
   width: 100%
-  padding-inline:30px
 </style>

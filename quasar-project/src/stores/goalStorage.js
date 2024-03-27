@@ -86,7 +86,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let newID = current.length + 1
 
         while (current.some(item => item.id === newID)) {
-            newID = Math.floor(Math.random() * 1000) //`${Math.floor(Math.random() * 1000)}`;
+            newID = Math.floor(Math.random() * 1000)
             //console.log("an item had the same id...using random", newID)
         }
         current.unshift({
@@ -127,7 +127,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let newID = current.length + 1
 
         while (current.some(item => item.id === newID)) {
-            newID = Math.floor(Math.random() * 1000) //`${Math.floor(Math.random() * 1000)}`;
+            newID = Math.floor(Math.random() * 1000)
             //console.log("an subgoal item had the same id...using random", newID)
         }
 
@@ -367,7 +367,7 @@ export const useGoalStore = defineStore('allGoals', () => {
     }
 
     function getRandomIndex(sizey){
-        return Math.floor(Math.random() * sizey) //array.length
+        return Math.floor(Math.random() * sizey)
     }
 
     function returnDuration(logged){
@@ -427,7 +427,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         mains.forEach(goal => {
             let toAdd = {//add something else?!?--details?!?
-                label: `${goal.id}- ${goal?.title.trim()}(${goal?.priority})`, 
+                label: `${goal.id} - ${goal?.title.trim()} (${goal?.priority})`, 
                 color:`${goal?.bgcolor}`,
                 prio: goal?.priority, //for now in label...
                 children:[]
@@ -438,8 +438,8 @@ export const useGoalStore = defineStore('allGoals', () => {
                 let def = subG[i].inDefaults ? 'D' : '#'
                 let cM = subG[i].canMove ? 'M' : '#'
                 toAdd.children.push({
-                    label: `${subG[i].id}-- ${subG[i]?.title.trim()}(${subG[i]?.score}) at ${subG[i]?.time}..${subG[i]?.duration} ::${def}${cM}`, 
-                    //should add canMove and inDefault....prolly
+                    label: `${subG[i].id} -- ${subG[i]?.title.trim()} (${subG[i]?.score}) at ${subG[i]?.time}..${subG[i]?.duration} :: ${def}${cM}`, //canMove and inDefault at end
+                    color:`${goal?.bgcolor}`, //toSee look...
                 })
             }
 

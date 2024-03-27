@@ -27,59 +27,35 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { defineComponent } from 'vue'   //needed to have the intelliSense?!?
 
-export default defineComponent({
-  name: 'aSubGoal',
+export default defineComponent ({  //this be Options Vue notation
+  name: 'schedDropBtn',
   props: {
-    parentGoal: {
-      type: Number,
-      default: 0, //doesnt need to have a parentGoal as could be upgraded to mainGoal maybe?)
+    optionLabel: String,//huh does stay reactive!
+    disableBtn: Boolean, //same as above :)
+    daOptions: Array //[Array, Object] accepting two possible values is problematic!
+  },
+  emits: [
+    'doReload',
+    'chooseOption'
+  ],
+  methods: {
+    onClicked () { //this needed or can just invoke 'doBtnAction'? >>seems needed!
+      this.$emit('doReload')
     },
-    id: {
-      type: Number,
-      required: true
-    },
-    title: {
-      type: String,
-      required: true,
-      default: '',
-      validator: (value) => {
-        return value != ''
-      }
-    },
-    score: {
-      type: String,
-      required: true,
-      default: '1on3', //toReview as will need parsing
-      //validator: (value) => {
-      //  return value != ''  //should be an reg. expression of format: #on#
-      //}
-    },
-    duration: {
-      type: Number,
-      default: 15 //default duration(minutes)
-    },
-    time: {  // default time to be scheduled 
-      type: String,
-      required: true,
-      default: '13:00',  //prolly shouldnt set default?
-    },
-    canMove: { //if can be moved around once scheduled or other stuff have to move
-      type: Boolean, //beware of casting behavior**
-      default: 'true'
+    onSelect(v) {
+      //console.log('huh schedDropBtn',v)
+      this.$emit('chooseOption',v)
     }
   }
 })
-/*
-{ 
-    parentGoal: 1,
-    id:3,
-    title: 'Learn Violin',
-    score: '3on5',
-    duration: 30, //default duration
-    time: '', // default time to be scheduled
-    canMove: true, //if can be moved around once scheduled or other stuff have to move
-},
-*/
 </script>
+<style lang="sass" scoped>
+.radio-select
+  display: flex
+  justify-content: center
+  margin:0 auto
+  width: 100%
+  padding-inline:30px
+</style>

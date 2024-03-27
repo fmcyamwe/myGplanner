@@ -48,26 +48,26 @@
 
 <script>
 import { defineComponent } from 'vue'   //needed to have the intelliSense?!?
-  export default defineComponent ({  //this be Options Vue notation
-    name: 'schedDropBtn',
-    props: {
-        optionLabel: String,//huh does stay reactive!
-        disableBtn: Boolean, //same as above :)
-        daOptions: Array //[Array, Object] accepting two possible values is problematic!
+export default defineComponent ({  //this be Options Vue notation
+  name: 'schedDropBtn',
+  props: {
+      optionLabel: String,//huh does stay reactive!
+      disableBtn: Boolean, //same as above :)
+      daOptions: Array //[Array, Object] accepting two possible values is problematic!
+  },
+  emits: [
+    'doReload',
+    'chooseOption'
+  ],
+  methods: {
+    onClicked () { //this needed or can just invoke 'doBtnAction'? >>seems needed!
+      this.$emit('doReload')
     },
-    emits: [
-      'doReload',
-      'chooseOption'
-    ],
-    methods: {
-      onClicked () { //this needed or can just invoke 'doBtnAction'? >>seems needed!
-        this.$emit('doReload')
-      },
-      onSelect(v) {
-        //console.log('huh schedDropBtn',v)
-        this.$emit('chooseOption',v)
-      }
+    onSelect(v) {
+      //console.log('huh schedDropBtn',v)
+      this.$emit('chooseOption',v)
     }
+  }
 })
 </script>
 <style lang="sass" scoped>

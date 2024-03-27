@@ -52,7 +52,7 @@ const routes = [
       },
       {
         path: 'viewGoals', 
-        component: () => import('pages/planner/viewAllGoals.vue')
+        component: () => import('pages/planner/goalForm.vue')
       }
       /*{
         path: 'eventSummary',

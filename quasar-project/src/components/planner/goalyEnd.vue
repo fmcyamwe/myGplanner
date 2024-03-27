@@ -4,7 +4,7 @@
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
         <div style="max-width: 25px; min-width: 25px;"></div> $emit('endNow', id)
       -->
-      {{ title +':'+ score}}
+      {{ title }} <!--+':'+ score}} -->
       <q-tooltip>{{ details }}</q-tooltip>
 
         <q-btn
@@ -25,9 +25,15 @@
            <!--disabledScoreEvts[event.id] for disable && onSaveScore(e,id). 
           rmv this to see >> @save="(e)=>$emit('saveScore', e, id)" 
           autofocus 
+          
+          v-model="aScore"
+          :validate="scoreValidation" 
+          @hide="scoreValidation">>TOADD if adding validate function
+          
+          auto-save >>needed to save when user clicks outside...mais bon.. better to have them click green btn for obviousness?!?tbd
         -->
        
-          <q-input v-model="scope.value" dense @keyup.enter="scope.set">
+          <q-input v-model="scope.value" dense @keyup.enter="scope.set" hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
             <template #after>
               <q-btn
               flat dense color="positive" icon="check_circle"
@@ -64,15 +70,34 @@ import { defineComponent,ref } from 'vue'
       disabledScore: Boolean,
       title: String, //g.Title
       id: Number, //
-      startTime: String, //redundant--toRemove
-      //endNow: Boolean, //button to end now
-      details: String, //?!? not needed prolly--toRemove
+      startTime: String, //prolly redundant
+      details: String, 
       score: String, //score to update
       happeningNow: Boolean, //to show the endNow button
+    },
+    data(){
+      const errorMessageScore = ref('')
+      const errorScore = ref(false)
+      return {
+        errorMessageScore,
+        errorScore,
+        /*bof dont work!
+        scoreValidation(val){ //8on9
+          //console.log(`scoreValidation got`,val, id) //this.id
+          if (val.length < 4 ) {  //|| !(val.includes("on"))  //also should check that second var is higher than first mais bon....toSee**
+            errorScore.value = true
+            errorMessageScore.value = 'Must format as: #on#'
+            return false
+          }
+          errorScore.value = false
+          errorMessageScore.value = ''
+          //console.log(`aScore getting set`,val, this.id) 
+          //this.$emit('saveScore', val, this.id) //check if auto-save does update it..
 
-      //workDate: String,
-      //amount: String,
-      //daysOver: Number
+          return true 
+          //return this.aScoreValidation(val)
+        },*/
+      }
     },
     emits: [
       //'update:model-value', //redundant since not writing back to parent?--or should have this still for binding via v-model? >>no need
@@ -85,13 +110,39 @@ import { defineComponent,ref } from 'vue'
         get(){return this.score},
         set(value){
           console.log(`aScore getting set`,value, this.id) 
-          this.$emit('saveScore', value, this.id) //check if auto-save does update it...
+          //this.$emit('saveScore', value, this.id) //auto-save does update it? >>does!
+          //let e = this.aScoreValidation >>dont work..some side-effect error..cause it's in computed section...
+          //def roundabout way to validate instead of using :validate smh..toReview **
+          let e = this.aScorey(value)
+          //console.log(`valid?`,e)
+          if (e){
+            this.$emit('saveScore', value, this.id)
+          }
+         
         },
-        cancel(){ //doesnt do anything...toRemove
+        cancel(){ //doesnt do anything...prolly cause of auto-save?--would prolly trigger when it's absent? //for when user clicks outside popup.--toSee if needed and use @cancel="" 
           console.log(`aScore remove?`, this.id) 
         }
       },
-      /*overdueIconStyle () {
+      //alert( "Widget".includes("id") ); // true
+      //alert( "Widget".includes("id", 3) ); // false, from position 3 there is no "id"
+       /*neither the below smh
+       aScoreValidation(val){ //8on9
+        console.log(`scoreValidation got`,val, this.id)
+        if (val.length < 4 ) {  //|| !(val.includes("on"))
+          errorScore = true
+          errorMessageScore = `Error: ${val} Unsaved.Must format as: #on#`
+          return false
+        }
+        errorScore = false
+        errorMessageScore = ''
+        //console.log(`aScore getting set`,val, this.id) 
+        //this.$emit('saveScore', val, this.id) //check if auto-save does update it..
+
+        return true
+
+      },
+     overdueIconStyle () {
         return {
           color: (this.daysOver === 0 ? 'inherit' : 'red'),
           'max-width': '25px',
@@ -129,7 +180,19 @@ import { defineComponent,ref } from 'vue'
       wannaEnd(){
         console.log("eeeuh wish to end for", this.id, this.disabledScore ,this.happeningNow )
         this.$emit('endNow', this.id)
-      }
+      },
+      aScorey(val){
+        //console.log(`scoreValidation got`,val, this.id)
+        if (val.length < 4 || !(val.includes("on"))) {
+          this.errorScore = true
+          this.errorMessageScore = `Error: ${val} Unsaved.Must format as: #on#`  // doesnt clear unless user makes change...meh
+          return false
+        }
+        this.errorScore = false
+        this.errorMessageScore = ''
+
+        return true
+      },
     }
   })
 </script>
