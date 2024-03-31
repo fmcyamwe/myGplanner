@@ -42,12 +42,16 @@
                 />
             </div>
         </div>
-        <div style="text-align: center;">
-           <q-btn
-            flat 
-            label="Add" 
-            color="primary" 
-            @click="onClicked"/> 
+        <div class="q-mx-md" style="text-align: center;">
+          <q-btn flat align="center" label="Cancel" color="primary" @click="$emit('doCancel')"/>
+
+          <q-btn elevated color="primary" @click="onClicked"> Add </q-btn>
+          <!--
+            style="text-align: center;"
+            @click="showDefaultEvtByType = !showDefaultEvtByType"
+            passing in function prop and then invoke doCancel() worked! huh..but finicky that it's better to emit!
+          -->
+          
         </div> 
 </template>
 
@@ -56,7 +60,8 @@
   export default {  //this be Options Vue notation
     name: 'adHocEvent',
     props: {
-      mainGoals: Array
+      mainGoals: Array,
+      //doCancel: Function, // can execute function BUT better to emit...
     },
     data(){
         return {
@@ -68,7 +73,8 @@
     },
     emits: [
       //'update:model-value', //redundant since not writing back to parent?--or should have this still for binding via v-model? >>no need
-      'saveEvent'
+      'saveEvent',
+      'doCancel'
     ],
     computed: {
         pGoals:{
@@ -80,7 +86,7 @@
                 //console.log("setting title", value)
                 this.aTitle = value
             }
-        }
+        },
     },
     methods: {
       onClicked () {

@@ -106,7 +106,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults) {
         
-        console.log(pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
+        //console.log(pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
         
         let current = this.getSubGoals
         //let id = current !== null ? current.length + 1 : 0
@@ -149,6 +149,8 @@ export const useGoalStore = defineStore('allGoals', () => {
     }
 
     function editSubGoal(goalId, title,score,time, duration, canMove, inDefaults){
+        console.log("editSubGoal", pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
+        
         let current = this.getSubGoals
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) {

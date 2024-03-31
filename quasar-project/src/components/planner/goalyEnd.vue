@@ -4,7 +4,7 @@
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
         <div style="max-width: 25px; min-width: 25px;"></div> $emit('endNow', id)
       -->
-      {{ title }} <!--+':'+ score}} -->
+      {{ `${title} (${score})`}}
       <q-tooltip>{{ details }}</q-tooltip>
 
         <q-btn
