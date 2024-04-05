@@ -276,10 +276,24 @@
       no-connectors
       dense
       default-expand-all
-    /><!--see about showing more info in the tree with slots  prop.node.color dont work...prolly would in slot?
+    >
+      <template v-slot:default-header="prop">
+          <div class="row items-center" :style="titleStyles(prop.node)">
+            <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm"/>
+            <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+          </div>
+        </template>
+      <template v-slot:default-body="prop">
+          <div v-if="prop.node.isChildren">
+            <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+          </div>
+          <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+        </template>
+      </q-tree>
+      <!--see about showing more info in the tree with slots  prop.node.color dont work...prolly would in slot?
       text-color="color"
       selected-color="color"...
-      
+      style="text-indent: 50px;"
       :selected-color="getNodeByKey('label').color">>dont work either!
 
       when have v-model:selected="selected" >>doesnt close/expand smh--oh well!
@@ -354,13 +368,8 @@ data () {
   
   const allEvents = ref(null)  //bring up all subgoals from storage by default //keep reference to it without change and not reload too much from storage?
 
-  //const dailyScheduled = ref()//ref(new Map()) //shall be the daily scheduled and for currently viewed day--for saveSchedule..prolly
-
   const $q = useQuasar()
   let intervalId = null
-
-  //let doReset = false //when going backward..reload defaults
-  //let disableUpdates = false //not allow changes for past events..redudant
 
   let possibleRange = null //for adhoc scheduling...keep track of selected time range
 
@@ -526,6 +535,9 @@ computed: {
   storedMainG(){
     return this.store.getMainGoals
   },
+  storedAlternatives(){ //umm good idea to put in computed? does it update?!?
+    return this.store.fetchAlternativeEvts()
+  },
   //some computed for the range interval
   startEndTimes() { 
     const dates = []
@@ -572,6 +584,29 @@ computed: {
   badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
     return applyStyles(event, type, timeStartPos, timeDurationHeight)
   },
+  titleStyles(proppy){////use pGColors? >>no need prolly
+    const s = {}
+    let isDig = /\d/g
+
+    if (proppy && proppy.color && !proppy.isChildren){//smh workaround for the composed colors >> SO UGLY!!!
+      let e = proppy.color.split('-')
+      if (e.length > 1) {
+        //console.log("titleStyles doubles>>", e)
+        if (e[1].match(isDig)){
+          //console.log("titleStyles isDIGS>>", e[1],e[0])
+          s[ 'background-color' ] = `${e[0]}` //use first part
+        }else{
+          s[ 'background-color' ] = `${e[1]}`
+        }
+        return s //...prolly
+      }
+      //console.log("titleStyles not a splitty>>", e,proppy.color)
+      s[ 'background-color' ] = `${proppy.color}` //'align-items' //'flex-start'
+      
+    }
+   
+    return s
+  },
   //numeric date and time identifier for timestamp comparison
   getTimeNumber(timey) { //should rename properly--todo***!!
     if (timey !== null) {
@@ -588,15 +623,6 @@ computed: {
   labelGoals(){
     let total = 0
 
-    /* no need
-    const reducer = (accumulator, currentValue) => { 
-      if (currentValue?.children) {
-        return accumulator + currentValue.children.length
-      }
-      console.log("REDUCER...no childrens?!?",currentValue)
-      return accumulator
-    }*/
-
     for(const index in this.treeGoals) { //umm overkill? 
           let pG = this.treeGoals[ index ]
           //console.log("goally",pG)
@@ -606,7 +632,7 @@ computed: {
     //console.log("labelGoals",total,this.storedEvents.length) //could just count this.storedEvents....
     return `Total goals: ${total}`
   },  
-  // get all events for the specified date--use scheduleMap instead...prolly**
+  // get all events for the specified date
   getDateEvents (dt) {
     const events = this.eventsMap[ dt ] || []
     if (events.length === 1) {
@@ -614,7 +640,7 @@ computed: {
       
     }
     else if (events.length === 2) {
-      console.log("getDateEvents...LENGTH is 2?",dt, events)
+      //console.log("getDateEvents...LENGTH is 2?",dt, events) //bof when actual scheduled is just two evts!--weird that it does this calculation...prolly when overlapping times...
       // this example does no more than 2 events per day
       // check if the two events overlap and if so, select
       // left or right side alignment to prevent overlap
@@ -623,10 +649,10 @@ computed: {
       const startTime2 = addToDate(parsed(events[ 1 ].date), { minute: parseTime(events[ 1 ].time) })
       const endTime2 = addToDate(startTime2, { minute: events[ 1 ].duration })
       if (isBetweenDates(startTime2, startTime, endTime, true) || isBetweenDates(endTime2, startTime, endTime, true)) {
+        console.log("getDateEvents...LENGTH==2..LEFT/RIGHT 'TWIX",startTime, endTime,startTime2,endTime2) //toSee look and when does this occurs?!?
         events[ 0 ].side = 'left'
         events[ 1 ].side = 'right'
-      }
-      else {
+      } else {
         events[ 0 ].side = 'full'
         events[ 1 ].side = 'full'
       }
@@ -651,7 +677,6 @@ computed: {
     //data.start == 
     if (this.currentDate && this.currentDate == isToday){
       //console.log('onChange', data, this.currentDate, isToday, inDates)
-      //this.disableUpdates = false
       return false
     }
 
@@ -700,7 +725,7 @@ computed: {
       return Array.from(e.values())
   },
   resetGoalEvts(newish = false){
-      if (this.scheduledEvents === this.allEvents){ //triple equal sign for reference check..never goes here though smh
+      if (this.scheduledEvents == this.allEvents){ //triple equal sign for reference check..never goes here though smh..see with double equal sign
         console.log("resetGoalEvts SAME")
       }
 
@@ -810,7 +835,7 @@ computed: {
 
     for (let [entry, val] of this.dailyScheduled) {
       let toComp = hasEnd ? val.end.time : val.start.time  //bon should work..prolly both flags are mutually exclusive?
-      //let euhStart = hasStart ? val.start.time : timey  //just in case but redundant..toRemove***
+      //let euhStart = hasStart ? val.start.time : timey  //just in case but redundant..toRemove**
       if (toComp == timey){
         //console.log(`doEnableEndNowBtn found hasStart:${hasStart}`, entry,JSON.parse(JSON.stringify(this.disabledScoreEvts[entry])) ) //val
         this.hasStarted[entry] = !hasEnd 
@@ -844,7 +869,7 @@ computed: {
       return retVal
   },
   //for Evts time change
-  confirmTimeChange(title, mess, okbtn,cancelbtn, executeOk, executeCancel){ //, executeDismiss=null
+  confirmTimeChange(title, mess, okbtn,cancelbtn, executeOk, executeCancel,executeDismiss=null){ //, executeDismiss=null
     this.$q.dialog({
           title: title, //oldie >>'Default Time Change?' 
           message: mess,
@@ -855,8 +880,9 @@ computed: {
             model: '', //can select nothing if left blank>>handled below >>never use boolean for values as false is same as empty string smh
             // inline: true           
             items:  [
-              {label: okbtn ,value: 'ok' },
-              {label: cancelbtn ,value: 'cancel' }
+              {label: okbtn +' and '+ cancelbtn,value: 'ok' },
+              {label: cancelbtn ,value: 'cancel' } //should rename to make it clear...it aint cancel!!!
+              //should also add choice for keep at default time?!?--tbd***
             ]
           }, 
           // position: 'bottom',
@@ -866,15 +892,17 @@ computed: {
           
         }).onOk((data) => {
           if(data == ''){
-            console.log("confirmTimeChange onOk with no selection...doing cancel")
+            console.log("confirmTimeChange onOk with no selection...doing onDismiss?!?")
             this.doNotify(`No selection made...Leaving Evt as is!`, "positive",'bottom')
-            return executeCancel()
+            executeDismiss ? executeDismiss() : console.log("confirmTimeChange:: NoDismiss")
+            
+            return//return executeCancel()
           }
           return executeOk(data)
         }).onCancel(() => {
             //console.log("confirmTimeChange onCancel...") 
             executeCancel()
-        })//.onDismiss(() =>{ //no need
+        })//.onDismiss(() =>{ //no need prolly...could just check as in ok above?!?
           //  console.log("confirmTimeChange dismissing...ESC OR OUTSIDE click?") 
             //here dont add perhaps?!? >> bof cancel still executes so no point...
             //if (executeDismiss){
@@ -892,7 +920,7 @@ computed: {
       ok: okbtn, //"Save",
       //persistent:      
       // position: 'bottom',
-      //noBackdropDismiss  //should add this when user have to make choice...todo***
+      //noBackdropDismiss  //should add this when user have to make choice
       message: message
     }).onOk(() => {
         executeOk()
@@ -901,7 +929,7 @@ computed: {
         executeCancel()
     }).onDismiss(() => {
       if(executeDismiss){
-        console.log('confirmAction with dismiss!!') //toUse*** for cleanup maybe?!? 
+        console.log('confirmAction with dismiss!!')
         executeDismiss()
         return
       }
@@ -938,6 +966,35 @@ computed: {
             onDismiss()
         }
       })
+  },
+  checkBoxDialog(title, mess,labels,selectedM, onOk = null,onCancel = null,onDismiss=null){
+    //console.log('checkyBoxDialog::',labels.length)
+    let toValidate = labels.length
+    this.$q.dialog({
+      title: title,
+      message: mess,
+      options: {
+        type: 'checkbox',
+        model: [],
+        isValid: model => model.length > 0 && model.length <= toValidate, //also good >> model.includes(selectedM), //'opt2'
+        // inline: true
+        items: labels
+      },
+      cancel: true,
+      persistent: true
+    }).onOk(data => {
+        // console.log('>>>> OK, received', data)
+        onOk(data)
+    }).onCancel(() => {
+        if (onCancel) {
+          onCancel()
+        }
+    }).onDismiss(() => {
+        if(onDismiss){ //for cleanup and other actions
+          //console.log('checkyBoxDialog::onDismiss!! executin...')
+          onDismiss()
+      }
+    })
   },
   doNotify(messg, colorNotif = undefined, position = 'top'){
     this.$q.notify({
@@ -996,11 +1053,135 @@ computed: {
     //not needed as already updating above ** see looping above  
     return
   },
-  removeEvtInSchedule(evt, id=null){
+  chooseAlternatives(evt){
 
-    if(this.isViewingPast()){ //should prolly also check that it's schedule? ...also to not pass in hidden flag! toReview**
+    let alts = this.storedAlternatives //deep copy??!?toSee
+
+    let now = parseDate(new Date()) //>> actual current day >>now.date && now.time
+    
+    //this.currentDate >day looking at in calendar
+    //console.log("chooseAlternatives..",this.currentDate,now, evt,JSON.parse(JSON.stringify(alts)))
+
+    let evtTimey = evt.time //for scheduling later
+    let futureDatey = now.date
+      
+      const mapToLabels = anEvt => {
+        return { label: anEvt.title.trim() + " for " + anEvt.duration + 'min. at '+ anEvt.time + '('+ anEvt.score + ')', value: anEvt.id } // color: 'secondary'
+      }
+
+      const filterOutScheduled = evts => {//should filter to remove scheduled
+        return evts.filter(x => !this.scheduledEvents.find(item => item.id == x.id))
+      }
+
+
+      const addInFutur = (eArr) => {
+        let startDay = addToDate(parsed(futureDatey),{ day: 0 }) //think need options >> yup! //SHOULD be sometime in present or future
+        let altDay = addToDate(parsed(startDay.date), { day: 1 }) 
+        //console.log("addInFutur...",futureDatey,startDay,altDay)//JSON.parse(JSON.stringify(toAdd))
+        let EvtsOn = this.getEventsForDate(startDay.date) 
+        let toSave = {}
+        if (!EvtsOn){
+          console.log("addInFutur EMPTY for >>...",startDay.date)//could be null!
+        } else {
+          toSave = EvtsOn 
+        }
+
+        eArr.forEach(i => {
+          let toAddy = this.getLocalEvt(i) //use the `alts` too?!?
+          //console.log("addInFutur...",i,JSON.parse(JSON.stringify(toAddy)))
+
+          if(toSave[i]){//Not override already present!!--BEWARE//could add it in 'altDay' ? toSee 
+            console.log("addInFutur...ALREADY PRESENT",i,JSON.parse(JSON.stringify(toAddy)))
+            this.doNotify(`Alternative '${toAddy?.title.trim()}'already present on ${startDay.date}. Moving it to next day`,'warning')
+            let nexty = this.getEventsForDate(altDay.date)
+            if(nexty){
+              if (!nexty[i]){
+                nexty[i] = {
+                  duration: toAddy.duration,
+                  time: evtTimey
+                }
+              }else{
+                console.log("addInFutur...ALREADY PRESENT",toAddy,JSON.parse(JSON.stringify(nexty)))
+                this.doNotify(`Alternative '${toAddy?.title.trim()}'also present on ${altDay.date}....smh`) //nothing else to do...
+              }
+            } else {
+              console.log("addInFutur next day EMPTY for >>...",altDay.date)
+              nexty = {}
+              nexty[i] = {
+                duration: toAddy.duration,
+                time: evtTimey
+              }
+            }
+            this.store.saveDailySchedule(altDay.date, nexty)
+          } else { //just add it
+            toSave[i] = {
+              duration: toAddy.duration,
+              time: evtTimey
+            }
+          }
+        })
+        //console.log("addInFutur>>>",JSON.parse(JSON.stringify(toSave)))
+
+        this.store.saveDailySchedule(startDay.date, toSave)  //should check that not empty?!? toSEE**
+
+      }
+
+      const remReplace =(eID) => {
+        this.doRemove(evt)
+
+        let toAdd = alts.find(item => item.id == eID) //this.getLocalEvt(eID) //should use the `alts` var above..otherwise would be changing the scheduled time of evt.
+        console.log("remReplace...Add at:",evtTimey,JSON.parse(JSON.stringify(toAdd)))
+        toAdd = this.addPropsEventsTo(this.currentDate,[{...toAdd,time:evtTimey}])
+
+        
+        this.addEvtPropsIntoSchedule(toAdd[0]) //this.currentDate, //could this overlap again?!? YES >>toHandle!!
+
+        let f = this.updateCurrentSchedule()
+        console.log('chooseAlternatives::remReplace:END',f)  //weirdly have conflict with removed!--prolly cause of errors?
+        this.doSaveSchedule() //enable...
+        
+      }
+    
+    alts = filterOutScheduled(alts)
+
+    if (alts.length == 0) {
+      this.doNotify("Removing not allowed! Alternatives already present!")
+      return
+    }
+
+    this.checkBoxDialog('Gotta pick alternatives',
+      'Select the first Evt to replace the removed and an Extra evt for later!',//mess,
+      alts.map(mapToLabels),
+      alts[0].id, //'', //have to at least include first Alternative...>> bof no need as check the length of model!
+      function(opt){ //onOk
+        console.log('chooseAlternatives::opt',opt) //JSON.parse(JSON.stringify(toKeep))
+        remReplace(opt.shift())
+        if (opt.length > 0){
+          addInFutur(opt)
+        }else{
+          this.doNotify("Removing not allowed! Alternatives already scheduled!")
+        }
+      },
+      function(){//onCancel..
+        console.log('chooseAlternatives::onCancel') //nothing to do...
+      },
+      //function(){ //onDismiss.
+      //  console.log('chooseAlternatives::onDismiss',futureDatey,evtTimey)
+      //}
+    )
+
+
+  },
+  removeEvtInSchedule(evt, id=null){ //no need for id--toRemove***
+
+    if(this.isViewingPast()){
+      if (evt.duration < 30){ //dont do this for small evts!
+        console.log("removeEvtInSchedule...baah too smoll smoll",evt.title,evt.duration)
         this.doNotify("Removing from the past is a no no!")
         return
+      }
+      this.chooseAlternatives(evt)
+      return
     }
     
     //console.log("removeEvtInSchedule eh...", evt, id)
@@ -1029,11 +1210,10 @@ computed: {
     function(){console.log('Cancelled remove')}) 
 
   },
-  updateCurrentSchedule() { //should add flag to also check canEnableEditScore && enableEndNowBtn--todo**
+  updateCurrentSchedule() {
     const mappy = new Map()
 
-    let endTimes = new Set() //[]
-    //const now = parseDate(new Date())
+    let endTimes = new Set()
 
     let sameTime = new Set()
     let startTimes = new Set()
@@ -1111,7 +1291,7 @@ computed: {
 
     this.dailyScheduled.set(evt.id, {
       on: evt.date,
-      originalAt: evt.time, //keep original...needed still? tbd***
+      originalAt: evt.time, //keep original...needed still? >prolly not..toRemove**
       for: evt.duration,
       start: startTime,
       end: endTime,
@@ -1222,15 +1402,14 @@ computed: {
   hasOverlappingEvent(evID, targetTimestamp, duration) {
     const mappyA = []
     
-    let tStartAt = targetTimestamp //addToDate(targetTimestamp,{ minute: 0})
+    let tStartAt = targetTimestamp
     let tEndsAt = addToDate(tStartAt, { minute: duration})
 
     //console.log(`hasOverlappingEvent for ${evID} at ${targetTimestamp.time} for ${duration}`, tStartAt, tEndsAt)
 
     this.dailyScheduled.forEach((value, key, map) => {
-      if (key == evID){
-        //skip self!
-        //console.log(`${evID} skippin self ${key}`,value) //toSee if .for updates properly***
+      if (key == evID){//skip self!
+        //console.log(`${evID} skippin self ${key}`,value)
       }else{
         let oDirection = this.evtIsOverlappingTimes(tStartAt,tEndsAt,value.start,value.end)
         if (oDirection){
@@ -1353,8 +1532,7 @@ computed: {
     let oldy = null //evt.time 
     if(evt){oldy = evt.time }
     else{
-    //if (!evt){
-      console.log(`changeEventTime ADDIN...doAdd:${doAdd} Evt:${evID}`)
+      console.log(`changeEventTime::ADDIN Evt:${evID}...doAdd:${doAdd}`)
       if(doAdd){
         //let e = 
         evt = this.getLocalEvt(evID)
@@ -1364,9 +1542,10 @@ computed: {
         }
         oldy = evt.time
 
-        let evtArr = this.addPropsEventsTo(this.currentDate, [{...evt,time:timeyStart.time}]) //{...evt,time:timeyStart.time} >>bof doesnt work to just change time for invoking..
+        //below premature >> moved below
+        //let evtArr = this.addPropsEventsTo(this.currentDate, [{...evt,time:timeyStart.time}]) //{...evt,time:timeyStart.time} >>bof doesnt work to just change time for invoking..
         //console.log("changeEventTime afterProps",JSON.parse(JSON.stringify(evtArr[0])))
-        this.addEvtPropsIntoSchedule(evtArr[0]) //should be one item....prolly
+        //this.addEvtPropsIntoSchedule(evtArr[0]) //should be one item....prolly
       } else {
         console.log('ERROR in changeEvtTime not found, not adding!', evID, timeyStart, doAdd)
         return false
@@ -1374,7 +1553,14 @@ computed: {
     }
 
       let doUpdateEvt = () => {
-        console.log(`changeEvtTime ${evID} moving ${oldy} to ${timeyStart.time} with add?:${doAdd}--${evt.time}`) //evt.time
+        console.log(`doUpdateEvt '${evt.title.trim()}' from ${oldy} to ${timeyStart.time} with doAdd?:${doAdd}-->${evt.time}`) //evt.time
+
+        if (doAdd) {
+          let evtArr = this.addPropsEventsTo(this.currentDate, [{...evt,time:timeyStart.time}]) //{...evt,time:timeyStart.time} >>bof doesnt work to just change time for invoking..
+          console.log("doUpdateEvt:: afterProps",JSON.parse(JSON.stringify(evtArr[0])))
+          this.addEvtPropsIntoSchedule(evtArr[0]) //should be one item....prolly
+          return //prolly..
+        }
         
         //shouldnt the below updateEvtInScheduleMaps() also be in the if statement?!?
         this.updateEvtInScheduleMaps(evID, timeyStart) //should also change in scheduledEvents?!? no need prolly...
@@ -1382,6 +1568,20 @@ computed: {
           evt.time = timeyStart.time
           this.updatedEvtDetails(evt)
         }
+      }
+
+      let keepAsIs = () => { 
+        console.log(`keepAsIs '${evt.title.trim()}' to ${oldy} with add:${doAdd}`)
+        if (doAdd) { //needed?!? or would be already in?!? toSEE**
+          let evtArr = this.addPropsEventsTo(this.currentDate, [{...evt,time:oldy}]) //{...evt,time:timeyStart.time} >>bof doesnt work to just change time for invoking..
+          console.log("keepAsIs:: afterProps",JSON.parse(JSON.stringify(evtArr[0])))
+          this.addEvtPropsIntoSchedule(evtArr[0]) //should be one item....prolly
+        } else{ //toSEE
+          this.updateEvtInScheduleMaps(evID, oldy)
+          evt.time = oldy
+          this.updatedEvtDetails(evt)
+        }
+        
       }
       
       //change default time of evt!
@@ -1400,8 +1600,8 @@ computed: {
     Also change time to ${timeyStart.time}? \n 
     Cancel or Dismissing for Temporary add/move.`  //bof see if multi-line smh*/
 
-    console.log(`changeEventTime::${evID}...skipAsk:${skipAsk} with evt canMove:${evt?.canMove} and inDef:${evt?.inDefaults}`) 
-    
+    console.log(`changeEventTime::${evt.title}...skipAsk:${skipAsk} with evt canMove:${evt?.canMove} and inDef:${evt?.inDefaults}`) 
+    //let choice = null
     //not asking...except for inDefaults && !evt.canMove ..prolly(||)--tbd**
     if (evt?.inDefaults || !evt?.canMove){
       if (skipAsk) {
@@ -1413,36 +1613,45 @@ computed: {
         if (oldy == timeyStart.time){console.log(`SAME TIME,no need to ask`); return} //when time hasnt changed --just return
         
         let mess = `Evt '${evt.title.trim()}' scheduled at ${oldy}.
-        \nChange default time to ${timeyStart.time} or Temporary ${doAdd ? 'add':'move'}.
-        \nCancel or Dismiss to keep as-is.`   //
-        //bof see if multi-line smh //add/move.
+        \nChange default time to ${timeyStart.time} ?
+        \nCancel to Temporary ${doAdd ? 'add':'move'}.
+        \nNo selection to keep time as-is default`
+        //bof see if multi-line smh
+        //shouldnt cancel/dismiss NOT schedule?!?
 
         this.confirmTimeChange('Default Time Change?',
         mess, 
-        "Change", //ok
-        `Temp.${doAdd ? 'Add':'Move'}`, //oldie >>"Temp.Add"
-        function(d){changeSubProp(d)}, //
-        function(){console.log(`changeEventTime...no action`)}) //doUpdateEvt()
+        "Change", //okBtn >>temp btn below added in site as well for clarity
+        `Temp.${doAdd ? 'Add':'Move'}`, //cancelBtn //oldie >>"Temp.Add"
+        function(d){changeSubProp(d);}, //onOk
+        function(){console.log(`changeEventTime::onCancel...keeping as is>`);keepAsIs()},  //onCancel
+        function(){console.log(`changeEventTime::onDismiss...no action?`);keepAsIs()} //onDismiss/...should prolly remove it actually!--or leave at default time!!
+        ) //onCancel //oldie>>doUpdateEvt()
         
       }
     } else { //asking for all except those evt?.canMove
       //console.log(`changeEventTime::ASKIN?!? move:${evt?.canMove} inDef:${evt?.inDefaults}`,skipAsk) 
-      if (evt?.canMove){ //&& !inDefault ? >>TBD***
+      if (evt?.canMove){ //&& !inDefault ?
         doUpdateEvt()
         //return //true ?
       } else{
+        
         if (oldy == timeyStart.time){console.log(`SAME TIME,no need to ask`); return} //when time hasnt changed --just return
         
         let mess = `Evt '${evt.title.trim()}' Set to not move from ${oldy}.
-        \nMove time to ${timeyStart.time}? or Temporary ${doAdd ? 'add':'move'}.
-        \nCancel or Dismiss to keep as-is.`  //bof see if multi-line smh // add/move.
+        \nMove time to ${timeyStart.time} ?
+        \nCancel to Temporary ${doAdd ? 'add':'move'}.
+        \nNo selection to keep time as-is default`  //bof see if multi-line smh 
+        //shouldnt cancel/dismiss NOT schedule?!?
 
         this.confirmTimeChange("Moving Evt's time",
         mess, 
-        "Change", 
-        `Temp.${doAdd ? 'Add':'Move'}`, //oldie >>"Temp.Move"
-        function(d){changeSubProp(d)}, //
-        function(){console.log(`changeEventTime...no action`)}) //doUpdateEvt()
+        "Change", //okBtn
+        `Temp.${doAdd ? 'Add':'Move'}`, //cancelBtn //oldie >>"Temp.Move"
+        function(d){changeSubProp(d)}, //onOk //toSee with choice
+        function(){console.log(`changeEventTime::onCancel...no action>`);keepAsIs()},//onCancel //doUpdateEvt()
+        function(){console.log(`changeEventTime::onDismiss...no action?`);keepAsIs()} //onDismiss/...should prolly remove it actually!--or leave at default time!!
+        ) 
       }
     }
     
@@ -1511,7 +1720,7 @@ computed: {
       this.changeEvtTime(tEvt.id, draggedNewTime, skipAsk, doAdd) //flag to add target in case...
       //worked = this.updateEvtInScheduleMaps(tEvt.id, draggedNewTime)
 
-      console.log(`recurChangeTime...skip:${skipAsk}.A:${doAdd} TARGET:${tEvt.id} went ${dName} to time>> ${draggedNewTime.time}`) //goForward,
+      console.log(`recurChangeTime...TARGET:${tEvt.id} went ${dName} skip:${skipAsk}.Add:${doAdd} to time>> ${draggedNewTime.time}`) //goForward,
      
     } else{
       console.log("ERROR..ERROR overlapped event not found!", overlappedEvtID)
@@ -1699,7 +1908,7 @@ computed: {
       let toH = toHandle[key]
       //console.log(`fixOverlaps::handlin...${key}`)  
 
-      if (toH.length > 1) {//there could be multiple overlapps?!? toTest***
+      if (toH.length > 1) {//for multiple overlapps with same events
         console.log(`fixyOverlaps::WOAH WOAH...multiple overlaps!!`) //,JSON.parse(JSON.stringify(toH))
         this.multiConflicts(toH)
         continue
@@ -1935,45 +2144,41 @@ computed: {
     toAdd.unshift(currScheduled) //just for completeness... prolly
 
     this.radioChoiceDialog('Overlap warning!!',
-        mess,
-        mainOpts,
-        '', //no selection at first..
-        function(opt){ //onOk
-          if(opt =='opt3'){
-            chooseEvt(toAdd)
-            //return ? //nothing?  //a
-            //console.log('multiConflicts::opt3', JSON.parse(JSON.stringify(toKeep))) //runs too fast!! //JSON.parse(JSON.stringify(a))
-            
-          } else if (opt =='opt2'){
-            let a = lowestScore(toAdd)
-            console.log('multiConflicts::opt2',a.id,a?.title.trim(), a.score) //,a.details //JSON.parse(JSON.stringify(toKeep))
-            toKeep.push(a)
-            //return
-          } else {
-            let a = findhighestPrio(toAdd)
-            console.log('multiConflicts::opt1',a.id,a?.title.trim(), a.score) //a.details,//JSON.parse(JSON.stringify(cIDs)),JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(toKeep)))
-            //pick = a
-            toKeep.push(a)
-            //toRemove.add([...conflictEvts.filter(x => x.id != a.id)])
-            //return a
-          }
-        },
-        null,//onCancel...null so that it's false for cancel btn! Cancel SHould keep scheduled!! --todo** //function(){},  >>
-        function(){ //onDismiss.
-          //console.log('multiConflicts::onDismiss Main >>',toKeep.length) //JSON.parse(JSON.stringify(toKeep))
-          
-          if (toKeep.length > 0) { //== conflicts.size
-            console.log('multiConflicts::MAIN LAST LAST?',JSON.parse(JSON.stringify(toKeep)))
-            
-            setTimeout(() => {
-              removeConflicts(toKeep,toAdd)  //,allConfs //huh have use an inner lambda function!!
-              //console.log(`fixConflicts::setTimeout::MAIN::DONE`,toKeep.length)
-                    
-            }, 0)
-            
-          }//else{console.log(`fixConflicts...END`)} //no need 
+      mess,
+      mainOpts,
+      '', //no selection at first..
+      function(opt){ //onOk
+        if(opt =='opt3'){
+          chooseEvt(toAdd)
+          //return ? //nothing?  //a//JSON.parse(JSON.stringify(a))
+        } else if (opt =='opt2'){
+          let a = lowestScore(toAdd)
+          console.log('multiConflicts::opt2',a.id,a?.title.trim(), a.score) //,a.details //JSON.parse(JSON.stringify(toKeep))
+          toKeep.push(a)
+          //return
+        } else {
+          let a = findhighestPrio(toAdd)
+          console.log('multiConflicts::opt1',a.id,a?.title.trim(), a.score) //a.details,//JSON.parse(JSON.stringify(cIDs)),JSON.parse(JSON.stringify(a)),JSON.parse(JSON.stringify(toKeep)))
+          //pick = a
+          toKeep.push(a)
+          //toRemove.add([...conflictEvts.filter(x => x.id != a.id)])
+          //return a
         }
-      )
+      },
+      null,//onCancel...null so that it's false for cancel btn! Cancel SHould keep scheduled!! --todo** //function(){},  >>
+      function(){ //onDismiss.
+        if (toKeep.length > 0) { //== conflicts.size
+          console.log('multiConflicts::MAIN LAST LAST?',JSON.parse(JSON.stringify(toKeep)))
+            
+          setTimeout(() => {
+            removeConflicts(toKeep,toAdd)  //,allConfs //huh have use an inner lambda function!!
+            //console.log(`fixConflicts::setTimeout::MAIN::DONE`,toKeep.length)
+                  
+          }, 0)
+            
+        }//else{console.log(`fixConflicts...END`)} //no need 
+      }
+    )
   },
   //walk through conflict and resolve by scheduling higher priority evts or use score...
   //BEWARE--Already scheduledEvts and uses SameStart times!!
@@ -2086,7 +2291,7 @@ computed: {
             '',
             function(d){
               let eee = onOk(d)
-              //toKeep.push(eee)  //no need to push as already done in onOk..or should wait for return?!? tbd***
+              //toKeep.push(eee)  //no need to push as already done in onOk...wait for return?!?
               console.log(`chooseEvt::onOk >>${d} >> ${eee?.title.trim()}`) //,JSON.parse(JSON.stringify(pick)) //JSON.parse(JSON.stringify(a))
               return eee
             }, 
@@ -2339,7 +2544,7 @@ computed: {
     let inPast = this.isViewingPast()
 
     this.showReloadBtn = this.hasEventsForDate
-    this.showClearBtn = !inPast || dEvts.length > 0 // this.hasEventsForDate
+    this.showClearBtn = !inPast && dEvts.length > 0  //umm prolly AND...//oldie>> this.hasEventsForDate
 
     //do the below before or after...toReview***
     this.resetButtons(true,inPast) //not using this.hasEventsForDate as shows default button again! 
@@ -2470,8 +2675,8 @@ computed: {
      //console.log("doSaveSchedule", toSave)
      this.store.saveDailySchedule(this.currentDate, toSave) 
      this.disableSaveSchedule = true 
-     this.showReloadBtn = false //think false make sense....//toSave !== void 0 //hasSaved //!this.showReloadBtn //toggle reloadBtn---toSee*
-     this.showClearBtn = true //to clear...maybe...
+     this.showReloadBtn = false
+     this.showClearBtn = toSave != null //to clear...maybe...
 
      this.doNotify(`doSaveSchedule for ${this.currentDate}`, "positive", "top")
 
@@ -2490,8 +2695,6 @@ computed: {
     })
 
     //let newC = null //currentArr.length + 1
-
-    
 
     let AllColors = pGColors()
 
@@ -2556,7 +2759,7 @@ computed: {
       if (pId) {
         console.log("wooh SELF parent created",pId)
 
-        subID = this.store.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false) //canMove and notInDefaults
+        subID = this.store.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) //canMove and notInDefaults. isAlternative when duration<30
         //any issue with .value?
         
       } else {//could be for first first parentGoal---toTest**
@@ -2567,7 +2770,7 @@ computed: {
     } else { //just add it to Misc parentGoal(that have all one-off kind of stuff)
       if (parentGoal){
         //add it to parentGoal
-        subID = this.store.addSubGoal(parentGoal.id,goalTitle,'1on5',timeStart.time, duration,false, false) //!canMove and notInDefaults
+        subID = this.store.addSubGoal(parentGoal.id,goalTitle,'1on5',timeStart.time, duration,false, false,duration<30) //!canMove and notInDefaults. isAlternative when duration<30
 
       } else { //any Misc parentGoal available?
         let pMisc = this.store.getGoalByTitle("Misc")
@@ -2575,11 +2778,11 @@ computed: {
           let iD = this.addParentGoal("Misc", "Miscellaneous", "grey-10", 2) //oldie >> this.store.addMainGoal("Misc", "Miscellaneous", "grey-10", 2)  //default color and priority
           if (iD) {
             console.log("NEW Misc pGoal created",iD)
-            subID = this.store.addSubGoal(iD,goalTitle,'1on5',timeStart.time, duration,true, false) //canMove and notInDefaults
+            subID = this.store.addSubGoal(iD,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) //canMove and notInDefaults.isAlternative when duration<30
           }
         } else{
           console.log("Woo!! Misc pGoal already exists!", pMisc)
-          subID = this.store.addSubGoal(pMisc.id,goalTitle,'1on5',timeStart.time, duration,false, false)//!canMove and notInDefaults
+          subID = this.store.addSubGoal(pMisc.id,goalTitle,'1on5',timeStart.time, duration,false, false,duration<30)//!canMove and notInDefaults.isAlternative when duration<30
         }
       }
     }
@@ -2649,7 +2852,7 @@ computed: {
 
     let addy = this.getScheduledEvent(addE.id)
 
-    console.log("onPickEvent...", JSON.parse(JSON.stringify(addy)), addE, flag)
+    //console.log("onPickEvent...", JSON.parse(JSON.stringify(addy)), addE, flag)
 
     if (!addy){
       //console.log("onPickEvent...NEW", addy, this.toAddE)
@@ -2658,12 +2861,12 @@ computed: {
       
       let doForce = this.isViewingPast() ? true : flag //this.force  //inPast >>just force!!
 
-      console.log(`onPickEvent...adding ${addy.id}:${addy.title.trim()} from ${addy.time} to ${this.targetDrop.timestamp.time} with force?${flag} BUT Forcing:${doForce}`)
+      console.log(`onPickEvent...adding ${addy.id}-${addy.title.trim()} from ${addy.time} to ${this.targetDrop.timestamp.time} with force?${flag} BUT inPast Forcing:${doForce}`)
       
       let anyOverlap = this.hasOverlappingEvent(addy.id, this.targetDrop.timestamp, addy.duration)
       let sizey = anyOverlap.length
       if(sizey > 0) {
-        console.log(`onPickEvent::hasOverlappingEvent of size: ${sizey} with force flag:${flag} while viewing in past?${this.isViewingPast()} and force:${doForce}`) 
+        console.log(`onPickEvent::hasOverlappingEvent of size: ${sizey}`) // with force flag:${flag} while viewing in past?${this.isViewingPast()} and force:${doForce}
        
         // use this.handleOverlaps(toHandle)?!? 
         //could be better to leave as is in order to handle recursive overlaps
@@ -2683,7 +2886,7 @@ computed: {
       return
     }
 
-    console.log(`onPickEvent for ${addy.id} complete with force:${flag}`, this.scheduledEvents.length) //this.force
+    //console.log(`onPickEvent for ${addy.id} complete with force:${flag}`, this.scheduledEvents.length) //this.force
       
     
     this.disableSaveSchedule = false
@@ -3258,9 +3461,7 @@ computed: {
     } else {
       //so no overlapp, just change dragged event time--ask User
       this.changeEvtTime(draggy.id, targetTimey, false)
-      //should test changed?@? Tbd--toTesT path ***
-      //let worked = this.updateEvtInScheduleMaps(draggy.id, targetTimey)
-      console.log("onDrop no overlap complete", draggy.id,targetTimey.time)  //worked,
+      console.log(`${draggy.id} onDrop no overlap complete to ${targetTimey.time}`)  //worked,
     }
 
     this.disableSaveSchedule = false
@@ -3274,10 +3475,15 @@ computed: {
   onDblClickEvent(e, event) {  
      //console.log("double click eh...", e, event)
     
-    if(this.isViewingPast()){ //should prolly also check that it's schedule? 
-        this.doNotify("Removing from the past is a no no!") //not likey if it's score editing that goes on!--toReview**
-        e.preventDefault()
+    if(this.isViewingPast()){ //below unlikely as score edit comes up...just in case!
+      if (event.duration < 30){ //dont do this for small evts!
+        console.log("onDblClickEvent..baah too smoll smoll",event.title,event.duration)
+        this.doNotify("Removing from the past is a no no!")
         return
+      }
+      this.chooseAlternatives(event)
+      e.preventDefault()
+      return
     }
 
     this.removeEvtInSchedule(event)

@@ -104,7 +104,7 @@ export const useGoalStore = defineStore('allGoals', () => {
       return newID
     }
 
-    function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults) {
+    function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults,isAlternative) {
         
         //console.log(pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
         
@@ -113,13 +113,14 @@ export const useGoalStore = defineStore('allGoals', () => {
         if(!current){
             $q.localStorage.set('subGoals', JSON.stringify([{ //unshift
                 id: 0,
-                parentGoal:pGoal,
+                parentGoal:pGoal.trim(),
                 title: title,
                 score: score,
                 time:time,//'19:00',
                 duration: duration,
                 canMove: canMove,
                 inDefaults:inDefaults,
+                isAlternative:isAlternative
             }]))
             return
         }
@@ -134,12 +135,13 @@ export const useGoalStore = defineStore('allGoals', () => {
         current.unshift({
             id: newID,
             parentGoal:pGoal,
-            title: title,
+            title: title.trim(),
             score: score,
             time:time,//'19:00',
             duration: duration,
             canMove: canMove,
-            inDefaults:inDefaults
+            inDefaults:inDefaults,
+            isAlternative:isAlternative
         })
 
         $q.localStorage.set('subGoals', JSON.stringify(current))
@@ -148,18 +150,19 @@ export const useGoalStore = defineStore('allGoals', () => {
         return newID
     }
 
-    function editSubGoal(goalId, title,score,time, duration, canMove, inDefaults){
-        console.log("editSubGoal", pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
+    function editSubGoal(goalId, title,score,time, duration, canMove, inDefaults,isAlternative){
+        //console.log("editSubGoal", goalId+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults+' '+isAlternative)
         
         let current = this.getSubGoals
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) {
-                current[i].title = title,
+                current[i].title = title.trim(),
                 current[i].score = score,
                 current[i].time = time,//'19:00',
                 current[i].duration = duration,
                 current[i].canMove = canMove
                 current[i].inDefaults = inDefaults
+                current[i].isAlternative = isAlternative
                 console.log("editSubGoal for",current[i], i)
                 break
             }
@@ -325,6 +328,24 @@ export const useGoalStore = defineStore('allGoals', () => {
         return Smap
     }
 
+    function fetchAlternativeEvts(){
+        const map = []
+        let allSubGoals = this.getSubGoals
+        if(!allSubGoals) {
+            //console.log("No subgoals")
+            return map
+        }
+        
+        allSubGoals.forEach(event => {
+            if (event?.isAlternative){
+                map.push(event)
+            }//else{
+            //    console.log(`subGoal is Not Alternative ${event.id}: ${event.title}`)
+            //}
+        })
+        return map  
+    }
+
     function fetchGoalsWithMinScore(scorey){  //of scorey minimum --actually max difference range in the score **ToRename properly!!
         const map = []
         //const tokenRegex = /^[0-9]{1,2}on[0-9]{1,2}$/g; //toREview....
@@ -429,7 +450,8 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         mains.forEach(goal => {
             let toAdd = {//add something else?!?--details?!?
-                label: `${goal.id} - ${goal?.title.trim()} (${goal?.priority})`, 
+                label: `${goal.id} - ${goal?.title.trim()} (${goal?.priority})`,
+                details:`${goal.details}`,
                 color:`${goal?.bgcolor}`,
                 prio: goal?.priority, //for now in label...
                 children:[]
@@ -437,11 +459,14 @@ export const useGoalStore = defineStore('allGoals', () => {
 
             let subG = findSubGoals(goal.id) //really dont wanna work >> getSubGoalsByParent(goal.id)
             for (let i = 0; i < subG.length; i++) {
-                let def = subG[i].inDefaults ? 'D' : '#'
-                let cM = subG[i].canMove ? 'M' : '#'
+                let def = subG[i].inDefaults ? 'Dft' : '#'
+                let cM = subG[i].canMove ? 'Mv' : '#'
+                let alt = subG[i].isAlternative ? 'Alt' : '#'
                 toAdd.children.push({
-                    label: `${subG[i].id} -- ${subG[i]?.title.trim()} (${subG[i]?.score}) at ${subG[i]?.time}..${subG[i]?.duration} :: ${def}${cM}`, //canMove and inDefault at end
+                    label: `${subG[i].id} -- ${subG[i]?.title.trim()} (${subG[i]?.score})`, //canMove and inDefault at end
+                    details: `${subG[i]?.time} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`, // >> 
                     color:`${goal?.bgcolor}`, //toSee look...
+                    isChildren:true,
                 })
             }
 
@@ -571,6 +596,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         fetchGoalsWithMinScore,
         fetchAllPrio,
         fetchDefaults,
+        fetchAlternativeEvts,
         fetchGoalsTree
     }
 })

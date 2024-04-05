@@ -81,7 +81,7 @@
 
                 Duration (min)
                 <q-knob
-                    :min="15"
+                    :min="5"
                     :max="120"
                     :thickness="0.22"
                     :step="5"
@@ -95,16 +95,14 @@
                     :model-value=duration -->
                 <br>
                 <q-toggle
-                    v-model="canMove"
-                    label="Can Move"
-                    left-label
-                    color="green"
-                >
-                    <q-badge 
+                v-model="canMove"
+                label="Can Move"
+                left-label
+                color="green">
+                    <q-badge
                     color="orange" floating
-                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer"
-                    >?
-                        <q-tooltip>Have to confirm any timeslot change</q-tooltip>
+                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                    ? <q-tooltip>Have to confirm any timeslot change</q-tooltip>
                     </q-badge>
                 </q-toggle>
 
@@ -113,15 +111,27 @@
                 v-model="inDefaults"
                 label="In Defaults"
                 left-label
-                color="blue"
-            >
-                <q-badge 
-                color="orange" floating
-                style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer"
-                >?
-                    <q-tooltip>Is scheduled by default</q-tooltip>
-                </q-badge>
-            </q-toggle>
+                color="blue">
+                    <q-badge 
+                    color="orange" floating
+                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                    ? <q-tooltip>Is scheduled by default</q-tooltip>
+                    </q-badge>
+                </q-toggle>
+                <br>
+
+                <q-toggle v-if="duration<30"
+                v-model="isAlternative"
+                label="As Alternative"
+                left-label
+                color="blue">
+                    <q-badge 
+                    color="orange" floating
+                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                    ? <q-tooltip>Can be scheduled as an alternative</q-tooltip>
+                    </q-badge>
+                </q-toggle>
+
             </div>
 
             <div>
@@ -244,10 +254,11 @@ export default {
         const avColors = ref(pGColors())
         const time = ref('')
         const priority = ref(3)
-        const duration = ref(30) //min of 30
+        const duration = ref(15) //min of 30
         const score = ref('')
         const canMove = ref(false)
         const inDefaults = ref(false) //NOT by default?!?
+        const isAlternative = ref(false)
 
         const goalType = ref('line') //so nothing is selected at first
         const pGoal = ref(null)
@@ -349,12 +360,30 @@ export default {
         }
 
         function doReset () {
-            if (goalType.value ==='main') {
-                store.resetMain() //shoulg confirm AND also remove the subgoals!!
+            if (goalType.value ==='main') {//shoulg confirm AND also remove the subgoals!!
+                
+                $q.dialog({
+                title: 'Warning',
+                cancel: true,
+                message: `Reset all Parent Goals?`
+                }).onOk(() => {
+                    //store.removeMaingoal(id, false)
+                    store.resetMain() 
+                }).onCancel(() => {
+                    console.log('Cancelled!!')
+                    //expanded.value[id] = false
+                })
+
             } else if(goalType.value ==='sub') {
                 store.resetSub()
             } else {
                 console.log("Resetting all goals")
+                $q.notify({
+                    color: 'warning', //'positive'
+                    position: 'top',
+                    message: `Resetting all goals`,
+                    icon: 'thumb_up'
+                })
                 store.resetAll()
             }
         }
@@ -382,7 +411,7 @@ export default {
 
                     buttonLabel.value = "Submit"
                 } else{
-                    store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value)
+                    store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value)
                     //console.log("Subgoal Goal added for parent:",pId.title)
                 }
             }
@@ -401,7 +430,7 @@ export default {
 
         function editSuGoal(){
             if(updatingSubG){
-                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value) 
+                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value) 
                 //bon no need to pass parentGoal in case it has changed(should add this later as would involve more work to change both stored maps!!)
 
             }else{
@@ -465,7 +494,7 @@ export default {
 
         function onLeftEdit ({reset},subId, pID) {
 
-            console.log(`Editing subgoal ${subId} and ${pID}...`)
+            console.log(`Editing subgoal ${subId} from ${pID}...`)
 
             let subby = subGoals.value.filter(element => element.id == subId) //remember that filter returns an array!!
             let pGoally = mainGoals.value.filter(element => element.id == pID)
@@ -484,6 +513,7 @@ export default {
                 duration.value = parseInt(subby[0].duration)
                 canMove.value = subby[0].canMove
                 inDefaults.value = subby[0].inDefaults
+                isAlternative.value = subby[0].isAlternative
 
                 updatingSubG = subId  //keep track of this for submit
 
@@ -552,7 +582,7 @@ export default {
 
             //bon just in case...toReview prolly?
             time.value = time.value ||''
-            duration.value = duration.value || 30
+            duration.value = duration.value || 15
             details.value = details.value || ''
             bgcolor.value = bgcolor.value || ''
             canMove.value = canMove.value || false
@@ -565,13 +595,14 @@ export default {
             priority.value = 3
             //score.value = ''
             time.value = ''
-            duration.value = 30
+            duration.value = 5
             //goalType.value = 'line' //huh makes it unselectable smh
             pGoal.value = null
             details.value = ''
             bgcolor.value = ''
             canMove.value = false
             inDefaults.value = false
+            isAlternative.value = false
 
             updatingSubG = null
         }
@@ -586,7 +617,7 @@ export default {
             expanded, //see if can trigger close >>does!
             buttonLabel,
            // allGoals,
-            goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,
+            goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
             hasSubG,
             doPrint,
             onSubmit,doReset,getSubGoals,
