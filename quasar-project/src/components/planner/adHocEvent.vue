@@ -15,14 +15,15 @@
                 <q-radio class="q-mx-md" v-model="own" val="misc" label="Misc" />
                 <q-radio class="q-mx-md" v-model="own" val="self" label="By Self" />
             </div>
-            <div v-if="pGoals" ><!--style="width: 100%;"-->
+            <div v-if="pGoals" ><!--style="width: 100%;"  label="Select Parent Goal"-->
                 <q-select class="q-mx-md"
                 v-model="daP" 
                 :options="pGoals"
                 option-value="id"
                 option-label="title"
                 :disable="own!='misc'"
-                label="Select Parent Goal" />
+                :label="labely"
+                />
             </div>
         
             <div>
@@ -78,7 +79,7 @@
     ],
     computed: {
         pGoals:{
-            get(){return this.mainGoals},  //no massaging?~?
+            get(){return this.mainGoals},  //no massaging?~? guess not
         },
         evName:{
             get(){return this.aTitle},
@@ -87,6 +88,12 @@
                 this.aTitle = value
             }
         },
+        labely:{
+          get(){
+            return this.own =='misc' ? this.daP == null ? 'Defaut Misc. PGoal' : 'Of Parent Goal' : 'Select Parent Goal' //umm sheesh
+          }
+        }
+
     },
     methods: {
       onClicked () {
@@ -95,7 +102,7 @@
 
         //reset--toTest**
         this.own = 'own'
-        this.P = null
+        this.daP = null
         this.duration = 15
       }
     }

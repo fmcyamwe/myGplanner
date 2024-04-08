@@ -19,7 +19,7 @@
         <q-card v-else>
           <div class="q-ma-md event-select">
             <ad-hoc-event
-              :mainGoals="storedGoals"
+              :mainGoals="parentGoals"
               @save-Event="addNewEvent"
               @do-Cancel="onCancelBtn"
             />
@@ -83,7 +83,7 @@ export default defineComponent ({  //this be Options Vue notation
     //addEventDialog: Boolean,
     //showDefaultEvtByType:Boolean, //this.addEventDialog 
     
-    storedGoals: Array,
+    parentGoals: Array,
     canBeScheduled: Array, //array of objects...
     //toSchedule: Object  //umm usually? though is null at first...prolly no need as well!! 
 

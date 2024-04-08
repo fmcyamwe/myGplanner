@@ -73,7 +73,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             console.log("umm no mainGoals...adding")
             $q.localStorage.set('mainGoals', JSON.stringify([{ //unshift
                 id: 0,
-                title: goal,
+                title: goal.trim(),
                 details: details,
                 priority: priority,
                 bgcolor: color,
@@ -91,7 +91,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
         current.unshift({
             id: newID,
-            title: goal,
+            title: goal.trim(),
             details: details,
             priority: priority,
             bgcolor: color,
@@ -113,8 +113,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         if(!current){
             $q.localStorage.set('subGoals', JSON.stringify([{ //unshift
                 id: 0,
-                parentGoal:pGoal.trim(),
-                title: title,
+                parentGoal:pGoal,
+                title: title.trim(),
                 score: score,
                 time:time,//'19:00',
                 duration: duration,
@@ -233,7 +233,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         //let toRet = null 
         for( var i = 0; i < current.length; i++){ 
-            if ( current[i].title === goalTitle) { 
+            if ( current[i]?.title.trim() === goalTitle) { 
                 return current[i]
             }
         }

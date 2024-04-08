@@ -96,7 +96,7 @@
                text-color="blue"
                unelevated
                to="/dayCalendar"
-               label="Daily"
+               label="Daily Calendar"
                no-caps
             />
           
@@ -297,10 +297,7 @@ export default defineComponent({
         events[ 0 ].side = 'full'
       }
       else if (events.length === 2) {
-        console.log("getEvents...LENGTH is 2?!?",dt, events)
-        // this example does no more than 2 events per day
-        // check if the two events overlap and if so, select
-        // left or right side alignment to prevent overlap
+        // with no more than 2 events for day check if the two events overlap and if so, select left or right side alignment to prevent overlap 
         const startTime = addToDate(parsed(events[ 0 ].date), { minute: parseTime(events[ 0 ].time) })
         const endTime = addToDate(startTime, { minute: events[ 0 ].duration })
         const startTime2 = addToDate(parsed(events[ 1 ].date), { minute: parseTime(events[ 1 ].time) })
@@ -314,7 +311,7 @@ export default defineComponent({
           events[ 1 ].side = 'full'
         }
       }
-      //console.log(`getEvents ${dt}`, events.length) //number of evts scheduled on this day...can use to calc largest interval height?
+      //console.log(`getEvents ${dt}`, events.length) //number of evts scheduled on this day...can use to calc largest interval height
       if (events.length > this.mostEvts){
         console.log(`getEvents hiiigh ${dt}`,events.length)
         this.mostEvts = events.length
