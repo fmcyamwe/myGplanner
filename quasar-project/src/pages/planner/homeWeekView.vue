@@ -293,6 +293,8 @@ export default defineComponent({
       // get all events for the specified date
       const events = this.eventsMap[ dt ] || []
 
+      //console.log(`getEvents ${dt}`,events.length)
+
       if (events.length === 1) {
         events[ 0 ].side = 'full'
       }
@@ -359,7 +361,9 @@ export default defineComponent({
       console.log('onClickHeadDay', data)
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
-        console.log('onChange', data)
+      //let oldy = this.mostEvts
+      this.mostEvts = 5 //to update the interval-height
+      console.log('onChange', data)
     }
   }
 })

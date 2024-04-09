@@ -231,9 +231,6 @@
       showPickEventDialog=pickEventDialog >> dont work
       :doForce="force" works? as not a prop.... >>warning Extraneous non-props and doesnt open...
       :showDefaultEvtByType="addEventDialog" >>mutating prop error
-
-     :pickEventDialog="pickEventDialog" >>no need....
-     umm might be in order to show default again for wrong user input?!? toSee
      
      :parentGoals="storedMainG() || storedPG()
       -->
@@ -295,7 +292,7 @@
           <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
         </template>
       </q-tree>
-      <!--see about showing more info in the tree with slots  prop.node.color dont work...prolly would in slot?
+      <!--
       text-color="color"
       selected-color="color"...
       style="text-indent: 50px;"
@@ -422,7 +419,7 @@ data () {
 
     treeGoals:ref([]), 
     expanded:ref([]), //to hold expanding parentGoals...
-    parentGs:ref(null) //test for reactivity!
+    parentGs:ref(null) //test for reactivity!--redundant though--toRemove***
   }
 },
 beforeMount() {
@@ -496,7 +493,7 @@ computed: {
     //console.log("eventsMap", map)
     return map
   },
-  /*parentGoalsMap() { //smh never seems to update! 
+  /*parentGoalsMap() { //smh never seems to update!--moved in methods
       /*const map = new Map()
       //this.pGoals = this.storedCompPG
       //let mG = this.parentGs //smh neither >> this.storedCompPG// nope > this.storedPG()  //this.storedMainG()
@@ -517,14 +514,32 @@ computed: {
   },*/
   //dropdown for adding evts that are not already scheduled.
   //when all are present, shows them all to change schduled timeslot 
-  canbeScheduled() { //toTest if this update properly***
+  canbeScheduled() {
     let e = this.deepCopy(this.storedEvents)
-        // filter out events that are already scheduled
+    
+    // filter out events that are already scheduled
     let difference =  e.filter(x => !this.scheduledEvents.find(item => item.id == x.id)); // these dont work >> !this.scheduledEvents.includes(x)  //this.scheduledEvents.indexOf(x) !== -1
 
-    //console.log('canBeAdded difference is', difference)
+    //console.log('canbeScheduled difference is', JSON.parse(JSON.stringify(difference)))
+    
+    //oldie >> id...prolly better to use parentGoal for grouping instead of id as subG can be added/removed.
+    //--mais bon could end up with subGs out of order of creation...meh
+    //ALSO with randomize id generation,latest might not have higher id than earlier goal!!
+    let sorty = (a, b) => { 
+      if (a.parentGoal > b.parentGoal) return 1; 
+      if (a.parentGoal == b.parentGoal) return 0; 
+      if (a.parentGoal < b.parentGoal) return -1;
+    }
 
-    if (difference.length == 0) return e
+    if (difference.length == 0) {//return allGoals!
+      e.sort(sorty)
+      //console.log('canbeScheduled no difference', difference.length, e.length)
+      return e
+    }
+    
+    difference.sort(sorty)
+
+    //console.log('canbeScheduled AFTER sort ',JSON.parse(JSON.stringify(difference)))
     
     return difference
 
@@ -580,23 +595,12 @@ computed: {
     return false
   },
   storedCompPG(){
-    return this.parentGs // || try to use this.storedPG() and see***  //this.store.getMainGoals
+    return this.storedPG()  //this.store.getMainGoals
   },
  },
 
  methods: {
-  //testy(e,vt){
-  //  console.log('testy tesy...hidin',e,vt)
-  //},
-  /*storedMainG(){ //just to have it evaluated and up to date!!
-    if (this.pGoals == this.store.getMainGoals){ //triple equal sign for reference check..never goes here though smh..see with double equal sign
-        console.log("storedMainG SAME!!!!")
-    }
-    this.pGoals = this.store.getMainGoals
-
-    return this.pGoals //this.store.getMainGoals
-  },*/
-  parentGoalsMap(){ //at least now it's up to date esti!!
+  parentGoalsMap(){ //at least now it's up to date esti!! runs too much tho?!?
     const map = new Map()
     //this.pGoals = this.storedCompPG
     //let mG = this.parentGs //smh neither >> this.storedCompPG// nope > this.storedPG()  //this.storedMainG()
@@ -611,7 +615,7 @@ computed: {
       map.set(obj.id, obj);
     })
 
-    console.log('parentGoalsMap size>>', map.size) //JSON.stringify(e)
+    //console.log('parentGoalsMap size>>', map.size) //JSON.stringify(e)
       
     return map
     
@@ -626,10 +630,7 @@ computed: {
     return this.parentGs
   },
   constructTree(){
-      //let tree =  
-      this.treeGoals = this.store.fetchGoalsTree()
-      //console.log("constructTree", this.treeGoals)
-
+    this.treeGoals = this.store.fetchGoalsTree()
   },
   badgeClasses (event, type) {
     return applyClasses(event, type)
@@ -678,15 +679,16 @@ computed: {
   },
   labelGoals(){
     let total = 0
-
-    for(const index in this.treeGoals) { //umm overkill? 
+    
+    //umm overkill? >> yup! >> could just count this.storedEvents....
+    for(const index in this.treeGoals) { 
           let pG = this.treeGoals[ index ]
           //console.log("goally",pG)
           total += pG.children.length //.reduce(reducer, 0)
     }
 
-    //console.log("labelGoals",total,this.storedEvents.length) //could just count this.storedEvents....
-    return `Total goals: ${total}`
+    //console.log("labelGoals",this.storedEvents.length, JSON.parse(JSON.stringify(this.treeGoals)))
+    return `In Schedule: ${this.scheduledEvents.length} out of ${total}`   //this.scheduledEvents.length  this.storedEvents.length
   },  
   // get all events for the specified date
   getDateEvents (dt) {
@@ -705,7 +707,9 @@ computed: {
       const startTime2 = addToDate(parsed(events[ 1 ].date), { minute: parseTime(events[ 1 ].time) })
       const endTime2 = addToDate(startTime2, { minute: events[ 1 ].duration })
       if (isBetweenDates(startTime2, startTime, endTime, true) || isBetweenDates(endTime2, startTime, endTime, true)) {
-        console.log("getDateEvents...LENGTH==2..LEFT/RIGHT 'TWIX",startTime, endTime,startTime2,endTime2) //toSee look and when does this occurs?!?
+        console.log("getDateEvents...LENGTH==2..LEFT/RIGHT 'TWIX",startTime, endTime,startTime2,endTime2) 
+        //toSee look and when does this occurs?!?--AT EDGE of day! two evts are next to each other(bleeding into next day!--huh handle? 
+        //>part of evt into next...OR dont allow for evt to end past midnight?!?(easier) )
         events[ 0 ].side = 'left'
         events[ 1 ].side = 'right'
       } else {
@@ -790,22 +794,20 @@ computed: {
         this.allEvents = [...e]
         //console.log("resetGoalEvts",JSON.parse(JSON.stringify(this.allEvents)))
         //this.storedMainG  //would this update?!? >>does but computed method on top doesnt....moved in methods...
-        //this.pGoals = this.storedMainG() //updates?
-        //this.pGoals = this.storedCompPG
+      
         //this.storedPG() //is it that by calling it, then next time as it hasnt changed it doesnt eval?(would have the most up to date stuff though...)--F! IT moved in methods!
         //console.log("resetGoalEvts newish>>pGoals",JSON.parse(JSON.stringify(this.parentGs)),this.bonAnother()) //JSON.parse(JSON.stringify(this.pGoals))
         return e
       }
       return this.allEvents  //here return same stuff...beware that not null***
   },
-  //from the allEvents array that "should" contain all evts--might not be originals
-  getLocalEvt(id){
+  getLocalEvt(id){//from the allEvents array that "should" contain all evts--might not be originals
       for(let i = 0; i< this.allEvents.length;i++){
           if (this.allEvents[i].id === id) return this.allEvents[i]  //OH freaking type check!!smh
       }
       return null
   },
-  getScheduledEvent(id){
+  getScheduledEvent(id){ //currently scheduled
       for(let i = 0; i< this.scheduledEvents.length;i++){
           if (this.scheduledEvents[i].id == id) return this.scheduledEvents[i]  //bon dbl == works better smh
       }
@@ -929,22 +931,24 @@ computed: {
       return retVal
   },
   //for Evts time change
-  confirmTimeChange(title, mess, okbtn,cancelbtn, executeOk, executeCancel,executeDismiss=null){ //, executeDismiss=null
+  confirmTimeChange(title, mess, okbtn, altbtn, executeOk, executeCancel,executeDismiss=null){
+    //let a = ''
     this.$q.dialog({
           title: title, //oldie >>'Default Time Change?' 
           message: mess,
-          cancel: true, //cancelbtn, //"Temp.Add",  //just change time for this day.
-          //ok:okbtn, //"Change", //yes
+          cancel: false, //cancelbtn, //"Temp.Add",  //issue with dismiss though....no way to NOT execute this outside click--could use noBackdropDismiss but...>>bof make if false esti!!!
+          ok:okbtn, //"Change", //yes
           options: {
             type: 'radio',
             model: '', //can select nothing if left blank>>handled below >>never use boolean for values as false is same as empty string smh
             // inline: true           
             items:  [
-              {label: okbtn +' and '+ cancelbtn,value: 'ok' },
-              {label: cancelbtn ,value: 'cancel' } //should rename to make it clear...it aint cancel!!!
+              {label: okbtn +' and '+ altbtn,value: 'ok' },
+              {label: altbtn ,value: 'alt' } //should rename to make it clear...it aint cancel!!!
               //should also add choice for keep at default time?!?--tbd***
             ]
-          }, 
+          },
+          
           // position: 'bottom',
           //noEscDismiss
           //noBackdropDismiss
@@ -952,21 +956,24 @@ computed: {
           
         }).onOk((data) => {
           if(data == ''){
-            console.log("confirmTimeChange onOk with no selection...doing onDismiss?!?")
-            this.doNotify(`No selection made...Leaving Evt as is!`, "positive",'bottom')
-            executeDismiss ? executeDismiss() : console.log("confirmTimeChange:: NoDismiss")
+            console.log("confirmTimeChange onOk with no selection >>onDismiss")
+            this.doNotify(`No selection made...Defaulting`, "positive",'bottom') //Leaving Evt as is!
+            executeDismiss ? executeDismiss() : console.log("confirmTimeChange:: NoDismiss to execute")
             
             return//return executeCancel()
           }
+          //a = data //keep it?!? to see inCancel below
           return executeOk(data)
-        }).onCancel(() => {
-            //console.log("confirmTimeChange onCancel...") 
-            executeCancel()
-        })//.onDismiss(() =>{ //no need prolly...could just check as in ok above?!?
+        }).onCancel(() => { //still executed when clicking outside smh....
+            console.log("confirmTimeChange onCancel>")
+            //a= 'cancel'
+            executeCancel()  
+        })//.onDismiss(() =>{ //no need prolly...could just check as in ok above?!?...nah seems needed!
           //  console.log("confirmTimeChange dismissing...ESC OR OUTSIDE click?") 
             //here dont add perhaps?!? >> bof cancel still executes so no point...
+            
             //if (executeDismiss){
-            //  console.log("confirmTimeChange executing dismiss...ESC OR OUTSIDE click?")
+            //  console.log("confirmTimeChange would executeDismiss!!!") //toSee...would work?nah gets set all time smh  
             //  executeDismiss()
             //}
           //  return false
@@ -1499,7 +1506,7 @@ computed: {
       let obj = evts[i]
 
       let startTime = addToDate(parsed(obj.date), { minute: parseTime(obj.time) })
-          //let endTime = addToDate(startTime, { minute: obj.duration })
+      //let endTime = addToDate(startTime, { minute: obj.duration })
           
       let oOth = this.hasOverlappingEvent(obj.id, startTime, obj.duration) //before add evt
       
@@ -1542,19 +1549,26 @@ computed: {
 
     return euhOverlaps //overlaps
   },
-  updatedEvtDetails(evt){ //for updating details...tooltip--aint this too much just for parent'color and title?!? toReview**
-    let prtGoal = this.parentGoalsMap().get(evt.parentGoal) //storedMainG  //parseInt?!? smh
+  updatedEvtDetails(evt){ //for updating details...tooltip--aint this too much just for parent'color and title?--meh
+      let when = (timey) => {
+        if(!timey) return ''
+
+        let o = timey.split(':')
+        return parseInt(o[0]) >= 12 ? "PM" : "AM" //let oAmPm = 
+      }
+  
+    let prtGoal = this.parentGoalsMap().get(evt.parentGoal)
     if(!prtGoal){
           console.log("ERROR?!? no parent goal for:",JSON.parse(JSON.stringify(evt))) //could happen when adding ad-hoc
           evt.bgcolor = "grey" //default for goals (could be ad-hoc goals) 
           evt.title  = `Ad-hoc:${evt?.title} (${this.parseScore(evt?.score)})` //oldie for evt.title >> "unknown"  //or ${evt?.score} ?!?
-          evt.details = `${evt?.title}: ${evt?.time} -- ${evt?.duration}min` 
+          evt.details = `${evt?.title}: ${evt?.time}${when(evt?.time)} -- ${evt?.duration}min` 
       } else {
         //console.log("updatedEvtDetails",JSON.parse(JSON.stringify(evt))) //,JSON.parse(JSON.stringify(obj)))
         evt.bgcolor = prtGoal.bgcolor  //for weird colors, becomes transparent--beware**
        // evt.title  +=` (${this.parseScore(evt?.score)})`  //oldie that keeps using/adding to title >> ${evt.title.trim()}
-        evt.details = `${evt?.time} -> ${evt?.duration}min -- ${evt?.inDefaults ? 'Dft:':':'}${evt?.canMove ? ':Mv:':':'}${evt?.isAlternative ? ':Alt':':'}` // ::${prtGoal.title.trim()} (${pgoal?.priority})
-        // ${def ? def:''}${cM ? cM : ''}${alt ? alt : ''}`
+        evt.details = `${evt?.time}${when(evt?.time)} -> ${evt?.duration}min -- ${evt?.inDefaults ? 'Dft:':':'}${evt?.canMove ? ':Mv:':':'}${evt?.isAlternative ? ':Alt':':'}` // ::${prtGoal.title.trim()} (${pgoal?.priority})
+        // ${def ? def:''}${cM ? cM : ''}${alt ? alt : ''}`  //(${evt.id}) at...
       }
       return evt
   },
@@ -1613,7 +1627,7 @@ computed: {
       }
     }
 
-      let doUpdateEvt = () => {
+      let doUpdateEvt = () => { //should pass in evt!!!--todo**
         console.log(`doUpdateEvt ${evt.id}'${evt.title.trim()}' from ${oldy} to ${timeyStart.time} with doAdd?:${doAdd}-->${evt.time}`) //evt.time
 
         if (doAdd) {
@@ -1631,23 +1645,21 @@ computed: {
         }
       }
 
-      let keepAsIs = () => { 
-        console.log(`keepAsIs '${evt.title.trim()}' to ${oldy} with add:${doAdd}`)
+      let keepAsIs = () => {  //schedule at default time--potential for overlap?!? prolly ...toSee and handle!!
+        console.log(`changeEventTime::KeepAsIs (${evt.id})'${evt.title.trim()}' to ${oldy} with add:${doAdd}`)
         if (doAdd) { //needed?!? or would be already in?!? toSEE**
           let evtArr = this.addPropsEventsTo(this.currentDate, [{...evt,time:oldy}]) //{...evt,time:timeyStart.time} >>bof doesnt work to just change time for invoking..
           console.log("keepAsIs:: afterProps",JSON.parse(JSON.stringify(evtArr[0])))
-          this.addEvtPropsIntoSchedule(evtArr[0]) //should be one item....prolly
+          this.addEvtPropsIntoSchedule(evtArr[0]) //should be one item..prolly
         } else{ //toSEE
           this.updateEvtInScheduleMaps(evID, oldy)
           evt.time = oldy
           this.updatedEvtDetails(evt)
         }
-        
       }
       
-      //change default time of evt!
-      let changeSubProp = (flag) => { 
-        //console.log(`changeEvtTime--changeSubProp ${evID} to ${timeyStart.time}`,flag)
+      let userChoice = (flag) => { 
+        console.log(`changeEvtTime--userChoice ${evID} to ${timeyStart.time}`,flag)
         if (flag == 'ok'){
           this.doSaveEvtProp(evID, timeyStart.time, null)
         }
@@ -1661,57 +1673,73 @@ computed: {
     Also change time to ${timeyStart.time}? \n 
     Cancel or Dismissing for Temporary add/move.`  //bof see if multi-line smh*/
 
-    console.log(`changeEventTime::${evt.title}...skipAsk:${skipAsk} with evt canMove:${evt?.canMove} and inDef:${evt?.inDefaults}`) 
+    console.log(`changeEventTime::${evt.title}...skipAsk:${skipAsk} with evt canMove:${evt?.canMove} and inDef:${evt?.inDefaults}`,doAdd) 
     //let choice = null
     //not asking...except for inDefaults && !evt.canMove ..prolly(||)--tbd**
     if (evt?.inDefaults || !evt?.canMove){
       if (skipAsk) {
         //console.log(`changeEventTime::skippin...BUT inDef: ${evt.inDefaults} and canMove:${evt.canMove}`)
         doUpdateEvt() //bon just skip!
-        //this.timeChangeDialog(mess, "Change", "Temp.Add", function(){changeSubProp(true)}, function(){doUpdateEvt()}) //too much asking?
         //return
       } else{
-        if (oldy == timeyStart.time){console.log(`SAME TIME,no need to ask`); return} //when time hasnt changed --just return
+        if (oldy == timeyStart.time){console.log(`SAME TIME,no need to ask`,oldy,timeyStart.time); return} //when time hasnt changed --just return
         
-        let mess = `Evt '${evt.title.trim()}' scheduled at ${oldy}.
-        \nChange default time to ${timeyStart.time} ?
-        \nCancel to Temporary ${doAdd ? 'add':'move'}.
-        \nNo selection to keep time as-is default`
-        //bof see if multi-line smh
+        let AmPm = timeyStart?.hour  >= 12 ? "PM" : "AM"
+        let o = oldy.split(':')
+        let oAmPm = parseInt(o[0]) >= 12 ? "PM" : "AM"
+        
+        let mess = "Evt" + `'${evt.title.trim()}'` + ` by default at ${oldy}${oAmPm}.` + "\n" +
+        "Also Change default time to " + `${timeyStart.time}${AmPm}?` + "\n" + 
+        "Cancel or Dismiss to undo!\n" +
+        "No selection to schedule at default " + `${oldy}${oAmPm}`
+        
+
+        //bof see if multi-line >>nope even with r\n smh >>nor + "\n" +  >>Nor concatenation smh
         //shouldnt cancel/dismiss NOT schedule?!?
 
-        this.confirmTimeChange('Default Time Change?',
+        this.confirmTimeChange('Default Time Change!',
         mess, 
         "Change", //okBtn >>temp btn below added in site as well for clarity
-        `Temp.${doAdd ? 'Add':'Move'}`, //cancelBtn //oldie >>"Temp.Add"
-        function(d){changeSubProp(d);}, //onOk
-        function(){console.log(`changeEventTime::onCancel...keeping as is>`);keepAsIs()},  //onCancel
-        function(){console.log(`changeEventTime::onDismiss...no action?`);keepAsIs()} //onDismiss/...should prolly remove it actually!--or leave at default time!!
+        `Temp.${doAdd ? 'Add':'Move'}`, //altbtnBtn //oldie >>"Temp.Add"
+        function(d){userChoice(d);}, //onOk
+        function(){console.log(`changeEventTime::onCancel...>doing nothing`)},  //;keepAsIs() //Temp add at ${timeyStart.time}${AmPm}`);doUpdateEvt()
+        function(){console.log(`changeEventTime::onDismiss...keep as is?`);keepAsIs()} //scheduling at default time ${oldy}${oAmPm}`);keepAsIs()
+        //onDismiss/...should prolly remove it actually!--or leave at default time?!?
         ) //onCancel //oldie>>doUpdateEvt()
         
       }
-    } else { //asking for all except those evt?.canMove
+    } else { //asking for all except those !evt?.canMove
       //console.log(`changeEventTime::ASKIN?!? move:${evt?.canMove} inDef:${evt?.inDefaults}`,skipAsk) 
       if (evt?.canMove){ //&& !inDefault ?
         doUpdateEvt()
         //return //true ?
       } else{
-        
         if (oldy == timeyStart.time){console.log(`SAME TIME,no need to ask`); return} //when time hasnt changed --just return
+
+        let AmPm = timeyStart?.hour  >= 12 ? "PM" : "AM"
+        let o = oldy.split(':')
+        let oAmPm = parseInt(o[0]) >= 12 ? "PM" : "AM"
         
-        let mess = `Evt '${evt.title.trim()}' Set to not move from ${oldy}.
-        \nMove time to ${timeyStart.time} ?
-        \nCancel to Temporary ${doAdd ? 'add':'move'}.
-        \nNo selection to keep time as-is default`  //bof see if multi-line smh 
+        let mess = `Evt '${evt.title.trim()}' Set to not move from ${oldy}${oAmPm}.
+        Also Move time to ${timeyStart.time}${AmPm} ?
+        Cancel or Dismiss to undo!
+        No selection to add at default ${oldy}${oAmPm}` 
+        //  to schedule at default ${oldy}${oAmPm}
+        //No selection or Dismiss to undo! ` 
+
+        // for only Temporary ${doAdd ? 'add':'move'}.
+        //bof see if multi-line >>nope even with r\n smh 
+        //
         //shouldnt cancel/dismiss NOT schedule?!?
 
         this.confirmTimeChange("Moving Evt's time",
         mess, 
         "Change", //okBtn
-        `Temp.${doAdd ? 'Add':'Move'}`, //cancelBtn //oldie >>"Temp.Move"
-        function(d){changeSubProp(d)}, //onOk //toSee with choice
-        function(){console.log(`changeEventTime::onCancel...no action>`);keepAsIs()},//onCancel //doUpdateEvt()
-        function(){console.log(`changeEventTime::onDismiss...no action?`);keepAsIs()} //onDismiss/...should prolly remove it actually!--or leave at default time!!
+        `Temp.${doAdd ? 'Add':'Move'}`, //altbtn //oldie >>"Temp.Move"
+        function(d){userChoice(d)}, //onOk //toSee with choice
+        function(){console.log(`changeEventTime::onCancel..>doing nothing`)}, //;keepAsIs() //doUpdateEvt()
+        function(){console.log(`changeEventTime::onDismiss..keep as is?`);keepAsIs()} //.scheduling at default time`);keepAsIs() 
+        //onDismiss/...should prolly remove it actually!--or leave at default time?!?
         ) 
       }
     }
@@ -1922,7 +1950,7 @@ computed: {
             '',
             function(d){okChoice("Event",d,toAdd,currScheduled,aConf)}, //if(d == toAdd.id){removeReplace(currScheduled,toAdd,aConf)} else { console.log('by Event,chose scheduled', d, override);if(override){doRem(toAdd)}; doKeep(currScheduled); }},
             function(){cancelChoice(toAdd,currScheduled)}, //aNotif(`Cancelling to keep "${currScheduled.title.trim()}"`); if(override){doRem(toAdd)}; //doKeep(currScheduled) ?!?...prolly
-            function(){onDismissy('opt3::onDismiss by Event,remvd > Kept')}
+            function(){onDismissy('chooseEvt:opt3::onDismiss by Event,remvd > Kept')}
             //console.log('onDismiss opt3,remvd > Kept',JSON.parse(JSON.stringify(removed)),JSON.parse(JSON.stringify(toKeep)),toHandleSize); 
           )
 
@@ -1943,7 +1971,7 @@ computed: {
             '',
             function(d){okChoice("Score",d,toAdd,currScheduled,aConf)}, //if(d == toAdd.id){removeReplace(currScheduled,toAdd,aConf)} else{ console.log('by Score, chose scheduled', d,override);doKeep(currScheduled);if(override){doRem(toAdd)} }
             function(){cancelChoice(toAdd,currScheduled)}, //aNotif(`Cancelling to keep "${currScheduled.title.trim()}"`); if(override){doRem(toAdd)}; //doKeep(currScheduled) ?!?...prolly
-            function(){onDismissy('opt2::onDismiss by Score,remvd > Kept')}
+            function(){onDismissy('chooseEvt:opt2::onDismiss by Score,remvd > Kept')}
             //console.log('onDismiss opt2,remvd > Kept',JSON.parse(JSON.stringify(removed)),JSON.parse(JSON.stringify(toKeep)),toHandleSize)
           )
           
@@ -1962,7 +1990,7 @@ computed: {
             '',
             function(d){okChoice("Priority",d,toAdd,currScheduled,aConf)}, //if (d == toAdd.id){ removeReplace(currScheduled,toAdd,aConf)} else { console.log('by Priority, chose scheduled', d,override); if(override){doRem(toAdd)}; doKeep(currScheduled) }
             function(){cancelChoice(toAdd,currScheduled)}, //aNotif(`Cancelling to keep "${currScheduled.title.trim()}"`); if(override){doRem(toAdd)}; //doKeep(currScheduled) ?!?...prolly
-            function(){onDismissy('opt1::onDismiss by Priority,remvd > Kept')}
+            function(){onDismissy('chooseEvt:opt1::onDismiss by Priority,remvd > Kept')}
             //console.log('onDismiss opt1,remvd > Kept',JSON.parse(JSON.stringify(removed)),JSON.parse(JSON.stringify(toKeep)),toHandleSize)
           )
           
@@ -2473,7 +2501,7 @@ computed: {
         let evts = this.getEventsForDate(onDate)
         if (!evts) {console.log(`ERROR no evts found for ${onDate}...`, evts); return}
         
-        console.log(`doLoadNotPresent ${onDate}::evts=${Object.keys(evts).length}`,JSON.parse(JSON.stringify(evts)))
+        console.log(`doLoadNotPresent ${onDate}::evts=${Object.keys(evts).length}`) //JSON.parse(JSON.stringify(evts))
         
         let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))
         this.scheduledEvents = this.addPropsEventsTo(onDate, arr) //arr
@@ -2551,10 +2579,10 @@ computed: {
         this.disableSaveSchedule = true  //prolly better
          
       } else {//past || future 
-        //let anyConf = 
         doLoadNotPresent()  
         this.allowScoreEdit(inPast) // enable scoreEdit...disable score edit in future!!
-        console.log(`doLoadNotPresent return....`) //,anyConf //see if return is consistent...
+        //console.log(`doLoadNotPresent return....`) //,anyConf //see if return is consistent...
+        
         //set the showReloadBtn && default btn(hidden)
         //this.showReloadBtn = hasSavedEvents
         this.showClearBtn = !inPast //dont show in past!
@@ -2584,7 +2612,6 @@ computed: {
     let dEvts = this.deepCopy(this.store.fetchDefaults()) //resets reference >>does!
     //console.log(`InDefault:${this.currentDate}`,dEvts)
 
-    let isTod = this.isViewingToday()
     let inPast = this.isViewingPast()
 
     this.showReloadBtn = this.hasEventsForDate
@@ -2595,7 +2622,7 @@ computed: {
     this.disableSaveSchedule = !(dEvts.length > 0) //false
     //this.reset() //umm prolly not... in case have other settings like onScore/Prio.
 
-    if(isTod){ //do overlap check for today only...
+    if(this.isViewingToday()){ //do overlap check for today only...
 
       let toReload = this.addPropsEventsTo(this.currentDate, dEvts)
   
@@ -2605,6 +2632,8 @@ computed: {
         console.log(`scheduleDefaults..ADDIN from ${orig} to ${toReload.length}`,toReload)
       }
 
+      console.log(`scheduleDefaults:${this.currentDate}`,JSON.parse(JSON.stringify(toReload)))
+      
       let euhOverlaps = this.overlapCheckEvtsAdd(toReload) //no need for date prolly  //this.currentDate
 
       if(Object.keys(euhOverlaps).length > 0) {
@@ -2735,22 +2764,11 @@ computed: {
       //choose random index of new color..from all those not already taken
       let i = sizey + 1
       while (currentArr.some(clr => AllColors[i] == clr)) { //while index is found in current colors...have a new index... expensive??!? toSee...
-        console.log("addParentGoal::index with taken color...new random",i,AllColors[i],clr) //umm would have clr?!? toSee***
+        console.log("addParentGoal::index with taken color...new random",i,AllColors[i])
         i = Math.floor(Math.random() * sizey)
       }
 
       let newy = AllColors[i]
-      //!this.scheduledEvents.find(item => item.id == x.id))
-      //while (AllColors.some(clr => !currentArr.find(c => c == clr))) { //so while pGColors has a color not used in currentArr...seems wrong too!! //pGColors.some(clr => !currentArr.find(c => c == clr))
-      //  console.log(`bgcolor11...:${clr}`, c) //prolly undefined here?>>yup! not defined!
-      //}
-
-      //while(!AllColors.find(clr => currentArr.some(item => item == clr))){ //also bad methink...should assign to a val...
-      //  console.log(`bgcolor22...:${clr}`, item)
-      //}
-
-      //let newC = AllColors.find(clr => !currentArr.some(item => item == clr)) //to see if works...first color NOT in currentArr
-      //oldie >> let newy = AllColors.find(clr => !currentColors[clr]) //is better?!? >>same!! prolly faster BUT goes with first color... randomize above!!
 
       //console.log(`bgcolor..NEW:`,JSON.parse(JSON.stringify(newy)),JSON.parse(JSON.stringify(newC)))
       console.log(`addParentGoal::bgcolor..index ${i} from ${color} to NEW:`,newy)  
@@ -2853,7 +2871,7 @@ computed: {
       this.showReloadBtn = this.hasEventsForDate
       this.showClearBtn = !(this.isViewingPast())  //shouldnt show in past!
 
-      this.constructTree() //show newest
+      this.constructTree() //update to show newest
 
       //bon toReview if shouldnt save immediately but give choice to user to add some more!!---could pass in flag above to autoSave on dismiss(when inPast!!)--same here!!
       //this.doSaveSchedule()
@@ -2867,10 +2885,8 @@ computed: {
     //this.reset()
   },
   //hide the main dialog and show the pickEvent dialog
-  closingDialog(){
-    console.log("closingDialog...") //does get here...for esc and hide
-    
-    //what to reset?!?
+  closingDialog(){ //should add flag to not actually closeDialog?!? >>no need as using single dialog now!
+    //console.log("closingDialog...showPickEventDialog?") 
     
     this.addEventDialog = false
     this.reset() //just in case...toSee if not too much...
@@ -2937,13 +2953,9 @@ computed: {
     const now = parseDate(new Date())
 
     let hasEvts = this.hasEventsForDate //as changes too fast for reloadBtn
-    //console.log(`oooh doEndNow!!!`, evtID, now.time, hasEvts)
-
 
     //reduceDuration(evt)
-   //so just remove the remaining duration of event when completed earlier than expected
-    //so could also remove the event entirely if hasnt started eh**
-    //or only allow this when inBetween the event? otherwise do nothing....ToReview**
+   //so just remove the remaining duration of event when completed earlier than expected /so could also remove the event entirely if hasnt started eh
     if(this.dailyScheduled.has(evtID)){
       let evt = this.dailyScheduled.get(evtID)
       let starty = evt.start
@@ -2987,14 +2999,15 @@ computed: {
     //since enableSave--also show reloadBtn
     this.disableSaveSchedule = false
     this.showReloadBtn = hasEvts
-    this.showClearBtn = true //prolly
+    this.showClearBtn = !this.isViewingPast && this.scheduledEvents.length > 0 //true //prolly
 
   },
   onSaveScore(newVal, id){
-    
+
     let ev = this.dailyScheduled.get(id)
     if (ev){
-      //console.log(`oooh onSaveScore from ${ev.score} to ${newVal}`, id)
+      let f = this.getLocalEvt(id)
+      console.log(`oooh onSaveScore from ${ev.score} to ${newVal}`, id,JSON.parse(JSON.stringify(f)))
 
       //also add check to do second value is higher than first...for later score calculations!
       //--should keep historical score change for goal?!? to see progres....toSee**tbd
@@ -3008,11 +3021,7 @@ computed: {
       //this.store.saveSubProp(id, null, newVal)
       this.doSaveEvtProp(id, null, newVal)
 
-      const getEvt = taskID => {
-        return this.scheduledEvents.find(item => item.id == taskID) 
-      }
-
-      let h = getEvt(id) //send changes down to child component...
+      let h = this.getScheduledEvent(id) //send changes down to child component...
       if (h){
           h.score = newVal
       }else{console.log('onSaveScore ERROR not found',h, id) }
@@ -3703,12 +3712,5 @@ computed: {
   left: 5px
   border-top: rgba(0, 0, 255, .5) 2px solid
   width: calc(100% - 5px)
-
-.event-select
-  display: flex
-  flex-direction: column
-  justify-content: center
-  width: 100%
-  padding: 2px
 
 </style>

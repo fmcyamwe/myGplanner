@@ -1,178 +1,163 @@
 <template>
     <!-- either newEvent || pick existing event -->
-    <q-dialog v-model="hideAdHocEventDialog" transition-show="rotate" transition-hide="rotate" no-esc-dismiss @before-hide="gonHide">
+    <q-dialog v-model="showDefaultOption" transition-show="rotate" transition-hide="rotate" no-esc-dismiss @before-hide="gonHide">
          <!-- style="padding: 2px 2px;
             no-esc-dismiss perhaps and have to use cancel? >>could also handle it by acting as Cancel btn?!? meh better to handle just dismiss from outside as more natural...
             ////@escape-key="gonESC" is not needed
             OR
             no-backdrop-dismiss to not allow dismiss by clicking outside?!?
         -->
-        <q-card v-if="showDefaultEvtByType">
-          <q-card-section>
-            <div class="text-h6">Ad hoc or Existing event</div>
-          </q-card-section>
-          <q-card-actions align="center">
-            <q-btn flat label="Add hoc" color="primary" @click="showDefaultEvtByType = !showDefaultEvtByType"/>
-            <q-btn flat label="Existing" color="primary" @click="onChooseExisting"/>
-          </q-card-actions>        
+
+        <q-card v-if="showPickyDialog"> <!--see if works!!..especially the else below-->
+          <div class="q-ma-md event-select">
+            <select-event
+              :canBeScheduled="allScheduled"
+              @on-Pick-Event="onAddClicked"
+              @do-Cancel="onCancelBtn"
+            />
+          </div>
         </q-card>
-        <q-card v-else>
+      
+        <q-card v-else-if="showAddyDialog"> 
           <div class="q-ma-md event-select">
             <ad-hoc-event
               :mainGoals="parentGoals"
               @save-Event="addNewEvent"
               @do-Cancel="onCancelBtn"
             />
-            <!-- bof moved into ad-hoc-event coliiis as dont work with flag >>onCancelPickEvent('ad-hoc')--meh can just look at current state!
-                <q-btn flat align="center" label="Cancel" color="primary" @click="showDefaultEvtByType = !showDefaultEvtByType"/> -->
             <q-space/><!--better here?!?-->
           </div>
           <!--<q-space/>toSee look with space...nothing here-->
         </q-card>
-    </q-dialog>
 
-    <!--
-        huh...can't i put all  q-cards into same dialog?!? see onChooseExisting..
-    -->
-    <q-dialog v-model="showPickEventDialog" transition-show="rotate" transition-hide="rotate" no-esc-dismiss @before-hide="gonHide">
-        <q-card> <!--style="padding: 2px 2px;"-->
+        <q-card v-else> <!--totest....-->
           <q-card-section>
-            <div class="text-h3">Select event</div>
+            <div class="text-h6">Ad hoc or Existing event</div>
           </q-card-section>
-          <q-separator />
-          <div class="q-ma-md event-select">
-            <!-- could start being too much goals...break down by parentGoal?!? tbd**-->
-            <q-select
-            v-model="toAddE" 
-            :options="allScheduled"
-            option-value="id"
-            option-label="title"
-            label="Sub Goal"
-            item-aligned
-            borderless
-            popupContentClass="q-gutter-md"
-            />
-          </div>
           <q-card-actions align="center">
-            <q-checkbox dense v-model="doForce" label="Force" color="teal" class="q-pa-sm" />
-          </q-card-actions>
-          <q-card-actions align="center">
-            <q-btn flat label="Cancel" color="primary" @click="onCancelBtn"/>
-            
-            <q-btn elevated color="primary" @click="onAddClicked"> Add </q-btn>
-          </q-card-actions>
-          <!--<q-card-actions align="evenly">
-            <q-btn flat align="center" label="Cancel" color="primary" @click="onCancelPickEvent"/>
-          </q-card-actions>  -->
+            <q-btn flat label="Add hoc" color="primary" @click="onChooseAdHoc"/>
+            <q-btn flat label="Existing" color="primary" @click="onChooseExisting"/>
+          </q-card-actions>        
         </q-card>
-       </q-dialog>
+
+    </q-dialog>
 </template>
 <script>
 import { defineComponent, ref } from 'vue'
 import adHocEvent from '../../components/planner/adHocEvent.vue'
+import selectEvent from '../../components/planner/selectEvent.vue'
 
 export default defineComponent ({  //this be Options Vue notation
   name: 'schedDialog',
   components:{
     adHocEvent,
+    selectEvent
   },
   props: {
-    //adHocEventDialog: Boolean, //not needed as local here...
-    //doForce: Boolean, //same as above prolly
-    //pickEventDialog: Boolean, //prolly no need as well...
-    //addEventDialog: Boolean,
-    //showDefaultEvtByType:Boolean, //this.addEventDialog 
-    
     parentGoals: Array,
     canBeScheduled: Array, //array of objects...
-    //toSchedule: Object  //umm usually? though is null at first...prolly no need as well!! 
-
   },
   data(){
     return{
-        hideAdHocEventDialog:ref(true), //true by default...
-        showPickEventDialog:ref(false),
-        show:ref(true), //for default dialog show/hide
-
-        doForce:ref(false), //force schedule and skip asking confirmation from user...
-        toAddEE:ref(null), 
+      showPickDialog:ref(false),
+      showAdHocDialog:ref(false),
+      show:ref(true), //for default dialog show/hide//true by default...
     }
   },
   emits: [
-    //'onChooseEvent',
+    //'onChooseEvent', //redundant
     'onAddNewEvent',
     'onPickEvent',
     'euhHidin'
   ],
   computed: {
-    toAddE:{ //works?!? and passes value back to parent?@? toTest with toSchedule
-        get(){return this.toAddEE}, //this.toSchedule
-        set(value){
-            this.toAddEE = value
-        }
-    },
-    /*//prolly no need either?!? ? toSee if can just set doForce and send it back*** 
-    force:{ 
-        get(){return this.doForce},
-        set(value){
-            this.doForce = value
-        }
-    },*/
-    showDefaultEvtByType:{ //reads and set locally? ...prolly no need if using cards with show/hide booleans?
+    showDefaultOption:{
         get(){return this.show},
         set(value){
             this.show = value
         }
     },
+    showPickyDialog:{
+      get(){return this.showPickDialog},
+      set(value){
+        this.showPickDialog = value
+      }
+    },
+    showAddyDialog:{
+      get(){return this.showAdHocDialog},
+      set(value){
+        this.showAdHocDialog = value
+      }
+    },
     allScheduled:{
-        get(){return this.canBeScheduled},
+        get(){
+          //console.log(`allScheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
+
+          this.canBeScheduled.forEach((obj) => { //not too expensive?!? toSee...
+            let a = this.parentGoals.find(item => item.id == obj.parentGoal)
+            a ? obj.color = a.bgcolor : obj.color = ''
+            obj.pg = a?.title.trim() //also add parentTitle as well for use...
+          }) 
+
+          //console.log(`allScheduled..AFTER`,JSON.parse(JSON.stringify(this.canBeScheduled)))
+          return this.canBeScheduled
+        },
         //set?!? >>no need!
     }
   },
   methods: {
-    onAddClicked(){
-       // console.log(`onPickEvent..emitting`,this.toAddE,this.force)
-      this.$emit('onPickEvent',this.toAddE,this.doForce) 
-      //also have to transmitt toAddE? toTest
+    onAddClicked(toAdd,forceFlag){
+      //console.log(`onPickEvent..emitting`,toAdd,forceFlag)
+      this.$emit('onPickEvent',toAdd,forceFlag) //this.toAddE,this.doForce)
+      this.reset()
     },
     addNewEvent(aTitle, daP, own, duration) {//pass in the arguments like so?!? >>yup
         //console.log(`addNewEvent..emitting`,aTitle, daP, own, duration)
-      this.$emit('onAddNewEvent',aTitle, daP, own, duration)  
+      this.$emit('onAddNewEvent',aTitle, daP, own, duration)
+      this.reset() 
     },
-    onChooseExisting(){ //
-        //so hide the main dialog and show the pickEvent dialog
-        //toSee if doing it here better instead of triggering in parent? >>waay better in here!
-        //using cards in dialog ?!? toSee**
-        this.hideAdHocEventDialog = true //false
-        //this.show = false
+    onChooseExisting(){ // hide the main dialog and show the pickEvent dialog
+      //toSee if doing it here better instead of triggering in parent? >>waay better in here!
+      
+      this.showPickyDialog = !this.showPickyDialog
 
-        this.showPickEventDialog = true
+      //reset showAddyDialog?!? no need prolly
+    },
+    onChooseAdHoc(){ // hide the main dialog and show the Ad-Hoc Event dialog
+     
+      this.showAddyDialog = !this.showAddyDialog  //to show ad-hoc
 
-        //this.$emit('onChooseEvent')
+      //this.showPickyDialog = !this.showPickyDialog // no need to toggle prolly
     },
     gonHide(){ 
-        //console.log(`gonHide...about to hide?!?`)
-        this.$emit('euhHidin')
+      //console.log(`gonHide...about to hide...showPicky: showAdHoc`, this.showPickyDialog,this.showAddyDialog)
+
+      this.$emit('euhHidin') //needed to reset parent's  
     },
     //gonESC(){ //thrown bfre before-hide >>no need with no-esc-dismiss flag!
     //    console.log(`gonESC...ESC?!?`)
        // this.$emit('euhHidin')
     //},
-    onCancelBtn(){ //data
+    onCancelBtn(){
+      let wasSelect = this.showPickyDialog
+      let wasAdHoc = this.showAddyDialog
+      
+      if (wasSelect){ //was using Select dialog
+        this.showPickyDialog = !this.showPickyDialog
 
-        let wasPickEvt = this.showPickEventDialog
+      } else { //was on ad-hoc dialog  //should do in own if?!?no need!
 
-        console.log(`onCancelBtn...with PickDialog?${wasPickEvt}`)
-        if (wasPickEvt){
-             this.showPickEventDialog = false
-        } else {
-            this.showDefaultEvtByType = !this.showDefaultEvtByType //works?!? or have to change var?!? >>huh seems to work!!
-        }
+        this.showAddyDialog = !this.showAddyDialog
+        //console.log(`onCancelBtn...AddHocDialog?${wasAdHoc} now: and select:`,this.showAddyDialog,wasSelect)
+      }
+      //console.log(`onCancelBtn...was Select?${wasSelect} or adHoc?${wasAdHoc}`,this.showPickyDialog,this.showAddyDialog)
          
-        //call reset() as well??!?
+      //call reset()? prolly no need
     },
-    reset(){ //reset some vars...should use prolly
-        //this.force = false  || this.doForce = false ?!? ...toTest*** with both
+    reset(){ 
+      //console.log(`RESETTIN..`,this.showAddyDialog,this.showPickyDialog)
+      this.showAddyDialog = false
+      this.showPickyDialog = false
 
     }
   }

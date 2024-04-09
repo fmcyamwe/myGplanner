@@ -429,6 +429,12 @@ export const useGoalStore = defineStore('allGoals', () => {
         let mains = this.getMainGoals
         let subs =  this.getSubGoals
 
+        let sorty = (a, b) => { //could still be out of order of creation due to id generation(see above when adding)....
+            if (a.id > b.id) return 1; 
+            if (a.id == b.id) return 0; 
+            if (a.id < b.id) return -1;
+        }
+
         let findSubGoals = parentID => {
             let map = []
             //let allSubGoals = this.getSubGoals
@@ -449,7 +455,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         let tree = []
 
         mains.forEach(goal => {
-            let toAdd = {//add something else?!?--details?!?
+            let toAdd = {//anything else?!?
+                id: goal.id, //for sorting....
                 label: `${goal.id} - ${goal?.title.trim()} (${goal?.priority})`,
                 details:`${goal.details}`,
                 color:`${goal?.bgcolor}`,
@@ -463,15 +470,30 @@ export const useGoalStore = defineStore('allGoals', () => {
                 let cM = subG[i].canMove ? 'Mv' : '#'
                 let alt = subG[i].isAlternative ? 'Alt' : '#'
                 toAdd.children.push({
+                    id: subG[i].id, //for sorting....
                     label: `${subG[i].id} -- ${subG[i]?.title.trim()} (${subG[i]?.score})`, //canMove and inDefault at end
                     details: `${subG[i]?.time} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`, // >> 
                     color:`${goal?.bgcolor}`, //toSee look...
                     isChildren:true,
                 })
             }
+            //console.log("Childy"+goal.id,JSON.parse(JSON.stringify(toAdd.children)))
 
-            tree.push(toAdd)
+            let tC = toAdd.children
+
+            tC.sort(sorty)
+            toAdd.children = tC
+
+            //console.log("Childy-After"+goal.id,JSON.parse(JSON.stringify(tC)),JSON.parse(JSON.stringify(toAdd.children)))
+
+            tree.push(toAdd) // children.sort(sorty) >> works? >>nope fucks up array...
         })
+
+        //console.log("Tree-Before",JSON.parse(JSON.stringify(tree)))
+
+        tree.sort(sorty)
+
+        //console.log("Tree-AFTER",JSON.parse(JSON.stringify(tree)))
 
         return tree
     }

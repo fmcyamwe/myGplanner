@@ -33,7 +33,7 @@
           auto-save >>needed to save when user clicks outside...mais bon.. better to have them click green btn for obviousness?!?tbd
         -->
        
-          <q-input v-model="scope.value" dense @keyup.enter="scope.set" hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
+          <q-input v-model="scope.value" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
             <template #after>
               <q-btn
               flat dense color="positive" icon="check_circle"
