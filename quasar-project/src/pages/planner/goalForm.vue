@@ -377,14 +377,26 @@ export default {
             } else if(goalType.value ==='sub') {
                 store.resetSub()
             } else {
-                console.log("Resetting all goals")
-                $q.notify({
+                $q.dialog({
+                title: 'Warning',
+                cancel: true,
+                message: `Reset all goals?`
+                }).onOk(() => {
+                    console.log("Resetting all goals")
+                    store.resetAll()
+                }).onCancel(() => {
+                    console.log('Cancelled!!')
+                })
+                /*
+                   $q.notify({
                     color: 'warning', //'positive'
                     position: 'top',
                     message: `Resetting all goals`,
                     icon: 'thumb_up'
                 })
-                store.resetAll()
+
+                */
+                
             }
         }
 
@@ -494,7 +506,7 @@ export default {
 
         function onLeftEdit ({reset},subId, pID) {
 
-            console.log(`Editing subgoal ${subId} from ${pID}...`)
+            //console.log(`Editing subgoal ${subId} from ${pID}...`)
 
             let subby = subGoals.value.filter(element => element.id == subId) //remember that filter returns an array!!
             let pGoally = mainGoals.value.filter(element => element.id == pID)

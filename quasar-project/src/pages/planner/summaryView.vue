@@ -118,79 +118,98 @@
       </q-card>
     </div>
   
-    <div v-else class="q-pa-xl bg-grey-9 text-white" style="max-width: 350px">
+    <div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
+      <div class="row justify-center"> Goals & Goal Events </div>
+      <q-separator />
+      <!--<q-space/> have to be inside qComponent-->
+      <br>
       <q-tree
         :nodes="treeGoals"
         node-key="label"
         v-model:expanded="expanded"
-        dark
-      />
-        <!--<template v-slot:default-header="prop">
+        no-connectors
+        dense
+        >
+  
+        <!--class="row items-center" :style="titleStyles(prop.node)"-->
+        <template v-slot:default-header="prop">
+            <div :class="classyColor(prop.node)">
+              <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm" />
+              <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+            </div>
+          </template>
+        <template v-slot:default-body="prop">
+            <div v-if="prop.node.isChildren">
+              <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+            </div>
+            <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+          </template>
+        </q-tree>
+    </div>
+          <!--<template v-slot:default-header="prop">
           <div class="row items-center">
             <q-icon :name="prop.node.icon || 'share'" color="orange" size="28px" class="q-mr-sm" />
             <div class="q-mr-sm text-weight-bold text-primary" size="28px" :color="prop.node.color">{{ prop.node.label }}</div>
           </div>
         </template>
       </q-tree>-->
-    </div>
   </div>
 </template>
+<script>
+import {
+  QCalendarTask,
+  today,
+  isBetweenDates,
+  parsed,
+  padNumber,
+  getMonthNames
+} from '@quasar/quasar-ui-qcalendar/src/QCalendarTask.js'
+import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
+import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
+import '@quasar/quasar-ui-qcalendar/src/QCalendarTask.sass'
+import { defineComponent } from 'vue'
+import NavigationBar from '../../components/NavigationBar.vue'
+import { useGoalStore } from 'stores/goalStorage'
+import { useQuasar } from 'quasar'
 
-  <script>
-  import {
-    QCalendarTask,
-    today,
-    isBetweenDates,
-    parsed,
-    padNumber,
-    getMonthNames
-  } from '@quasar/quasar-ui-qcalendar/src/QCalendarTask.js'
-  import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
-  import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
-  import '@quasar/quasar-ui-qcalendar/src/QCalendarTask.sass'
-  
-  import { defineComponent } from 'vue'
-  import NavigationBar from '../../components/NavigationBar.vue'
-  import { useGoalStore } from 'stores/goalStorage'
-  import { useQuasar } from 'quasar'
-  
-  export default defineComponent({
-    name: 'TaskDark',
-    components: {
-      NavigationBar,
-      QCalendarTask
-    },
-    data () {
-      return {
-        selectedDate: today(),
-        selectedMonth:'',
-        allMonths : getMonthNames('long', 'en-US'), //'short', 'en-US'
-        startDate: today(),
-        endDate: today(),
-        store: useGoalStore(),
-        tasks: [],
-        footerTasks: [
-          { title: 'TOTALS' }
-        ],
-        $q : useQuasar(), //umm $?
-        treeGoals:[],
-        expanded:[] //to hold expanding parentGoals...
-      }
-    },
-    computed: {
+export default defineComponent({
+  name: 'TaskDark',
+  components: {
+    NavigationBar,
+    QCalendarTask
+  },
+  data () {
+    return {
+      selectedDate: today(),
+      selectedMonth:'',
+      allMonths : getMonthNames('long', 'en-US'), //'short', 'en-US'
+      startDate: today(),
+      endDate: today(),
+      store: useGoalStore(),
+      tasks: [],
+      footerTasks: [
+        { title: 'TOTALS' }
+      ],
+      $q : useQuasar(), //umm $?
+      treeGoals:[],
+      expanded:[] //to hold expanding parentGoals...
+    }
+  },
+  computed: {
       /*badgeStyles (scope) {
         console.log("badgeStyles",scope)
         //const s = {}
         //s[ 'align-items' ] = 'flex-start'
         return {'color': 'gold'}
       }, */
-      /**
-       * Returns tasks between startDate and endDate (captured via onChange event)
-       */
-      parsedTasks () {
-        const start = parsed(this.startDate)
-        const end = parsed(this.endDate)
-        const tasks = []
+      
+    /**
+    * Returns tasks between startDate and endDate (captured via onChange event)
+    */
+    parsedTasks () {
+      const start = parsed(this.startDate)
+      const end = parsed(this.endDate)
+      const tasks = []
   
         for (let i = 0; i < this.tasks.length; ++i) {
           const task = this.tasks[ i ]
@@ -265,7 +284,9 @@
         //console.log("getLogged",val, extra)
         return val
       },
-  
+      classyColor(proppy){//bg-{color} or text-{color} in class
+        return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
+      },
       getLoggedSummary (date) {
         let total = 0
         //let num = 0

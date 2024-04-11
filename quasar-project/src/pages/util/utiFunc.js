@@ -22,6 +22,7 @@ export function applyStyles (event, type, timeStartPos = undefined, timeDuration
 
 export function pGColors() {
   return ['blue-grey',
+  'blue-grey-5', //toSee
   'grey-10', //grey
   'brown',
   'deep-orange',

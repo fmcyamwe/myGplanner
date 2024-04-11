@@ -163,7 +163,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[i].canMove = canMove
                 current[i].inDefaults = inDefaults
                 current[i].isAlternative = isAlternative
-                console.log("editSubGoal for",current[i], i)
+                //console.log("editSubGoal for",current[i], i)
                 break
             }
         }
@@ -184,6 +184,7 @@ export const useGoalStore = defineStore('allGoals', () => {
     function resetAll() {
         $q.localStorage.remove('subGoals')
         $q.localStorage.remove('mainGoals')
+        $q.localStorage.remove('AllDates')
         //remove schedule too prolly--todo**
 
         console.log("removed ALL")
@@ -435,6 +436,13 @@ export const useGoalStore = defineStore('allGoals', () => {
             if (a.id < b.id) return -1;
         }
 
+        let when = (timey) => {
+            if(!timey) return ''
+    
+            let o = timey.split(':')
+            return parseInt(o[0]) >= 12 ? "PM" : "AM" //let oAmPm = 
+        }
+
         let findSubGoals = parentID => {
             let map = []
             //let allSubGoals = this.getSubGoals
@@ -457,8 +465,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         mains.forEach(goal => {
             let toAdd = {//anything else?!?
                 id: goal.id, //for sorting....
-                label: `${goal.id} - ${goal?.title.trim()} (${goal?.priority})`,
-                details:`${goal.details}`,
+                label: ` ${goal?.title.trim()} (${goal?.priority})`,
+                details:`${goal.id}. ${goal.details}`,
                 color:`${goal?.bgcolor}`,
                 prio: goal?.priority, //for now in label...
                 children:[]
@@ -472,7 +480,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 toAdd.children.push({
                     id: subG[i].id, //for sorting....
                     label: `${subG[i].id} -- ${subG[i]?.title.trim()} (${subG[i]?.score})`, //canMove and inDefault at end
-                    details: `${subG[i]?.time} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`, // >> 
+                    details: `${subG[i]?.time}${when(subG[i]?.time)} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`, // >> 
                     color:`${goal?.bgcolor}`, //toSee look...
                     isChildren:true,
                 })
