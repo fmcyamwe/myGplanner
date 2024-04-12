@@ -1,6 +1,6 @@
 <template>
-<main class="page page--table">
- <div class="q-pa-md" style="max-width: 350px">
+<main class="page page--table q-pa-md" style="max-width: 400px">
+ <!--<div class="q-pa-md" style="max-width: 350px"> -->
     
     <!--<div class="text-white text-center">
         <q-btn
@@ -12,7 +12,7 @@
             label="Go Back"
             no-caps
         />
-    </div>-->
+    </div> -->
     <q-pull-to-refresh @refresh="refresh">
     <div>
         <q-form @submit="onSubmit" class="q-gutter-md form" >
@@ -195,22 +195,50 @@
              </q-card>
 
              <q-card v-if="!hasSubG(goal.id)">
-                <q-btn label="Delete goal?" type="reset" color="primary" noWrap push align="evenly" class="q-ml-sm"  @click.prevent="(e) => onParentDelete(goal.id,goal.title)" />
+                <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
+                OR
+                <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
              </q-card>
             </q-expansion-item>
      </transition-group>
     </q-list>
 
-    <!--<div v-for="[element, subby] in allGoals" :key="element.id" class="item"> //--allGoals.keys()
-        <q-card-section>
-            {{element.title}} >> {{element.details}} :: {{element.priority}} 
-        </q-card-section>
-        <div v-if="subby">
-            <q-card v-for="g in subby" :key="g.id" flat bordered>
-                {{g.title}} >> {{g.score}} At: {{g.time}} 
-            </q-card>
-        </div>
-    </div>  -->
+    <br>
+    <!--<div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
+        <div class="row justify-center"> All Goals </div>
+        <q-separator />
+        <br>
+        <q-tree
+          :nodes="treeGoals"
+          node-key="label"
+          v-model:expanded="expandedNodes"
+          v-model:selected="selected"
+          no-connectors
+          dense
+          default-expand-all>
+    
+          <template v-slot:default-header="prop">
+              <div :class="classyColor(prop.node)">
+                <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mx-sm" />
+                <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+              </div>
+            </template>
+          <template v-slot:default-body="prop">
+              <div v-if="prop.node.isChildren">
+                <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+              </div>
+              <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+            </template>
+        </q-tree> 
+    </div> -->
+    <!--below work But hard to change background via props(below)...cause using slot >> sigh...hard to expand when using select even
+          :selected-color="red"
+          :on-update:selected="euh"
+          selected-color="lime"
+        -->
+    <!--<div class="text-h6">Selected</div>
+    <div>{{ selected }}</div> -->
+
     </q-pull-to-refresh>
     <q-btn
         class="q-mt-xl"
@@ -230,7 +258,7 @@
         no-caps
         @click="doReset"
     />
- </div>
+ <!--</div> -->
 </main>
 </template>
 <script>
@@ -239,7 +267,7 @@ import { computed, ref, onMounted, onBeforeUnmount, watchEffect } from 'vue'  //
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
 import { pGColors } from '../util/utiFunc'
-//import { storeToRefs } from 'pinia' 
+
 
 export default {
     //components: {
@@ -251,7 +279,7 @@ export default {
         const goalTitle = ref('')
         const details = ref('')
         const bgcolor = ref('')
-        const avColors = ref(pGColors())
+        const avColors = ref([]) // oldie >> ref(pGColors())
         const time = ref('')
         const priority = ref(3)
         const duration = ref(15) //min of 30
@@ -263,7 +291,7 @@ export default {
         const goalType = ref('line') //so nothing is selected at first
         const pGoal = ref(null)
 
-        const howThis = ref(null) //watchEffect testing...not bad
+        const howThis = ref(null) //watchEffect testing...not bad--toRemove
 
         const mainGoals = ref(null) //computed(() => store.getMainGoals) //works except that reload cannot occur since these are read-only!
         const subGoals = ref(null) //computed(() => store.getSubGoals)
@@ -271,14 +299,19 @@ export default {
         const expanded = ref({})//ref(false)
 
         const buttonLabel = ref('Submit')
+
+        const treeGoals = ref([])
+        const expandedNodes = ref([]) //tree nodes expanded...
+        const selected = ref(null) //for edit testing...
         
+        //const red = ref('arrow')
         //----
         const $q = useQuasar()
         const store = useGoalStore()
 
         //const timer = ref(null)
         let timer 
-        let updatingSubG = null //to keep track of subgoalID when editing
+        let updatingSubG = null //to keep track of goalID when editing
 
         const hRefs = computed(() => store.headerRefs) //tosee if works
         const headers = computed(() => store.getHeaders) //ditto as above
@@ -286,35 +319,6 @@ export default {
         const allMGoals = computed(() => mainGoals.value) //oldie store.getMainGoals >> doesnt updates
 
         const showSubG = computed(() => goalType.value ==='main' ? false : true )
-
-        /*const hasSubG = computed((id) => {
-            let euh = getSubGoals(id) //works?
-            //console.log("mainGoals be empty?")
-            return euh.length > 0
-        }) //getSubGoals(id) false : true */
-
-        /*
-        const allGoals = computed(() => {  //what is the point of this again? toRemove**
-            let map = new Map()
-            if(!mainGoals.value){//try to use store.getMainGoals to see if updates on delete! >>nope
-                console.log("mainGoals be empty?")
-                return map
-            }
-            mainGoals.value.forEach(item => { 
-                const id = item.id
-                const matchingSubG = subGoals.value.filter(element => element.parentGoal == id)
-                if (matchingSubG) {
-                    //map[id] = matchingSubG  //{ ...item, ...matchingItem };
-                    map.set(item,matchingSubG)
-                } else {
-                    console.log("parent has no sub-goals",item)
-                    //map[id] = []
-                    map.set(item,[]) //
-                }
-            })
-            console.log("allGoals be",map.entries()) //JSON.stringify(allGoals,null,1)
-            return map
-        })*/
 
         watchEffect(() => {
             // tracks A0 and A1
@@ -331,22 +335,32 @@ export default {
         //const addMainG = () => store.addMainGoal() // use action..also that ';' be problem? nope
         //const addSubG = () => store.addSubGoal()
 
-        //TODO add a method to map the parent Goals to the subGoals**
-
         onMounted(() => {
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
+            let currentColors = []
             if(mainGoals.value){
                 mainGoals.value.forEach(item => {
                     expanded[item.id] = false
+
+                    currentColors.push(item.bgcolor)
                 })
             }
-            //console.log(`the component is now mounted.`)
+            let c = pGColors()
+            
+            avColors.value = c.filter(item => !currentColors.find(o => o == item)) //filter out already taken colors...
+
+            treeGoals.value = store.fetchGoalsTree() //no need mais bon!
+            //console.log(`the component is now mounted.`,currentColors, avColors.value)
         })
 
         onBeforeUnmount(() => {
             clearTimeout(timer)  //or with .value? >>no need when seclaring with 'let' 
         })
+
+        //function euh(t){
+        //    console.log(`euh...changed selected...`,t,this.selected.value)
+        //}
 
         function doPrint () {
             //console.log(headers) //not proper
@@ -387,16 +401,6 @@ export default {
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                 })
-                /*
-                   $q.notify({
-                    color: 'warning', //'positive'
-                    position: 'top',
-                    message: `Resetting all goals`,
-                    icon: 'thumb_up'
-                })
-
-                */
-                
             }
         }
 
@@ -404,55 +408,52 @@ export default {
             //console.log("onSubmit Goal of type:",goalType.value, buttonLabel.value)
             let action = buttonLabel.value === "Save" ? 'Save' : 'Add'
 
-            if (goalType.value ==='main') { //goal,details,color,priority
-                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
-            } else {//pGoal,title,score,time, duration, canMove
-                if(!pGoal.value){
+            if(action === "Save"){
+                editAction()
+                //editSubGoal()
+                //expanded.value[pId.id] = false //just so that it can be updated!
+                //buttonLabel.value = "Submit"
+            } else { //adding new goal
+                if (goalTitle.value.trim() == ''){
                     $q.notify({
                         color: 'negative',
                         position: 'top',
-                        message: 'A sub goal must have a parent goal',
+                        message: 'Cannot have an empty goal!',
                         icon: 'report_problem'
                     })
                     return
                 }
-                let pId = pGoal.value
-                if(action === "Save"){
-                    editSuGoal()
-                    expanded.value[pId.id] = false //just so that it can be updated!
 
-                    buttonLabel.value = "Submit"
-                } else{
-                    store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value)
-                    //console.log("Subgoal Goal added for parent:",pId.title)
+                if (goalType.value ==='main') {
+                    store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
+                } else {
+                    if(pGoal.value){
+                        let pId = pGoal.value
+                        store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value)
+                        console.log("Subgoal Goal added for parent:",pId.title)
+                    }else{//subG have to have a parentG
+                        $q.notify({
+                            color: 'negative',
+                            position: 'top',
+                            message: 'A sub goal must have a parent goal',
+                            icon: 'report_problem'
+                        })
+                        softReset() //soft reset valid here?!? toSee
+                        return
+                    }
                 }
+
             }
-        
-            
+
             $q.notify({
-                    color: 'positive',
-                    position: 'top',
-                    message: `Success ${action} for "${goalTitle.value}"`,
-                    icon: 'thumb_up'
-                })
+                color: 'positive',
+                position: 'top',
+                message: `Success ${action} for "${goalTitle.value}"`,
+                icon: 'thumb_up'
+            })
             
             hardReset() //reset variables
             //reload() //no need here even and have to interact with page to see list change smh
-        }
-
-        function editSuGoal(){
-            if(updatingSubG){
-                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value) 
-                //bon no need to pass parentGoal in case it has changed(should add this later as would involve more work to change both stored maps!!)
-
-            }else{
-                $q.notify({
-                    color: 'negative',
-                    position: 'top',
-                    message: `ERROR: No subgoalId to edit found!`,
-                    icon: 'report_problem'
-                })
-            }
         }
 
         function hasSubG(parentID){
@@ -460,9 +461,9 @@ export default {
             return euh.length > 0
         }
 
-        function getMainGoals(){ //for testing updates but doesnt either smh
-            return mainGoals.value //store.getMainGoals
-        }
+        //function getMainGoals(){ //for testing updates but doesnt either smh
+        //    return mainGoals.value //store.getMainGoals
+        //}
 
         function getSubGoals(parentID){
             const map = []
@@ -508,8 +509,8 @@ export default {
 
             //console.log(`Editing subgoal ${subId} from ${pID}...`)
 
-            let subby = subGoals.value.filter(element => element.id == subId) //remember that filter returns an array!!
-            let pGoally = mainGoals.value.filter(element => element.id == pID)
+            let subby = subGoals.value.find(element => element.id == subId) //filter returns an array!! >>better to use find!
+            let pGoally = mainGoals.value.find(element => element.id == pID)
 
             //console.log("subgoal be with parent", subby[0],pGoally[0])
 
@@ -518,14 +519,14 @@ export default {
 
                 goalType.value = 'sub' //updates
 
-                goalTitle.value = subby[0].title
-                pGoal.value = pGoally[0]
-                time.value = subby[0].time 
-                score.value = subby[0].score
-                duration.value = parseInt(subby[0].duration)
-                canMove.value = subby[0].canMove
-                inDefaults.value = subby[0].inDefaults
-                isAlternative.value = subby[0].isAlternative
+                goalTitle.value = subby.title //oldie when using filter >> subby[0].title
+                pGoal.value = pGoally
+                time.value = subby.time 
+                score.value = subby.score
+                duration.value = parseInt(subby.duration)
+                canMove.value = subby.canMove
+                inDefaults.value = subby.inDefaults
+                isAlternative.value = subby.isAlternative
 
                 updatingSubG = subId  //keep track of this for submit
 
@@ -543,16 +544,13 @@ export default {
             finalize(reset) //umm use this or below? prolly both really
             expanded.value[pID] = true
         }
-
-        //function getParent(id){ //kinda redundant...
-        //    return mainGoals.value.filter(element => element.id == id)
-        //}
         
-        function onParentDelete(id,title){ //annoyance that need to reload page to see change
+        function onParentAction(action,id,title){ //annoyance that need to reload page to see change
             //let pG = getParent(id)
-            console.log(`onParentDelete ${id}`, title)
+            console.log(`onParentAction:${action} for> ${id}`, title)
 
-            $q.dialog({
+            if (action == 'del'){
+                $q.dialog({
                 title: 'Warning',
                 cancel: true,
                 message: `Delete Parent Goal "${title}" ?`  //also check & remove past scheduled evts?!? tbd*** 
@@ -561,12 +559,74 @@ export default {
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                     expanded.value[id] = false
-                })//.onDismiss(() => {
-                  //  console.log('dismiss!!') //toUse*** for cleanup maybe?!?
+                })//.onDismiss(() => { //no need
+                  //  console.log('dismiss!!')
                   //  reload()
                 //})            
-                //return //?
-            //store.removeMaingoal(id, false)
+                //return
+            } else if(action == 'edit'){ // store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
+                let pGoally = mainGoals.value.find(elt => elt.id == id)
+                if(pGoally) {
+                    buttonLabel.value = "Save"
+
+                    goalType.value = 'main' //update and make distinction of the edited goal...
+
+                    pGoal.value = pGoally  //with setting this, is updatingSubG needed below? toSee...
+
+                    goalTitle.value = pGoally.title
+                    details.value = pGoally.details
+                    bgcolor.value = pGoally.bgcolor
+                    priority.value = pGoally.priority
+                
+                    updatingSubG = id  //for submit...redundant though...
+                }else {
+                    $q.notify({
+                        color: 'negative',
+                        position: 'top',
+                        message: `ERROR during edit action for Goal: '${title}'...not found!`,
+                        icon: 'report_problem'
+                    })
+
+                    console.log(`ERROR No info for ${id} '${title}' to edit!!`)
+                }
+            } else{
+                console.log('ERROR...unknow action!')
+                expanded.value[id] = false //mmm?
+            }
+        }
+
+        function editSubGoal(){
+            if(updatingSubG){
+                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value)
+            } else{
+                $q.notify({
+                    color: 'negative',
+                    position: 'top',
+                    message: `ERROR: No subgoalId to edit found!`,
+                    icon: 'report_problem'
+                })
+            }
+            //return?
+        }
+
+        function editAction(){ //for all edits
+            let pId = pGoal.value//umm should be present...toMonitor**
+            if (goalType.value ==='main') {
+                if(updatingSubG && pId?.id == updatingSubG){ //second check just in case...
+                    store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value)
+                    
+                    expanded.value[pId?.id] = false  //umm to see...
+                } else{
+                    console.log("Error when Edit Parent Goal...inconsistent or not found!",updatingSubG,pId)//toSee***
+                }
+            } else { //subgoal 
+                editSubGoal()
+                expanded.value[pId?.id] = false //just so that it can be updated!
+            }
+
+            buttonLabel.value = "Submit"
+
+            //hardReset() //reset variables ...done at call site--toMonitor
         }
         
         function refresh(done) {  //test to drag for refresh--toREview***
@@ -582,17 +642,18 @@ export default {
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
 
+            treeGoals.value = store.fetchGoalsTree()
             //window.location.reload() //so inelegant
 
-            console.log("reloadin...", subGoals.value,mainGoals.value)
+            console.log("reloadin...", subGoals.value,mainGoals.value,treeGoals.value)
             
         }
 
-        function softReset(){ //for when changing goalType..keep stuff
+        function softReset(){ //for when changing goalType..keep stuff...toReview--especially when in edit***
             goalTitle.value = goalTitle.value  || ' ' //subvert the rule check with space tho and add an extra space in beginnin..toReview***
             priority.value = priority.value || 3
 
-            //bon just in case...toReview prolly?
+            //bon just in case...
             time.value = time.value ||''
             duration.value = duration.value || 15
             details.value = details.value || ''
@@ -600,6 +661,8 @@ export default {
             canMove.value = canMove.value || false
 
             inDefaults.value = inDefaults.value || false
+
+            console.log("softResetting...with label as>>", buttonLabel.value) //toSee***
         }
 
         function hardReset(){
@@ -617,24 +680,29 @@ export default {
             isAlternative.value = false
 
             updatingSubG = null
+
+            console.log("hardReset...")
+        }
+        function classyColor(proppy){//bg-{color} or text-{color} in class
+            //if (proppy.label == this.selected){console.log("classyColor for selected..."); return 'text-white bg-red'} //works but not needed!
+            return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
         }
 
         return {
             showSubG,
             mainGoals,
             subGoals,
-            //subbyGoals, //test >>nope
             allMGoals,howThis,
             daRefs:hRefs,
             expanded, //see if can trigger close >>does!
             buttonLabel,
-           // allGoals,
+            expandedNodes,treeGoals,selected,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
             hasSubG,
             doPrint,
             onSubmit,doReset,getSubGoals,
-            onRightDelete,onLeftEdit,softReset,onParentDelete,refresh,
-            getMainGoals
+            onRightDelete,onLeftEdit,softReset,onParentAction,refresh,
+            classyColor //,euh
         }
     }
 }

@@ -104,6 +104,25 @@ export const useGoalStore = defineStore('allGoals', () => {
       return newID
     }
 
+    function editMainGoal(id,title,details,color,priority){
+        
+        //console.log("editMainGoal", id+ ' ' + title + ' ' + details + ' ' + color + ' ' +priority)
+        
+        let current = this.getMainGoals
+        
+        for( var i = 0; i < current.length; i++){ 
+            if (current[i].id === id) {
+                current[i].title = title.trim(),
+                current[i].details = details,
+                current[i].bgcolor = color
+                current[i].priority = priority
+                break
+            }
+        }
+                 
+        $q.localStorage.set('mainGoals', JSON.stringify(current))
+    }
+
     function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults,isAlternative) {
         
         //console.log(pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
@@ -216,7 +235,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         return current
     }
 
-    function removeMaingoal(goalId, clearSubToo) {// if 'clearSubToo', should also remove the subgoals--TODO**--
+    function removeMaingoal(goalId, clearSubToo) {// if 'clearSubToo' to also remove the subgoals >>redundant...
         let current = this.getMainGoals
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) { 
@@ -612,6 +631,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         addMainGoal,
         addSubGoal,
         editSubGoal,
+        editMainGoal,
         getGoalByTitle,
         saveSubProp,
         saveDailySchedule,

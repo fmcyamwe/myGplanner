@@ -127,7 +127,7 @@
               <!--class="row items-center" :style="titleStyles(prop.node)"-->
               <template v-slot:default-header="prop">
                   <div :class="classyColor(prop.node)">
-                    <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm" />
+                    <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm"/>
                     <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
                   </div>
                 </template>
