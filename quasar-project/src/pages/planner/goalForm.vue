@@ -158,7 +158,7 @@
     <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
         <q-item>
             <q-item-section>
-              <q-item-label overline>Swipe to Edit or Delete Goal</q-item-label>
+              <q-item-label overline class="q-mx-lg q-px-md" style="max-width:100%">Swipe to Edit or Delete Goal</q-item-label>
             </q-item-section>
          </q-item>
     
@@ -170,7 +170,9 @@
             :key="goal.id"
             :label="goal.title"
             :caption="goal.details"
+            popup
             expandSeparator
+            :header-class= "classyHeader(goal.bgcolor)"
             clickable>
             <!--<template v-slot:header></template> -->
         
@@ -187,8 +189,8 @@
                     </template>
 
                     <q-item>
-                    <q-item-section>{{subGoal.title}} > {{subGoal.time}}({{subGoal.duration}}) </q-item-section>
-                    <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}}</q-item-section>
+                        <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabe(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
+                        <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
                     </q-item>
                 </q-slide-item>
                 <q-separator :color="goal.bgcolor.toLocaleLowerCase()"/>
@@ -687,6 +689,22 @@ export default {
             //if (proppy.label == this.selected){console.log("classyColor for selected..."); return 'text-white bg-red'} //works but not needed!
             return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
         }
+        function classyHeader(att){
+            return 'text-white bg-'+att.toLocaleLowerCase()
+            //return `'text-white bg-'}${att.toLocaleLowerCase()} `  //row items-center ${proppy.isChildren ? 'text-' :  //oldie >> bg-${proppy.color}
+        }
+
+        function niceyLabe(att){
+            let when = (timey) => {
+                if(!timey) return ''
+
+                let o = timey.split(':')
+                return parseInt(o[0]) >= 12 ? "PM" : "AM" //let oAmPm = 
+            }
+
+            return `${att}${when(att)}`
+
+        }
 
         return {
             showSubG,
@@ -702,7 +720,7 @@ export default {
             doPrint,
             onSubmit,doReset,getSubGoals,
             onRightDelete,onLeftEdit,softReset,onParentAction,refresh,
-            classyColor //,euh
+            classyColor,classyHeader,niceyLabe //,euh
         }
     }
 }

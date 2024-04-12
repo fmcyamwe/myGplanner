@@ -484,8 +484,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         mains.forEach(goal => {
             let toAdd = {//anything else?!?
                 id: goal.id, //for sorting....
-                label: ` ${goal?.title.trim()} (${goal?.priority})`,
-                details:`${goal.id}. ${goal.details}`,
+                label: `${goal.id}) ${goal?.title.trim()}`,
+                details:`${goal.details} ==> Prio:${goal?.priority}`,
                 color:`${goal?.bgcolor}`,
                 prio: goal?.priority, //for now in label...
                 children:[]

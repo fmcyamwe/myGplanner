@@ -688,7 +688,7 @@ computed: {
       
     }
     else if (events.length === 2) {
-      //console.log("getDateEvents...LENGTH is 2?",dt, events) //bof when actual scheduled is just two evts!--weird that it does this calculation...prolly when overlapping times...
+      //console.log("getDateEvents...LENGTH is 2?",dt, events) //bof when actual scheduled is just two evts!--weird that it does this calculation...prolly when overlapping times? >> YEUP! very nice actually--prolly would need overlap check if more than 2 evts lool!
       // this example does no more than 2 events per day
       // check if the two events overlap and if so, select
       // left or right side alignment to prevent overlap
@@ -697,7 +697,7 @@ computed: {
       const startTime2 = addToDate(parsed(events[ 1 ].date), { minute: parseTime(events[ 1 ].time) })
       const endTime2 = addToDate(startTime2, { minute: events[ 1 ].duration })
       if (isBetweenDates(startTime2, startTime, endTime, true) || isBetweenDates(endTime2, startTime, endTime, true)) {
-        console.log("getDateEvents...LENGTH==2..LEFT/RIGHT 'TWIX",startTime, endTime,startTime2,endTime2) 
+        console.log("getDateEvents...LENGTH==2..LEFT/RIGHT 'TWIX")  //,startTime, endTime,startTime2,endTime2
         //toSee look and when does this occurs?!?--AT EDGE of day! two evts are next to each other(bleeding into next day!--huh handle? 
         //>part of evt into next...OR dont allow for evt to end past midnight?!?(easier) )
         events[ 0 ].side = 'left'
@@ -1237,8 +1237,8 @@ computed: {
 
     if(this.isViewingPast()){
       if (evt.duration < 30){ //dont do this for small evts!
-        console.log("removeEvtInSchedule...baah too smoll smoll",evt.title,evt.duration)
-        this.doNotify("Removing from the past is a no no!")
+        //console.log("removeEvtInSchedule...baah too smoll smoll",evt.title,evt.duration)
+        this.doNotify("Removing from the past too smoll smoll is no no!")
         return
       }
       this.chooseAlternatives(evt)
@@ -2941,20 +2941,34 @@ computed: {
 
     let compareTime = addToDate(timey,{ minute: 0})
     let tTime = this.getTimeNumber(compareTime)
-    //addToDate(compareTime, { minute: parseInt(duration)})
-    //could add duration to get endTime prolly...if needed.
-    let midnight = new Date()
-    midnight.setHours( 24 )
-    midnight.setMinutes( 0 )
-    midnight.setSeconds( 0 )
-    midnight.setMilliseconds( 0 )
     
-    let middy = parseDate(midnight)
+    //could add duration to get endTime prolly...if needed.
+    //let midnight = new Date() //issue when in future as would use current day's
+    //let midnighty =new Date(timey.date) //meh midnight of day..not helpful
+    let e = addToDate(timey, { day: 1}) //this proper to use next day's
+    let midnightiey = new Date(e.date)
+    //midnight.setDate() //? >>nah
+    //midnight.setHours( 24 )
+    //midnight.setMinutes( 0 )
+    //midnight.setSeconds( 0 )
+    //midnight.setMilliseconds( 0 )
+
+    //midnighty.setHours( 24 )
+    //midnighty.setMinutes( 0 )
+    //midnighty.setSeconds( 0 )
+    //midnighty.setMilliseconds( 0 )
+
+    midnightiey.setHours( 24 )
+    midnightiey.setMinutes( 0 )
+    midnightiey.setSeconds( 0 )
+    midnightiey.setMilliseconds( 0 )
+    
+    let middy = parseDate(midnightiey)
     
     let isClose = Math.floor((diffTimestamp(compareTime,middy)/1000)/60)  //minutes till midnight
     
     if (isClose < duration) {//so when isClose < duration, then would bleed into next day!!--Dont allow!!!
-      console.log("tooClose to midnight eh...:(",isClose, duration)
+      console.log("tooClose to midnight eh...:(",isClose, e, midnightiey)
       return true 
     }
      //diffTimestamp(now,endTime) //endTimes < now would be that evt hasnt ended! 
@@ -3064,7 +3078,7 @@ computed: {
   },
   //hide the main dialog and show the pickEvent dialog
   closingDialog(){ //should add flag to not actually closeDialog?!? >>no need as using single dialog now!
-    console.log("closingDialog...scheduleDialog") 
+    //console.log("closingDialog...scheduleDialog") 
     
     this.addEventDialog = false
     this.reset() //just in case...toSee if not too much...
@@ -3190,8 +3204,9 @@ computed: {
       this.reset()
     }
 
-    if (this.scheduledEvents.length > 0){
-      this.confirmAction("Overwrite current Evts?","OK", doOverwrite, doCancel)
+    if (this.scheduledEvents.length > 0 && !this.isViewingPast()){
+      let mess = hasEvents ? "Reload? saved schedule of: "+this.currentDate : "Overwrite current Evts?"
+      this.confirmAction(mess,"OK", doOverwrite, doCancel)
     } else {
       doOverwrite()
     } 
