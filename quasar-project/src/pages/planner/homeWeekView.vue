@@ -237,7 +237,9 @@ export default defineComponent({
         if (!map[ event.date ]) {
           map[ event.date ] = []
         }
+
         map[ event.date ].push(event)
+
         if (event.days) {
           console.log(`eventsMap multiple days? event for ${event.date}`, event.days) //when this happens? could happen if add #days--except start from the event.date + #days---meh to see about useing
           let timestamp = parseTimestamp(event.date)
@@ -251,6 +253,7 @@ export default defineComponent({
           } while (--days > 0)
         }
       })
+      
       //console.log(`eventsMap`,map)
       return map
     },
