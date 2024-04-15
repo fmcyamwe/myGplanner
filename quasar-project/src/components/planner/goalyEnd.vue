@@ -4,16 +4,33 @@
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
         <div style="max-width: 25px; min-width: 25px;"></div> $emit('endNow', id)
       -->
-      {{ `${title} (${score})`}}
-      <q-tooltip>{{ details }}</q-tooltip>
+      <div class="q-pl-md">
+        {{ ` ${title} (${score})`}}
+      </div>
+      <q-tooltip>{{ id+") "+ details }}</q-tooltip>
+
+      <div :style="endNowBtnStyle">
+        <q-btn
+        no-caps
+        label="Add5"
+        @click="wannaAdd(5)"
+        /> 
+        
+        <q-btn
+        no-caps
+        label="Add10"
+        class="q-mx-md"
+        @click="wannaAdd(10)"
+        />
+        <q-separator :vertical="true"/>
 
         <q-btn
         no-caps
-        class="button"
         label="End-Now"
-        :style="endNowBtnStyle"
         @click="wannaEnd"
-        />
+        /> <!--:style="endNowBtnStyle" class="button"-->
+
+      </div>
         <!--
         :label="EndNow"
         <div class="ellipsis">  :style="userStyle"  class="inputBtn"
@@ -30,6 +47,8 @@
           :validate="scoreValidation" 
           @hide="scoreValidation">>TOADD if adding validate function
           
+           //counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...
+           
           auto-save >>needed to save when user clicks outside...mais bon.. better to have them click green btn for obviousness?!?tbd
         -->
        
@@ -58,7 +77,7 @@
             />
             </template> -->
         </q-popup-edit>
-      </div>
+    </div>
 </template>
   
 <script>
@@ -103,13 +122,14 @@ import { defineComponent,ref } from 'vue'
       //'update:model-value', //redundant since not writing back to parent?--or should have this still for binding via v-model? >>no need
       'saveScore',
       'endNow',
-      'deleteNow'
+      'deleteNow',
+      'addMins'
     ],
     computed: { //bon use other methods as these are not useful...
       aScore:{
         get(){return this.score},
         set(value){
-          console.log(`aScore getting set`,value, this.id) 
+          //console.log(`aScore getting set`,value, this.id) 
           //this.$emit('saveScore', value, this.id) //auto-save does update it? >>does!
           //let e = this.aScoreValidation >>dont work..some side-effect error..cause it's in computed section...
           //def roundabout way to validate instead of using :validate smh..toReview **
@@ -124,8 +144,6 @@ import { defineComponent,ref } from 'vue'
           console.log(`aScore remove?`, this.id) 
         }
       },
-      //alert( "Widget".includes("id") ); // true
-      //alert( "Widget".includes("id", 3) ); // false, from position 3 there is no "id"
        /*neither the below smh
        aScoreValidation(val){ //8on9
         console.log(`scoreValidation got`,val, this.id)
@@ -141,14 +159,7 @@ import { defineComponent,ref } from 'vue'
 
         return true
 
-      },
-     overdueIconStyle () {
-        return {
-          color: (this.daysOver === 0 ? 'inherit' : 'red'),
-          'max-width': '25px',
-          'min-width': '25px'
-        
-      },}*/
+      },*/
       userIconStyle () {
         return {
           color: this.disabledScore === true ? 'red' : 'blue',
@@ -160,10 +171,11 @@ import { defineComponent,ref } from 'vue'
       //},
       endNowBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
         return {
-          display: (this.disabledScore === true && this.happeningNow === true) ? 'block' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
-          'text-align': 'right',
+          display: (this.disabledScore === true && this.happeningNow === true) ? 'flex' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
+          'text-align': 'center',
           'margin-left': '32em',
-          'height':'auto'   // auto
+          'height':'auto',   // auto //'margin': '0 auto',
+          //'border':'3px solid red'
         }
       }
     },
@@ -178,8 +190,12 @@ import { defineComponent,ref } from 'vue'
         this.$emit('deleteNow', this.id) //no need for this.id either!!--toReview**
       },
       wannaEnd(){
-        console.log("eeeuh wish to end for", this.id, this.disabledScore ,this.happeningNow )
+        //console.log("eeeuh wish to end for", this.id, this.disabledScore ,this.happeningNow )
         this.$emit('endNow', this.id)
+      },
+      wannaAdd(num){
+       // console.log("oooh adding "+num, "for:"+ this.id)
+        this.$emit('addMins', this.id,num)
       },
       aScorey(val){
         //console.log(`scoreValidation got`,val, this.id)
@@ -216,4 +232,9 @@ import { defineComponent,ref } from 'vue'
   justify-content: center
   align-items: center
   height: 100%
+
+.btns
+  text-align: right
+  margin-left: 32em
+  height:auto
 </style>
