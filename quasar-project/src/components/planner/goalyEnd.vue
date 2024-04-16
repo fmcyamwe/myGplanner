@@ -7,7 +7,7 @@
       <div class="q-pl-md">
         {{ ` ${title} (${score})`}}
       </div>
-      <q-tooltip>{{ id+") "+ details }}</q-tooltip>
+      <q-tooltip>{{ "("+id+") "+ details }}</q-tooltip>
 
       <div :style="endNowBtnStyle">
         <q-btn
@@ -233,8 +233,4 @@ import { defineComponent,ref } from 'vue'
   align-items: center
   height: 100%
 
-.btns
-  text-align: right
-  margin-left: 32em
-  height:auto
 </style>

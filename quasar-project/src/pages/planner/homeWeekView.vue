@@ -327,7 +327,7 @@ export default defineComponent({
       }
       //console.log(`getEvents ${dt}`, events.length) //number of evts scheduled on this day...can use to calc largest interval height
       if (events.length > this.mostEvts){
-        console.log(`getEvents hiiigh ${dt}`,events.length)
+        //console.log(`getEvents hiiigh ${dt}`,events.length)
         this.mostEvts = events.length
       }
       return events
