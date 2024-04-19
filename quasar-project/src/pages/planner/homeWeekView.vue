@@ -1,5 +1,13 @@
 <template>
     <q-page> <!-- class="flex flex-center"-->
+      <q-splitter
+      v-model="splitterModel"
+      :limits="[50, 100]"
+      style="height: 600px"
+    > <!--limits here mean that :before slot doesnt get less than 50%-->
+
+    <template v-slot:before>
+      <div class="q-pa-md">
         <navigation-bar
             @today="onToday"
             @prev="onPrev"
@@ -109,8 +117,11 @@
                label="Goals"
                no-caps
             />
-          </div>
-
+        </div>
+      </div>
+    </template>
+    <template v-slot:after>
+      <div class="q-pa-md">
           <div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
             <div class="row justify-center"> Goals & Goal Events </div>
             <q-separator />
@@ -139,7 +150,10 @@
                 </template>
               </q-tree>
           </div>
-    </q-page>
+      </div>
+    </template>
+    </q-splitter>
+  </q-page>
 </template>
 <script>
 import { defineComponent, ref} from 'vue'  //computed, onBeforeMount
@@ -185,7 +199,8 @@ export default defineComponent({
       events: [], //should rename this...
       mostEvts:5, //huh just to set the interval-height for proper spacing..default or things are squished badly when empty
       treeGoals:ref([]), //umm ref does anything?!?
-      expanded:ref([]) //to hold expanding parentGoals...
+      expanded:ref([]), //to hold expanding parentGoals...
+      splitterModel: ref(70) // start at 70%
     }
   },
   beforeMount() {

@@ -3376,7 +3376,7 @@ computed: {
     let isClose = Math.floor((diffTimestamp(compareTime,middy)/1000)/60)  //minutes till midnight
     
     if (isClose < duration) {//so when isClose < duration, then would bleed into next day!!--Dont allow!!!
-      console.log("tooClose to midnight eh...:(",isClose, e, midnightiey)
+      console.log("tooClose to midnight eh...:(",isClose) // e, midnightiey
       return true 
     }
      //diffTimestamp(now,endTime) //endTimes < now would be that evt hasnt ended! 
@@ -3754,9 +3754,9 @@ computed: {
         this.updateCurrentSchedule()
       }
 
-      if (toReload.some(x => x.time == '')){
+      if (toReload.some(x => x.time == '')){ //dont add evts without any time!
         toReload = toReload.filter(x => x.time != '')
-        this.doNotify(`Some defaults Evts without default time not included`, "warning",'top')
+        this.doNotify(`Some Evts without set time not included, Manually Add them.`, "warning",'top')
       }
 
       console.log(`scheduleDefaults:${this.currentDate} with '${flag}'`,toReload.length,this.scheduledEvents.length) //JSON.parse(JSON.stringify(toReload))

@@ -1,158 +1,164 @@
 <template>
     <div class="subcontent">
-      
-      <navigation-bar
-        @today="onToday"
-        @prev="onPrev"
-        @next="onNext"
-      />
+      <q-splitter
+      v-model="splitterModel"
+      :limits="[50, 100]"
+      style="height: 600px"
+    > <!--limits here mean that :before slot doesnt get less than 50%-->
+    <template v-slot:before>
+      <div class="q-pa-md">
+        <navigation-bar
+          @today="onToday"
+          @prev="onPrev"
+          @next="onNext"
+        />
 
-      <div class="row justify-center">
-        <div style="display: flex; max-width: 800px; width: 100%;">
-          <q-calendar-task
-            ref="calendar"
-            v-model="selectedDate"
-            v-model:model-tasks="parsedTasks"
-            v-model:model-footer="footerTasks"
-            view="month"
-            :task-width="240"
-            :cell-width="75"
-            task-key="key"
-            :min-weekday-length="2"
-            :weekday-class="weekdayClass"
-            :day-class="dayClass"
-            :footer-day-class="footerDayClass"
-            :focus-type="['weekday', 'date', 'task']"
-            dark
-            focusable
-            hoverable
-            animated
-            bordered
-            @change="onChange"
-            @moved="onMoved"
-            @click-date="onClickDate"
-            @click-day="onClickDay"
-            @click-head-day="onClickHeadDay"
-          >
-          <template #head-tasks="{ /* scope */ }">
-            <div
-              class="header ellipsis"
-              style="font-weight: 600"
+        <div class="row justify-center">
+          <div style="display: flex; max-width: 800px; width: 100%;">
+            <q-calendar-task
+              ref="calendar"
+              v-model="selectedDate"
+              v-model:model-tasks="parsedTasks"
+              v-model:model-footer="footerTasks"
+              view="month"
+              :task-width="240"
+              :cell-width="75"
+              task-key="key"
+              :min-weekday-length="2"
+              :weekday-class="weekdayClass"
+              :day-class="dayClass"
+              :footer-day-class="footerDayClass"
+              :focus-type="['weekday', 'date', 'task']"
+              dark
+              focusable
+              hoverable
+              animated
+              bordered
+              @change="onChange"
+              @moved="onMoved"
+              @click-date="onClickDate"
+              @click-day="onClickDay"
+              @click-head-day="onClickHeadDay"
             >
-              <div class="issue ellipsis">{{getViewedMonth}}</div>
-              <div class="key">Key</div>
-              <div class="logged">Logged</div>
-            </div>
-          </template>
-  
-          <template #task="{ scope }">
-            <template
-              v-for="task in getTasks(scope.start, scope.end, scope.task)"
-              :key="task.key"
-            >
-              <div class="header ellipsis">
-                <div class="issue ellipsis" :style="badgeStyles(scope.task)" >
-                  {{ scope.task.title }}
-                    <!--here for child, try to indent somehow as well as color for parentGoal...toDO**  -->
+            <template #head-tasks="{ /* scope */ }">
+              <div
+                class="header ellipsis"
+                style="font-weight: 600"
+              >
+                <div class="issue ellipsis">{{getViewedMonth}}</div>
+                <div class="key">Key</div>
+                <div class="logged">Logged</div>
+              </div>
+            </template>
+    
+            <template #task="{ scope }">
+              <template
+                v-for="task in getTasks(scope.start, scope.end, scope.task)"
+                :key="task.key"
+              >
+                <div class="header ellipsis">
+                  <div class="issue ellipsis" :style="badgeStyles(scope.task)" >
+                    {{ scope.task.title }}
+                      <!--here for child, try to indent somehow as well as color for parentGoal...toDO**  -->
+                  </div>
+                  <div class="key">{{ scope.task.key }}</div>
+                  <div class="logged">{{ sum(scope.start, scope.end, scope.task) }}</div>
                 </div>
-                <div class="key">{{ scope.task.key }}</div>
-                <div class="logged">{{ sum(scope.start, scope.end, scope.task) }}</div>
+              </template>
+            </template>
+    
+            <template #day="{ scope }">
+              <template
+                v-for="time in getLogged(scope.timestamp.date, scope.task.logged)"
+                :key="time"
+              >
+                <div
+                  v-if="scope.task.children !== void 0"
+                  class="logged-time"
+                  style="font-weight: 800;"
+                >
+                  {{ time.logged }}
+                </div>
+                <div
+                  v-else
+                  class="logged-time"
+                >
+                  {{ time.logged }}
+                </div>
+              </template>
+            </template>
+    
+            <template #footer-task="{ scope }">
+              <div class="summary ellipsis">
+                <div class="title ellipsis">{{ scope.footer.title }}</div>
+                <div class="total">{{ totals(scope.start, scope.end) }}</div>
               </div>
             </template>
-          </template>
-  
-          <template #day="{ scope }">
-            <template
-              v-for="time in getLogged(scope.timestamp.date, scope.task.logged)"
-              :key="time"
-            >
-              <div
-                v-if="scope.task.children !== void 0"
-                class="logged-time"
-                style="font-weight: 800;"
-              >
-                {{ time.logged }}
-              </div>
-              <div
-                v-else
-                class="logged-time"
-              >
-                {{ time.logged }}
-              </div>
+    
+            <template #footer-day="{ scope }">
+              <div class="logged-time">{{ getLoggedSummary(scope.timestamp.date) }}</div>
             </template>
-          </template>
-  
-          <template #footer-task="{ scope }">
-            <div class="summary ellipsis">
-              <div class="title ellipsis">{{ scope.footer.title }}</div>
-              <div class="total">{{ totals(scope.start, scope.end) }}</div>
-            </div>
-          </template>
-  
-          <template #footer-day="{ scope }">
-            <div class="logged-time">{{ getLoggedSummary(scope.timestamp.date) }}</div>
-          </template>
-        </q-calendar-task>
-      </div>
-    </div>
-    <br>
-    <div v-if="tasks.length <= 0" class="column justify-center items-center">
-      <q-card>
-        1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
-      </q-card>
-      <q-separator />
-      <q-card>
-        2. Go to Schedule to see a daily schedule. Drag scheduled events to new timeslots or click in calendar to add an event.
-      </q-card>
-      <q-separator />
-      <q-card>
-        3. Reload a saved daily schedule or defaults or choose minimal score events to schedule. Fix any scheduling conflicts.
-      </q-card>
-      <q-separator />
-      <q-card>
-        4. Save the daily schedule (dont forget to update their score as needed!)
-      </q-card>
-      <q-separator />
-      <q-card>
-        5. Check out the summary of all goals here!
-      </q-card>
-    </div>
-  
-    <div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
-      <div class="row justify-center"> Goals & Goal Events </div>
-      <q-separator />
-      <!--<q-space/> have to be inside qComponent-->
-      <br>
-      <q-tree
-        :nodes="treeGoals"
-        node-key="label"
-        v-model:expanded="expanded"
-        no-connectors
-        dense
-        >
-  
-        <!--class="row items-center" :style="titleStyles(prop.node)"-->
-        <template v-slot:default-header="prop">
-            <div :class="classyColor(prop.node)">
-              <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm" />
-              <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
-            </div>
-          </template>
-        <template v-slot:default-body="prop">
-            <div v-if="prop.node.isChildren">
-              <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
-            </div>
-            <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
-          </template>
-        </q-tree>
-    </div>
-          <!--<template v-slot:default-header="prop">
-          <div class="row items-center">
-            <q-icon :name="prop.node.icon || 'share'" color="orange" size="28px" class="q-mr-sm" />
-            <div class="q-mr-sm text-weight-bold text-primary" size="28px" :color="prop.node.color">{{ prop.node.label }}</div>
+          </q-calendar-task>
           </div>
-        </template>
-      </q-tree>-->
+        </div>
+        <br>
+        <div v-if="tasks.length <= 0" class="column justify-center items-center">
+          <q-card>
+            1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
+          </q-card>
+          <q-separator />
+          <q-card>
+            2. Go to Schedule to see a daily schedule. Drag scheduled events to new timeslots or click in calendar to add an event.
+          </q-card>
+          <q-separator />
+          <q-card>
+            3. Reload a saved daily schedule or defaults or choose minimal score events to schedule. Fix any scheduling conflicts.
+          </q-card>
+          <q-separator />
+          <q-card>
+            4. Save the daily schedule (dont forget to update their score as needed!)
+          </q-card>
+          <q-separator />
+          <q-card>
+            5. Check out the summary of all goals here!
+          </q-card>
+        </div>
+      </div>
+    </template>
+
+    <template v-slot:after>
+      <div class="q-pa-md">
+        <div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
+          <div class="row justify-center"> Goals & Goal Events </div>
+          <q-separator />
+          <!--<q-space/> have to be inside qComponent-->
+          <br>
+          <q-tree
+            :nodes="treeGoals"
+            node-key="label"
+            v-model:expanded="expanded"
+            no-connectors
+            dense
+            >
+      
+            <!--class="row items-center" :style="titleStyles(prop.node)"-->
+            <template v-slot:default-header="prop">
+                <div :class="classyColor(prop.node)">
+                  <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm" />
+                  <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+                </div>
+              </template>
+            <template v-slot:default-body="prop">
+                <div v-if="prop.node.isChildren">
+                  <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+                </div>
+                <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+              </template>
+            </q-tree>
+        </div>
+      </div>
+    </template>
+    </q-splitter>
   </div>
 </template>
 <script>
@@ -167,7 +173,7 @@ import {
 import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarTask.sass'
-import { defineComponent } from 'vue'
+import { defineComponent,ref } from 'vue'
 import NavigationBar from '../../components/NavigationBar.vue'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
@@ -192,7 +198,9 @@ export default defineComponent({
       ],
       $q : useQuasar(), //umm $?
       treeGoals:[],
-      expanded:[] //to hold expanding parentGoals...
+      expanded:[], //to hold expanding parentGoals...
+
+      splitterModel: ref(70) // start at 70%
     }
   },
   computed: {
@@ -372,28 +380,6 @@ export default defineComponent({
         return {
           'task__day--style': true
         }
-
-        //bon doesnt seem to hold these values >>better approach above in badgeStyles()
-        /*return {
-          'task__day--style':false,
-          'padding-left': data.scope.task?.isChild ? '100px' : '2px', 
-          'color': data.scope.task?.color ? "white" : "red"
-        } */
-        /*if (data.scope.task?.color){
-          console.log("PGoal", data.scope.task.color)
-          s['background-color'] = data.scope.task.color
-          s['color'] = data.scope.task.color
-          //s.color = data.scope.task?.color
-        }
-        if (data.scope.task?.isChild){
-          console.log("subGoal", data.scope.task?.isChild)
-          s['padding-left'] = '1px'
-        }*/
-
-        //return s
-        //return {
-        //  'task__day--style': true
-        //}
       },
   
       footerDayClass (data) {
