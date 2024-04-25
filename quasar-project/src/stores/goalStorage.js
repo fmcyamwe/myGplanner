@@ -469,7 +469,6 @@ export const useGoalStore = defineStore('allGoals', () => {
                 //console.log("No subgoals")
                 return map
             }
-            //map = subs.filter(x => x.parentGoal == parentID)
 
             subs.forEach(event => {
                 if (event.parentGoal == parentID) {
@@ -575,7 +574,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 key: withParent ? `${withParent}-${task.id}` : task.id,
                 logged:[], 
                 //logged: daDs[task.id] || [], //gotta assign empty eh!
-                expanded:false, //true works? >>does!
+                expanded:true, //meh expand by default...
                 color:task?.bgcolor, //only parents have colors...
                 isChild: withParent ? true : false
             }
@@ -583,7 +582,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 let euh = daDs[task.id] || []
                 //console.log(`Subgoals logged for ${task.title}`, euh)
                 aTask.logged = [...euh]  //huh important to unfurl**
-                //aTask.isChild=true
+                //aTask.isChild=true //no need as done above
             }/* else { //for main parentGoal in order to have them shown! >>no need as logs the child stuff under parent below
                 let loggedSize = getRandomIndex(2) //bon not more than 2 logged events--ToChange
                 console.log(`Logging for Parent G: ${task.title}`, loggedSize)
@@ -610,6 +609,8 @@ export const useGoalStore = defineStore('allGoals', () => {
                     continue
                 }
                 toAdd.logged.push(...uSub.logged) //logged child's gets added to parent(makes sense) so that calculations are correct!
+                //delete uSub.children //works >>not have annoying arrow in front smh--done below 
+                uSub.children.length < 1 ? delete uSub.children : console.log(`huh children has descendents?!? ERROR?`,uSub)
                 toAdd.children.push(uSub)
             }
 

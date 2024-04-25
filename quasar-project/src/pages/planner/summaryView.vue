@@ -57,9 +57,10 @@
                 :key="task.key"
               >
                 <div class="header ellipsis">
-                  <div class="issue ellipsis" :style="badgeStyles(scope.task)" >
+                  <div :class="badgeStyles(task)">
                     {{ scope.task.title }}
-                      <!--here for child, try to indent somehow as well as color for parentGoal...toDO**  -->
+                      <!-- no need to use scope.task in param since scope.task==task  
+                        for child arrow, have to delete their children array beforehand smh  -->
                   </div>
                   <div class="key">{{ scope.task.key }}</div>
                   <div class="logged">{{ sum(scope.start, scope.end, scope.task) }}</div>
@@ -69,18 +70,17 @@
     
             <template #day="{ scope }">
               <template
-                v-for="time in getLogged(scope.timestamp.date, scope.task.logged)"
-                :key="time"
+              v-for="time in getLogged(scope.timestamp.date, scope.task.logged)"
+              :key="time"
               >
-                <div
-                  v-if="scope.task.children !== void 0"
+                <div v-if="scope.task.children !== void 0"
                   class="logged-time"
                   style="font-weight: 800;"
                 >
                   {{ time.logged }}
                 </div>
-                <div
-                  v-else
+
+                <div v-else
                   class="logged-time"
                 >
                   {{ time.logged }}
@@ -123,6 +123,7 @@
             5. Check out the summary of all goals here!
           </q-card>
         </div>
+
       </div>
     </template>
 
@@ -204,13 +205,6 @@ export default defineComponent({
     }
   },
   computed: {
-      /*badgeStyles (scope) {
-        console.log("badgeStyles",scope)
-        //const s = {}
-        //s[ 'align-items' ] = 'flex-start'
-        return {'color': 'gold'}
-      }, */
-      
     /**
     * Returns tasks between startDate and endDate (captured via onChange event)
     */
@@ -236,6 +230,11 @@ export default defineComponent({
         return `Goaly in ${this.selectedMonth}`
       },
     },
+    //mounted(){ //just to jump to current date...no bueno :(
+    //  this.onNext()
+    //  console.log("weeee mounted...")
+    //  this.onToday() 
+    //},
     beforeMount () {
       // adjust all the dates for the current month
       //const date = new Date()
@@ -255,7 +254,7 @@ export default defineComponent({
       }
       this.tasks = e
 
-      console.log("weeee tasks:", this.tasks)
+      //console.log("weeee tasks:", this.tasks)
       
       const updateTask = task => {
         task.logged.forEach(logged => {
@@ -317,9 +316,8 @@ export default defineComponent({
       },
 
       constructTree(){
-      //let tree =  
-      this.treeGoals = this.store.fetchGoalsTree()
-      console.log("constructTree", this.treeGoals)
+        this.treeGoals = this.store.fetchGoalsTree()
+        console.log("constructTree", this.treeGoals.length) //
       },
   
       /**
@@ -358,15 +356,18 @@ export default defineComponent({
         return tasks
       },
       badgeStyles (task) {
-        //console.log("badgeStyles",scope)
+        //console.log("badgeStyles",task,tasky)
         //const s = {}
         //s[ 'align-items' ] = 'flex-start'
-        let c = task.isChild ? 'white' : (task.color !== void 0 ? task.color : 'gold')  // default to white for child and gold for parent...
+
+        //let c = task.isChild ? 'white' : (task.color !== void 0 ? task.color : 'gold')  // default to white for child and gold for parent...
         //let b = task.isChild ? '20px' : '50px' //bon seem to work!
-        return {
-          'color': c,
+        //return {
+        //  'color': c,
           //'padding':b,
-        }
+        //}
+        let a = task.isChild ? 'text-white' : `text-white bg-${task.color}`
+        return `issue ellipsis ${a}`
       },
       weekdayClass (data) {
         //console.log("weekdayClass", data)
@@ -488,6 +489,22 @@ export default defineComponent({
   padding: 0
   margin: 0
   height: 100%
+.text-white
+  color: white
+.bg-blue
+  background: blue
+.bg-green
+  background: green
+.bg-orange
+  background: orange
+.bg-red
+    background: red
+.bg-teal
+  background: teal
+.bg-grey
+  background: grey
+.bg-purple
+  background: purple
 </style>
 
 <style lang="sass">
