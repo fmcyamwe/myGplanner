@@ -140,6 +140,7 @@
             v-model:expanded="expanded"
             no-connectors
             dense
+            accordion
             >
       
             <!--class="row items-center" :style="titleStyles(prop.node)"-->

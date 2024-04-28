@@ -8,7 +8,7 @@
             no-backdrop-dismiss to not allow dismiss by clicking outside?!?
         -->
 
-        <q-card v-if="showPickyDialog"> <!--see if works!!..especially the else below-->
+        <q-card v-if="showPickyDialog">
           <div class="q-ma-md event-select">
             <select-event
               :canBeScheduled="allScheduled"

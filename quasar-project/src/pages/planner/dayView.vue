@@ -13,284 +13,309 @@
   </div>
  
   <div v-if="!showForm" class="subcontent">
-   <q-pull-to-refresh @refresh="onRefresh"> <!--have to put here or drag in calendar does this refresh when it shouldnt-->
-    <navigation-bar
-      @today="onToday"
-      @prev="onPrev"
-      @next="onNext"
-    />
-   
-    <div class="float-right">
-        <div v-if="showReloadBtn">
-            <sched-btn
-            text-label="Reload"
-            class="q-mt-xl"
-            text-color="green"
-            @do-btn-action="onReloadSaved"
+    <q-splitter
+      v-model="splitterPage"
+      :limits="[30, 70]"
+    > <!--limits here mean that :before(left) slot 
+      doesnt get squished for less than 20%-->
+      <template v-slot:before><!-- Scheduling buttons and Legend Tree in a Horiz. splitter-->
+        <q-splitter
+        v-model="splitterLegend"
+        horizontal
+        :limits="[20, 80]"
+        style="height: 100%"
+        >
+          <template v-slot:before> <!--Scheduling buttons-->
+            <div class="row justify-center" id="box" >
+              
+                <!-- <div class="float-right"
+                  clear button, shown:scheduled evts and erase whole day, 
+                  changes to schedule like prio or score...
+                  basically when have stuff..
+                  also only for present and future
+                  ask for past?!?bof
+                -->
+                <div v-if="showReloadBtn">  <!--class="sched-btn"-->
+                    <sched-btn
+                    text-label="Reload"
+                    class="q-mt-xl sched-btn"
+                    text-color="green"
+                    @do-btn-action="onReloadSaved"
+                    />
+                </div>
+
+                <div v-if="showClearBtn"><!--class="sched-btn"-->
+                  <sched-btn
+                  text-label="Clear"
+                  class="q-mt-xl sched-btn"
+                  text-color="lime-5"
+                  @do-btn-action="onClearDay"
+                  />
+                </div>
+
+                <div v-if="showLoadDefaults"><!--disable instead of hiding?!? also text-label with #Defaults? TBD*** -->
+                  <sched-btn
+                  text-label="Defaults"
+                  class="q-mt-xl"
+                  text-color="blue"
+                  @do-btn-action="onLoadDefault"
+                  />
+                </div>
+
+                <div v-if="showScoreBtn"><!-- class="sched-drop-btn"-->
+                  <sched-drop-btn
+                  class="q-mt-xl"
+                  text-color="teal"
+                  :disableBtn="disableScoreBtn"
+                  :optionLabel="chosenScoreLabel"
+                  :daOptions="scoreOptions"
+                  @do-reload="doReloadWithScore"
+                  @choose-option="onChoosenScore"
+                  />
+                </div>
+
+                <div v-if="showPrio"><!--class="sched-drop-btn"-->
+                  <sched-drop-btn
+                  class="q-mt-xl"
+                  text-color="teal"
+                  :disableBtn="disablePrioBtn"
+                  :optionLabel="chosenPrioLabel"
+                  :daOptions="allMainGPrio()"
+                  @do-reload="doReloadWithPrio"
+                  @choose-option="onChoosenPrio"
+                  />
+                </div>
+
+              
+            </div>
+            <br>
+          </template>
+          <template v-slot:after> <!--legend tree -->
+            <br>
+            <div v-if="treeGoals.length > 0" class="q-pa-sm bg-grey-12" style="max-width: 400px">
+              <div class="row justify-center"> {{labelGoals()}} </div>
+              <q-separator />
+              <!--<q-space/> have to be inside qComponent-->
+              <br>
+              <q-tree
+                :nodes="treeGoals"
+                node-key="label"
+                v-model:expanded="expanded"
+                no-connectors
+                dense
+                default-expand-all
+                >
+
+                <!--class="row items-center" :style="titleStyles(prop.node)"-->
+                <template v-slot:default-header="prop">
+                    <div :class="classyColor(prop.node)">
+                      <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm" />
+                      <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+                    </div>
+                  </template>
+                <template v-slot:default-body="prop">
+                    <div v-if="prop.node.isChildren">
+                      <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+                    </div>
+                    <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+                  </template>
+                </q-tree>
+            </div>
+          </template>
+       </q-splitter>
+      </template>
+
+      <template v-slot:after><!-- Calendar and dialogs...-->
+        <q-pull-to-refresh @refresh="onRefresh"> <!--have to put here or drag in calendar does this refresh when it shouldnt-->
+          <navigation-bar
+            @today="onToday"
+            @prev="onPrev"
+            @next="onNext"
+          />
+        </q-pull-to-refresh>
+        
+        <div class="row justify-center">
+            <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 500px;">
+              <q-calendar-day
+                ref="calendar"
+                view="day"
+                v-model="currentDate"
+                :drag-enter-func="onDragEnter"
+                :drag-over-func="onDragOver"
+                :drag-leave-func="onDragLeave"
+                :drop-func="onDrop"
+                animated
+                bordered
+                hoverable
+                no-active-date
+                transition-next="slide-left"
+                transition-prev="slide-right"
+                time-clicks-clamped
+                :interval-minutes="15"
+                :interval-count="96"
+                :interval-height="28"
+                :selected-start-end-dates="startEndTimes"
+                @change="onChange"
+                @click-date="onClickDate"
+                @click-time="onClickTime"
+                @click-interval="onClickInterval"
+                @click-head-intervals="onClickHeadIntervals"
+                @click-head-day="onClickHeadDay"
+                @mousedown-time="onMouseDownTime"
+                @mouseup-time="onMouseUpTime"
+                @mousemove-time="onMouseMoveTime"
+              >
+              <!--
+                dark
+                @mouseenter-time="onMouseEnter"
+                @mouseleave-time="onMouseLeave" works!!
+                the drop-func seem to fire when other drag functions are present as well
+                adding drag-start-func/drag-end in calendar as below doesnt do anything
+                :drag-end-func="onDragEndy"
+                :drag-start-func="onDragStarty"
+
+                click-time and mouseup-time are almost the same with diff in event(PointerEvent vs MouseEvent)
+                
+                :interval-start="24" >>to start at 7am
+                :interval-count="68" >>oldie
+                :selected-start-end-dates="startEndTimes" >>need for/used for range selection!
+
+                time-clicks-clamped >>what does that do? >>ngo for selecting interval-minute instead of the timestamp where clicked...
+                  **toTest impact of removing it for the adjustCurrentTime?
+
+                also remove one of onMoved or onChange as fires twice and have to redundant handle both**
+                @moved="onMoved"
+                -->
+                  <template #head-day-event="{ scope: { timestamp } }">
+                    <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
+                      <template
+                        v-for="event in eventsMap[timestamp.date]"
+                        :key="event.id"
+                      >
+                        <q-badge
+                          v-if="!event.time"
+                          :class="badgeClasses(event, 'header')"
+                          :style="badgeStyles(event, 'header')"
+                          style="width: 100%; cursor: pointer; height: 12px; font-size: 10px; margin: 1px;"
+                        >
+                          <div class="title q-calendar__ellipsis">
+                            {{ event.title }}
+                            <q-tooltip>{{ event.details }}</q-tooltip>
+                          </div>
+                        </q-badge>
+                        <q-badge
+                          v-else
+                          :class="badgeClasses(event, 'header')"
+                          :style="badgeStyles(event, 'header')"
+                          style="margin: 1px; width: 10px; max-width: 10px; height: 10px; max-height: 10px; cursor: pointer"
+                          @click="scrollToEvent(event)"
+                        >
+                          <q-tooltip>{{ '('+ event.id +') '+ event.title +' - '+ event.time  }}</q-tooltip>
+                        </q-badge>
+                      </template>
+                    </div>
+                  </template>
+
+                  <template #day-container="{ scope: { days }}">
+                    <template v-if="hasDate(days)">
+                      <div
+                        class="day-view-current-time-indicator"
+                        :style="style"
+                      />
+                      <div
+                        class="day-view-current-time-line"
+                        :style="style"
+                      />
+                    </template>
+                  </template>
+
+                  <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
+                    <template
+                      v-for="event in getDateEvents(timestamp.date)"
+                      :key="event.id"
+                    >
+                      <div
+                        v-if="event.time !== undefined"
+                        class="my-event"
+                        :class="badgeClasses(event, 'body')"
+                        :style="badgeStyles(event, 'body', timeStartPos, timeDurationHeight)"
+                        :draggable="true"
+                        @dblclick.prevent="(e) => onDblClickEvent(e, event)"
+                        @dragstart.stop="(e) => onDragStart(e, event)"
+                        @dragend.stop="onDragEnd"
+                        @drop="(e) => onDrop(e, 'goal-item', scope)"
+                        @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
+                        @dragover="(e) => onDragOver(e, 'goal-item', scope)"
+                        >
+                        <!--<div class="title q-calendar__ellipsis"> -->
+                          <!--{{ event.title }}
+                          <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip> -->
+                          <!-- interfere with double click for removing when enabled..toSee if using component would help -->
+                          <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
+                          
+                          <goaly-end
+                            :disabledScore="disabledScoreEvts[event.id]"
+                            :title="event.title"
+                            :id="event.id"
+                            :startTime="event.time"
+                            :score="event.score"
+                            :details="event.details"
+                            :happeningNow="hasStarted[event.id] ? hasStarted[event.id] : false"
+                            @end-now="onEndNow"
+                            @save-score="onSaveScore"
+                            @add-mins="onAddMins"
+                            @delete-now="(e) =>removeEvtInSchedule(event,e)"
+                            />
+                            <!--pass :hidden="flag" to hide delete btn when inPast? or handle it?-->
+
+                      </div>
+                    </template>
+                  </template>
+              </q-calendar-day>
+            </div>
+          
+          <!--
+            showPickEventDialog=pickEventDialog >> dont work
+            :doForce="force" works? as not a prop.... >>warning Extraneous non-props and doesnt open...
+            :showDefaultEvtByType="addEventDialog" >>mutating prop error
+            -->
+
+            <sched-dialog v-if="addEventDialog"
+            :parentGoals="storedCompPG"
+            :canBeScheduled="canbeScheduled"
+            @on-add-new-event="onAddNewEvent"
+            @on-pick-event="onPickEvent"
+            @euh-hidin="closingDialog"
             />
         </div>
-        <!--clear button, shown:scheduled evts and erase whole day, 
-          changes to schedule like prio or score...
-          basically when have stuff..
-          also only for present and future
-          ask for past?!?bof
-        -->
-        <div v-if="showClearBtn">
-          <sched-btn
-          text-label="Clear"
-          class="q-mt-xl"
-          text-color="lime-5"
-          @do-btn-action="onClearDay"
-          />
-      </div>
 
-        <div v-if="showLoadDefaults"><!--disable instead of hiding?!? also text-label with #Defaults? TBD*** -->
-          <sched-btn
-          text-label="Defaults"
+        <div class="row justify-center">
+          <q-btn
           class="q-mt-xl"
+          color="Green"
           text-color="blue"
-          @do-btn-action="onLoadDefault"
+          elevated
+          label="SaveSchedule"
+          :disable="doDisableSaveSchedule"
+          @click="doSaveSchedule"
+          no-caps
           />
-        </div>
-
-        <div v-if="showScoreBtn">
-          <sched-drop-btn
-          class="q-mt-xl"
-          text-color="teal"
-          :disableBtn="disableScoreBtn"
-          :optionLabel="chosenScoreLabel"
-          :daOptions="scoreOptions"
-          @do-reload="onReloadWithScore"
-          @choose-option="chooseScore"
-          />
-        </div>
-
-        <div v-if="showPrio">
-          <sched-drop-btn
-          class="q-mt-xl"
-          text-color="teal"
-          :disableBtn="disablePrioBtn"
-          :optionLabel="chosenPrioLabel"
-          :daOptions="setGoalsPrio()"
-          @do-reload="onReloadWithPrio"
-          @choose-option="choosePrio"
-          />
-        </div>
-    </div>
-   </q-pull-to-refresh>
-   
-   <div class="row justify-center">
-      <div style="display: flex; max-width: 800px; width: 100%; height: 500px;">
-        <q-calendar-day
-          ref="calendar"
-          view="day"
-          v-model="currentDate"
-          :drag-enter-func="onDragEnter"
-          :drag-over-func="onDragOver"
-          :drag-leave-func="onDragLeave"
-          :drop-func="onDrop"
-          animated
-          bordered
-          hoverable
-          no-active-date
-          transition-next="slide-left"
-          transition-prev="slide-right"
-          time-clicks-clamped
-          :interval-minutes="15"
-          :interval-count="96"
-          :interval-height="28"
-          :selected-start-end-dates="startEndTimes"
-          @change="onChange"
-          @click-date="onClickDate"
-          @click-time="onClickTime"
-          @click-interval="onClickInterval"
-          @click-head-intervals="onClickHeadIntervals"
-          @click-head-day="onClickHeadDay"
-          @mousedown-time="onMouseDownTime"
-          @mouseup-time="onMouseUpTime"
-          @mousemove-time="onMouseMoveTime"
-        >
-        <!--
-          dark
-          @mouseenter-time="onMouseEnter"
-          @mouseleave-time="onMouseLeave" works!!
-          the drop-func seem to fire when other drag functions are present as well
-          adding drag-start-func/drag-end in calendar as below doesnt do anything
-          :drag-end-func="onDragEndy"
-          :drag-start-func="onDragStarty"
-
-          click-time and mouseup-time are almost the same with diff in event(PointerEvent vs MouseEvent)
           
-          :interval-start="24" >>to start at 7am
-          :interval-count="68" >>oldie
-          :selected-start-end-dates="startEndTimes" >>need for/used for range selection!
+          <q-btn
+          class="q-mt-xl"
+          color=""
+          text-color="green"
+          elevated
+          label="ShowForm"
+          @click="showGoalForm = !showGoalForm"
+          no-caps
+          />
+        </div>
+        <br>
+      </template>
+    </q-splitter>
 
-          time-clicks-clamped >>what does that do? >>ngo for selecting interval-minute instead of the timestamp where clicked...
-            **toTest impact of removing it for the adjustCurrentTime?
-
-          also remove one of onMoved or onChange as fires twice and have to redundant handle both**
-          @moved="onMoved"
-          -->
-            <template #head-day-event="{ scope: { timestamp } }">
-              <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
-                <template
-                  v-for="event in eventsMap[timestamp.date]"
-                  :key="event.id"
-                >
-                  <q-badge
-                    v-if="!event.time"
-                    :class="badgeClasses(event, 'header')"
-                    :style="badgeStyles(event, 'header')"
-                    style="width: 100%; cursor: pointer; height: 12px; font-size: 10px; margin: 1px;"
-                  >
-                    <div class="title q-calendar__ellipsis">
-                      {{ event.title }}
-                      <q-tooltip>{{ event.details }}</q-tooltip>
-                    </div>
-                  </q-badge>
-                  <q-badge
-                    v-else
-                    :class="badgeClasses(event, 'header')"
-                    :style="badgeStyles(event, 'header')"
-                    style="margin: 1px; width: 10px; max-width: 10px; height: 10px; max-height: 10px; cursor: pointer"
-                    @click="scrollToEvent(event)"
-                  >
-                    <q-tooltip>{{ '('+ event.id +') '+ event.title +' - '+ event.time  }}</q-tooltip>
-                  </q-badge>
-                </template>
-              </div>
-            </template>
-
-            <template #day-container="{ scope: { days }}">
-              <template v-if="hasDate(days)">
-                <div
-                  class="day-view-current-time-indicator"
-                  :style="style"
-                />
-                <div
-                  class="day-view-current-time-line"
-                  :style="style"
-                />
-              </template>
-            </template>
-
-            <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
-              <template
-                v-for="event in getDateEvents(timestamp.date)"
-                :key="event.id"
-              >
-                <div
-                  v-if="event.time !== undefined"
-                  class="my-event"
-                  :class="badgeClasses(event, 'body')"
-                  :style="badgeStyles(event, 'body', timeStartPos, timeDurationHeight)"
-                  :draggable="true"
-                  @dblclick.prevent="(e) => onDblClickEvent(e, event)"
-                  @dragstart.stop="(e) => onDragStart(e, event)"
-                  @dragend.stop="onDragEnd"
-                  @drop="(e) => onDrop(e, 'goal-item', scope)"
-                  @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
-                  @dragover="(e) => onDragOver(e, 'goal-item', scope)"
-                  >
-                  <!--<div class="title q-calendar__ellipsis"> -->
-                    <!--{{ event.title }}
-                    <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip> -->
-                    <!-- interfere with double click for removing when enabled..toSee if using component would help -->
-                    <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
-                    
-                    <goaly-end
-                      :disabledScore="disabledScoreEvts[event.id]"
-                      :title="event.title"
-                      :id="event.id"
-                      :startTime="event.time"
-                      :score="event.score"
-                      :details="event.details"
-                      :happeningNow="hasStarted[event.id] ? hasStarted[event.id] : false"
-                      @end-now="onEndNow"
-                      @save-score="onSaveScore"
-                      @add-mins="onAddMins"
-                      @delete-now="(e) =>removeEvtInSchedule(event,e)"
-                      />
-                      <!--pass :hidden="flag" to hide delete btn when inPast? or handle it?-->
-
-                </div>
-              </template>
-            </template>
-        </q-calendar-day>
-      </div>
-     
-     <!--
-      showPickEventDialog=pickEventDialog >> dont work
-      :doForce="force" works? as not a prop.... >>warning Extraneous non-props and doesnt open...
-      :showDefaultEvtByType="addEventDialog" >>mutating prop error
-     
-      -->
-      <sched-dialog v-if="addEventDialog"
-      :parentGoals="storedCompPG"
-      :canBeScheduled="canbeScheduled"
-      @on-add-new-event="onAddNewEvent"
-      @on-pick-event="onPickEvent"
-      @euh-hidin="closingDialog"
-      />
-   </div>
-   
-   <div class="row justify-center" >
-     <q-btn
-         class="q-mt-xl"
-         color="Green"
-         text-color="blue"
-         elevated
-         label="SaveSchedule"
-         :disable="doDisableSaveSchedule"
-         @click="doSaveSchedule"
-         no-caps
-     />
-     <q-btn
-         class="q-mt-xl"
-         color=""
-         text-color="green"
-         elevated
-         label="ShowForm"
-         @click="showGoalForm = !showGoalForm"
-         no-caps
-     />
-   </div>
-   <br>
-   <div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
-    <div class="row justify-center"> {{labelGoals()}} </div>
-    <q-separator />
-    <!--<q-space/> have to be inside qComponent-->
-    <br>
-    <q-tree
-      :nodes="treeGoals"
-      node-key="label"
-      v-model:expanded="expanded"
-      no-connectors
-      dense
-      default-expand-all>
-
-      <!--class="row items-center" :style="titleStyles(prop.node)"-->
-      <template v-slot:default-header="prop">
-          <div :class="classyColor(prop.node)">
-            <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm" />
-            <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
-          </div>
-        </template>
-      <template v-slot:default-body="prop">
-          <div v-if="prop.node.isChildren">
-            <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
-          </div>
-          <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
-        </template>
-      </q-tree>
-   </div>
-  <!--<div class="scroll overflow-auto" style="height: 360px; width: 100%;"> text-white 
-       <div v-for="(event, index) in storedEvents" :key="index" class="col-12" style="font-size: 14px; line-height: 10px; max-height: 14px; min-height: 14px; padding: 2px 2px; white-space: nowrap;">
-         {{ event }}
-         <q-space />
-       </div>
-   </div>-->
- </div>
+  </div>
 </template>
 <script>
 import {
@@ -362,7 +387,7 @@ data () {
 
   return {
     currentDate: ref(today()),
-    scoreOptions:ref([1,2,3,4,5]),
+    scoreOptions:ref([1,2,3,4,5,6]),
     chosenScore:ref(null),
     chosenPrio:ref(null),
     scheduledEvents: [], //for scheduled events currently viewed--can change...prolly no need to put in return BUT have to in order to be set initially and accessed.
@@ -394,10 +419,12 @@ data () {
     //force:ref(false),  //skip confirming for default time changes--placed in inner component...
     showReloadBtn:ref(false), //when date has saved events that are not default--or reset day schedule to initial saved schedule..if user havent overwritten it? toReview**
     showLoadDefaults:ref(true), //load default events...
-    showScoreBtn:ref(false), //schedule by score
+    showScoreBtn:ref(false), //schedule by score---should be merged with below as shown at same time--todo**
     showPrio:ref(false),  //for showing prioritiy button...
     showClearBtn:ref(false),
 
+    splitterPage: ref(35), // start--left side--before at 35%
+    splitterLegend:ref(40),
     treeGoals:ref([]), 
     expanded:ref([]), //to hold expanding parentGoals...
     parentGs:ref(null) //test for reactivity!--redundant though--toRemove***
@@ -751,7 +778,7 @@ computed: {
       this.doEnableEndNowBtn(this.currentTime,hasEnd, hasStart)
     }
   },
-  setGoalsPrio(){
+  allMainGPrio(){
       let e = this.store.fetchAllPrio()
       //let ar = Array.from(e.values())
       //console.log('setGoalsPrio',ar, typeof ar)
@@ -760,7 +787,7 @@ computed: {
           console.log('ERROR...no Priority goals?', e)
           return []
       }
-      return Array.from(e.values())
+      return Array.from(e.values()).sort() //
   },
   resetGoalEvts(newish = false){
       if (this.scheduledEvents == this.allEvents){ //triple equal sign for reference check..never goes here though smh..see with double equal sign
@@ -2088,10 +2115,12 @@ computed: {
         return parseInt(o[0]) >= 12 ? timey+"PM" : timey+"AM" 
       }
 
-      const bonManual = (opts,toAdd,currScheduled,aConf) => {
-        if (aConf.direction !== 'surrounding'){ //`Force both` to schedule both evts
+      const bonManual = (opts,toAdd,currScheduled,aConf,gottaChoose) => { //gottaChoose flag to not add force in--can result in loop!
+        if (aConf.direction !== 'surrounding' && !gottaChoose){ //`Force both` to schedule both evts
           opts.push({ label: `Force in '${toAdd.title.trim()}'`, value: 'opt4' })  
           // at ${when(aConf?.targetStart?.time)} >> could have changed
+        }else {
+          console.log("fixyOverlaps::bonManual...surrounding!==",aConf.direction !== 'surrounding', 'gottaChoose:'+ gottaChoose)
         }
 
         let mess = `"${toAdd.title.trim()}" Overlaps with Scheduled "${currScheduled.title.trim()}".
@@ -2202,10 +2231,10 @@ computed: {
           console.log('Cancelling Auto-Solve...doing manual') 
           //should pass param or set flag to track that could Auto-solve?!? toSee***
           //overlap might not be valid too with cascading changes!!!
-          bonManual(defaultOpts,toAdd,currScheduled,aConf) 
+          bonManual(defaultOpts,toAdd,currScheduled,aConf,true) 
         })
       } else {
-          bonManual(defaultOpts,toAdd,currScheduled,aConf)
+          bonManual(defaultOpts,toAdd,currScheduled,aConf,false)
       }
     }
   },
@@ -3783,6 +3812,12 @@ computed: {
 
     } else { //No Overlap check for past/future
         let toReload = this.addPropsEventsTo(this.currentDate, dEvts)
+        
+        if (toReload.some(x => x.time == '')){ //dont add evts without any time!
+          toReload = toReload.filter(x => x.time != '')
+          this.doNotify(`Some Evts without set time not included, Manually Add them.`, "warning",'top')
+        }
+
         if(flag == 'add'){//still check for add flag in future though
           let orig = toReload.length
           toReload = toReload.filter(x => !this.scheduledEvents.find(item => item.id == x.id)) //filter out already scheduled
@@ -3846,7 +3881,7 @@ computed: {
         doOk('overwrite')
       }
   },
-  choosePrio(e){
+  onChoosenPrio(e){
     //console.log('choosePrio',e,this.chosenPrio)
     let oldy = this.chosenPrio
     if (oldy && oldy == e){
@@ -3856,7 +3891,7 @@ computed: {
       this.disablePrioBtn = false
     }
   },
-  chooseScore(e){
+  onChoosenScore(e){
     //console.log('chooseScore',e)
     let oldy = this.chosenScore
     if (oldy && oldy == e){
@@ -3866,7 +3901,7 @@ computed: {
       this.disableScoreBtn = false
     }
   },
-  findSamePrio(flag){
+  scheduleSamePrio(flag){
 
     const filterCurrent =() => {
       return this.scheduledEvents.filter(evt => this.parentGoalsMap().get(evt.parentGoal)?.priority == this.chosenPrio)
@@ -3896,10 +3931,10 @@ computed: {
         this.scheduledEvents = []
         this.updateCurrentSchedule()
       }
-      console.log(`findSamePrio...${flag} to size: ${this.scheduledEvents.length} some evts = ${toRet.length}`, ) // JSON.parse(JSON.stringify(toRet))
+      console.log(`scheduleSamePrio...${flag} to size: ${this.scheduledEvents.length} some evts = ${toRet.length}`, ) // JSON.parse(JSON.stringify(toRet))
     } else {
       toRet = filterCurrent()
-      console.log('findSamePrio..filtering!!',this.chosenPrio,toRet)
+      console.log('scheduleSamePrio..filtering!!',this.chosenPrio,toRet)
     }
 
     //console.log(`findSamePrio>'${flag}'::${this.chosenPrio}`, this.currentDate,this.isViewingToday(), toRet)
@@ -3908,14 +3943,20 @@ computed: {
     if (isTod && flag !='filter'){ //this.isViewingToday()
       toRet = this.addPropsEventsTo(this.currentDate, toRet)
       //console.log(`findSamePrio::addPropsEventsTo for ${flag}`,JSON.parse(JSON.stringify(toRet)),JSON.parse(JSON.stringify(this.scheduledEvents)))
+      
+      if (toRet.some(x => x.time == '')){ //dont add evts without any time!--show which?!?
+        toRet = toRet.filter(x => x.time != '')
+        this.doNotify(`Some Evts without set time not included, Manually Add them.`, "warning",'top')
+      }
+
       let overlaps = this.overlapCheckEvtsAdd(toRet)
       if(Object.keys(overlaps).length > 0){
-        console.log(`findSamePrio${this.chosenPrio}...overlaps`,JSON.parse(JSON.stringify(overlaps)))
+        console.log(`scheduleSamePrio:${this.chosenPrio}...overlaps`,JSON.parse(JSON.stringify(overlaps)))
 
         this.fixyOverlaps(overlaps,null,'findSamePrio')
 
       } else { //no overlapps...
-        console.log(`findSamePrio >>No overlaps!!...`,toRet.length)//JSON.parse(JSON.stringify(toRet)))
+        console.log(`scheduleSamePrio >>No overlaps!!...`,toRet.length)//JSON.parse(JSON.stringify(toRet)))
        
         if(toRet.length < 1){ //nothing added
           this.disableSaveSchedule = true
@@ -3934,6 +3975,12 @@ computed: {
         this.scheduledEvents = toRet
       }else {
         toRet = this.addPropsEventsTo(this.currentDate, toRet)
+
+        if (toRet.some(x => x.time == '')){ //dont add evts without any time!--show which?!?
+          toRet = toRet.filter(x => x.time != '')
+          this.doNotify(`Some Evts without set time not included, Manually Add them.`, "warning",'top')
+        }
+
         if(flag == 'add'){
           let f = this.scheduledEvents.concat(toRet) //diff || [] //beware empty!!
           this.scheduledEvents = f
@@ -3959,14 +4006,14 @@ computed: {
     this.showClearBtn = true //toSee if shouldnt use >>!this.isViewingPast() 
 
   },
-  onReloadWithPrio(){
+  doReloadWithPrio(){
     if (this.chosenPrio == null) { //kinda redundant with disable flag...mais bon just in case...
       this.doNotify("Ayo select a priority!")
       return
     }
 
     let doCancel = () => { //do cancel is merge here maybe?!? TBD
-      console.log('onReloadWithPrio..cancelling') //this.scheduledEvents
+      console.log('doReloadWithPrio..cancelling') //this.scheduledEvents
       this.reset()
       return
     }
@@ -3982,11 +4029,11 @@ computed: {
       "Schedule change...",
       labels,
       '',
-      this.findSamePrio,
+      this.scheduleSamePrio,
       doCancel)
 
     }else{ //no scheduled> just overwrite
-      this.findSamePrio('overwrite')
+      this.scheduleSamePrio('overwrite')
     }
 
     //this.resetButtons(this.hasEventsForDate,this.isViewingPast())  
@@ -3995,7 +4042,7 @@ computed: {
     this.disablePrioBtn = true //user should not reclick without changing it again...
 
   },
-  reloadEvtsWithScore(flag){
+  scheduleByScore(flag){
       const filterCurrent = () => {
         let toReload = []
         this.scheduledEvents.forEach((item) => {
@@ -4012,7 +4059,7 @@ computed: {
 
     if (flag == 'overwrite' || flag == 'add'){
       const colis = this.store.fetchGoalsWithMinScore(this.chosenScore)//deepCopy? no need
-      //console.log(`reloadEvtsWithScore SCORE`, JSON.parse(JSON.stringify(colis))) //, typeof colis
+      //console.log(`scheduleByScore SCORE`, JSON.parse(JSON.stringify(colis))) //, typeof colis
 
       if(flag == 'add'){// filter out events that are already scheduled..not too expensive?
         e =  colis.filter(x => !this.scheduledEvents.find(item => item.id == x.id)) 
@@ -4025,19 +4072,25 @@ computed: {
     } else { //filter
       //console.log('filtering by score:',this.chosenScore, flag)
       e = filterCurrent()
-      console.log(`reloadEvtsWithScore AFTER flag ${flag}`,this.scheduledEvents.length,JSON.parse(JSON.stringify(e))),JSON.parse(JSON.stringify(this.scheduledEvents))
+      console.log(`scheduleByScore AFTER flag ${flag}`,this.scheduledEvents.length,JSON.parse(JSON.stringify(e))),JSON.parse(JSON.stringify(this.scheduledEvents))
     }
       
     //console.log(`reloadEvtsWithScore>'${flag}' >=${this.chosenScore}`, this.currentDate,this.scheduledEvents.length)  //isTod, e,
 
     if(isTod && flag !='filter' ){//check conflicts only for today..
-      //console.log(`reloadEvtsWithScore...checking TODAY!`)
+      //console.log(`scheduleByScore...checking TODAY!`)
       e = this.addPropsEventsTo(this.currentDate, e)
-      console.log(`reloadEvtsWithScore::addPropsEventsTo today for '${flag}'`,this.scheduledEvents.length, JSON.parse(JSON.stringify(e))) //,JSON.parse(JSON.stringify(this.scheduledEvents))
+
+      if (e.some(x => x.time == '')){ //dont add evts without any time!
+          e = e.filter(x => x.time != '') //show them?!? tbd***
+          this.doNotify(`Some Evts without set time not included, Can Manually Be Added Later!`, "warning",'top')
+      }
+
+      console.log(`scheduleByScore::addPropsEventsTo today for '${flag}'`,this.scheduledEvents.length, JSON.parse(JSON.stringify(e))) //,JSON.parse(JSON.stringify(this.scheduledEvents))
       let overlaps = this.overlapCheckEvtsAdd(e)
       //let oOth = this.hasOverlappingEvent(obj.id, startTime, obj.duration) //before add evt
       if(Object.keys(overlaps).length > 0){
-        console.log(`onReloadWithScore ${this.chosenScore}...overlaps!!`,JSON.parse(JSON.stringify(overlaps)))
+        console.log(`scheduleByScore ${this.chosenScore}...overlaps!!`,JSON.parse(JSON.stringify(overlaps)))
 
         this.fixyOverlaps(overlaps,false,'reloadScore') //false || null for override...
           //Promise.resolve()
@@ -4045,9 +4098,9 @@ computed: {
 
         //return //return instead? umm def not!--for btns below
         //let toEnable = this.evtStartedOrPassed(parseDate(new Date()))
-        //console.log('onReloadWithScore:enabledScoreEdit',toEnable)
+        //console.log('scheduleByScore:enabledScoreEdit',toEnable)
       } else { //no overlapps...
-        console.log(`onReloadWithScore >>NO OVERLAPS!!!...`)//, JSON.parse(JSON.stringify(e)))
+        console.log(`scheduleByScore >>NO OVERLAPS!!!...`)//, JSON.parse(JSON.stringify(e)))
         if(e.length < 1){ //nothing added
           this.disableSaveSchedule = true
           this.showReloadBtn = false //nothing to reload...
@@ -4058,11 +4111,17 @@ computed: {
         this.updateCurrentSchedule()
       }
     } else { //just schedule them!
-      console.log(`reloadEvtsWithScore... with flag '${flag}' on>`, this.currentDate,JSON.parse(JSON.stringify(this.scheduledEvents.length)), JSON.parse(JSON.stringify(e)))
+      console.log(`scheduleByScore... with flag '${flag}' on>`, this.currentDate,JSON.parse(JSON.stringify(this.scheduledEvents.length)), JSON.parse(JSON.stringify(e)))
       if(flag == 'filter'){
         this.scheduledEvents = e
       }else {
         e = this.addPropsEventsTo(this.currentDate, e )
+
+        if (e.some(x => x.time == '')){ //dont add evts without any time!
+          e = e.filter(x => x.time != '') //show them?!? tbd***
+          this.doNotify(`Some Evts without set time not included, Can Manually Be Added Later!`, "warning",'top')
+        }
+
         if(flag == 'add'){
           let f = this.scheduledEvents.concat(e) //diff||[] //works? beware of undefined?!?
           this.scheduledEvents = f
@@ -4091,7 +4150,7 @@ computed: {
     this.showClearBtn = true
 
   },
-  onReloadWithScore(){
+  doReloadWithScore(){
     if (this.chosenScore == null) {
       this.doNotify("Ayo select a score!")
       return
@@ -4099,7 +4158,7 @@ computed: {
     //let toReload = []  //keep out here...seems to not have issue...toTest maybe**
 
     let doCancel = () => { //do cancel is merge here maybe?!? TBD
-      console.log('onReloadWithScore..cancelling',this.scheduledEvents)
+      console.log('doReloadWithScore..cancelling',this.scheduledEvents)
       this.reset()
       return
     }
@@ -4116,11 +4175,11 @@ computed: {
       "Schedule change...",
       labels,
       '',
-      this.reloadEvtsWithScore, 
+      this.scheduleByScore, 
       doCancel) //function(d){console.log('OK ReloadWithScore', d);reloadEvtsWithScore(d)}
 
     } else{ //no scheduled--just overwrite
-      this.reloadEvtsWithScore('overwrite')
+      this.scheduleByScore('overwrite')
     }
 
     //this.resetButtons(this.hasEventsForDate,this.isViewingPast()) //should bring up in lambda functions?!? toSee
@@ -4495,4 +4554,25 @@ computed: {
   border-top: rgba(0, 0, 255, .5) 2px solid
   width: calc(100% - 5px)
 
+#box
+  width: 100%
+  height: 100%
+  text-align: center
+  display: flex
+  flex-direction: column
+  justify-content: center
+
+#box .sched-drop-btn
+  margin: auto
+
+#box .sched-drop-btn
+  width: 100px
+  height: 30px
+  font-size: 16px
+  font-weight: bold
+  border: none
+  border-radius: 5px
+  background-color: #4CAF50
+  color: #fff
+  cursor: pointer
 </style>

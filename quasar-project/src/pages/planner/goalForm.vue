@@ -1,266 +1,230 @@
 <template>
-<main class="page page--table q-pa-md" style="max-width: 400px">
- <!--<div class="q-pa-md" style="max-width: 350px"> -->
-    
-    <!--<div class="text-white text-center">
-        <q-btn
+<main class="page page--table q-pa-md" >
+<q-pull-to-refresh @refresh="refresh">
+    <q-splitter
+    v-model="splitterModel"
+    >
+        <template v-slot:before >
+           <div style="max-width: 400px">
+                <q-form @submit="onSubmit" class="q-gutter-md form" >
+                        <div class="q-gutter-sm">
+                            <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
+                            <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
+                        </div>
+
+                        <q-input class="q-ml-md"
+                            filled
+                            v-model="goalTitle"
+                            label="A Goal"
+                            lazy-rules
+                            item-aligned
+                            :rules="[ val => val && val.length > 0 || 'Please type a goal']"
+                        />
+
+                        <div v-if="showSubG" class="q-gutter-md">
+                            <q-select class="q-pl-md"
+                            v-model="pGoal"
+                            :options="mainGoals"
+                            option-value="id"
+                            option-label="title"
+                            label="Parent Goal"
+                            popupContentClass="q-gutter-md"
+                            />
+                        </div> 
+
+                        <q-input v-else
+                            filled
+                            v-model="details"
+                            label="Description/Details"
+                        />
+                        <div v-if="!showSubG" class="q-gutter-md">
+                            <q-select class="q-pl-md"
+                            v-model="bgcolor"
+                            :options="avColors"
+                            :color="bgcolor"
+                            label="Color"
+                            popupContentClass="q-gutter-md"
+                            />
+                            <!--popupContentStyle="justify-content: center"
+                            /> -->
+                            <br>
+                            <q-input
+                                filled
+                                v-model.number="priority"
+                                type="number"
+                                label="Priority"
+                                hint="0 to 10"
+                            />
+                        </div>
+
+                        <div v-if="showSubG" class="q-gutter-sm">
+                            <q-input v-model="time" filled type="time" hint="Default time" />
+                            
+                            <br>
+
+                            <q-input v-model="score" 
+                            filled 
+                            label="Score" 
+                            hint="format: #on#"
+                            lazy-rules
+                            :rules="[ val => val && val.includes('on') && val.length > 3 || 'hint, hint!']"
+                            /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview -->
+
+                            Duration (min)
+                            <q-knob
+                                :min="5"
+                                :max="120"
+                                :thickness="0.22"
+                                :step="5"
+                                v-model="duration"
+                                show-value
+                                size="75px"
+                                color="teal"
+                                track-color="grey-3"
+                                class="q-ma-md"
+                            /><!--v-model="duration"  
+                                :model-value=duration -->
+                            <br>
+                            <q-toggle
+                            v-model="canMove"
+                            label="Can Move"
+                            left-label
+                            color="green">
+                                <q-badge
+                                color="orange" floating
+                                style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                                ? <q-tooltip>Have to confirm any timeslot change</q-tooltip>
+                                </q-badge>
+                            </q-toggle>
+
+                            <br>
+                            <q-toggle
+                            v-model="inDefaults"
+                            label="In Defaults"
+                            left-label
+                            color="blue">
+                                <q-badge 
+                                color="orange" floating
+                                style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                                ? <q-tooltip>Is scheduled by default</q-tooltip>
+                                </q-badge>
+                            </q-toggle>
+                            <br>
+
+                            <q-toggle v-if="duration<30"
+                            v-model="isAlternative"
+                            label="As Alternative"
+                            left-label
+                            color="blue">
+                                <q-badge 
+                                color="orange" floating
+                                style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                                ? <q-tooltip>Can be scheduled as an alternative</q-tooltip>
+                                </q-badge>
+                            </q-toggle>
+                        </div>
+
+                        <div>
+                        <q-btn :label="buttonLabel" type="submit" color="primary" class="q-ml-sm" align="between" />
+                        <!--<q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />  label="Submit"-->
+                        </div>
+                </q-form>
+            </div>
+        </template>
+            <!--<draggable v-model="mainGoals" draggable=".item" item-key="id">
+                <template #item="{element}">
+                    <div class="item">
+                    {{element.title}} - {{element.details}} - {{element.priority}} -> {{element.bgcolor}}
+                    </div>
+                </template>
+                <template #footer>
+                <button @click="addPeople">Add</button>
+                </template>
+            </draggable> -->
+
+            <!-- should use component template instead--todo**-->
+        <br>
+        <template v-slot:after>
+            <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
+                <q-item>
+                    <q-item-section>
+                    <q-item-label overline class="q-mx-lg q-px-md" style="max-width:100%">Swipe to Edit or Delete Goal</q-item-label>
+                    </q-item-section>
+                </q-item>
+            
+                <q-separator spaced />
+            
+                <transition-group name="dalist">
+                    <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
+                    v-model="expanded[goal.id]"
+                    :key="goal.id"
+                    :label="goal.title"
+                    :caption="goal.details"
+                    popup
+                    expandSeparator
+                    :header-class= "classyHeader(goal.bgcolor)"
+                    clickable>
+                    <!--<template v-slot:header></template> -->
+                
+                    <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
+                        <!--<q-card-section>
+                            {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}   class="q-my-sm"  color="red"
+                        </q-card-section> -->
+                        <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
+                            <template v-slot:left> <!--had no need for @left="onLeft" in q-slide-item above BUT using it to edit here -->
+                            Edit
+                            </template>
+                            <template v-slot:right>
+                            Delete
+                            </template>
+
+                            <q-item>
+                                <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabe(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
+                                <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
+                            </q-item>
+                        </q-slide-item>
+                        <q-separator :color="goal.bgcolor.toLocaleLowerCase()"/>
+                    </q-card>
+
+                    <q-card v-if="!hasSubG(goal.id)">
+                        <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
+                        OR
+                        <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
+                    </q-card>
+                    </q-expansion-item>
+            </transition-group>
+            </q-list>
+            <br>
+        
+        <q-checkbox dense v-model="Adminy" label="Admin Stuff" color="teal" class="q-pa-sm" />
+        
+        <div v-if="Adminy">
+            <q-btn
             class="q-mt-xl"
             color="white"
             text-color="blue"
-            unelevated
-            to="/planner"
-            label="Go Back"
+            elevated
+            label="Print"
             no-caps
-        />
-    </div> -->
-    <q-pull-to-refresh @refresh="refresh">
-    <div>
-        <q-form @submit="onSubmit" class="q-gutter-md form" >
-            <div class="q-gutter-sm">
-                <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
-                <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
-            </div>
-
-            <q-input class="q-ml-md"
-                filled
-                v-model="goalTitle"
-                label="A Goal"
-                lazy-rules
-                item-aligned
-                :rules="[ val => val && val.length > 0 || 'Please type a goal']"
+            @click="doPrint"
             />
-
-            <div v-if="showSubG" class="q-gutter-md">
-                <q-select class="q-pl-md"
-                 v-model="pGoal"
-                 :options="mainGoals"
-                 option-value="id"
-                 option-label="title"
-                 label="Parent Goal"
-                 popupContentClass="q-gutter-md"
-                />
-            </div> 
-
-            <q-input v-else
-                filled
-                v-model="details"
-                label="Description/Details"
+            <q-btn
+            class="q-mt-xl"
+            color="white"
+            text-color="red"
+            elevated
+            label="Reset GoalType"
+            no-caps
+            @click="doReset"
             />
-            <div v-if="!showSubG" class="q-gutter-md">
-                <q-select class="q-pl-md"
-                 v-model="bgcolor"
-                 :options="avColors"
-                 :color="bgcolor"
-                 label="Color"
-                 popupContentClass="q-gutter-md"
-                 />
-                <!--popupContentStyle="justify-content: center"
-                /> -->
-                <br>
-                <q-input
-                    filled
-                    v-model.number="priority"
-                    type="number"
-                    label="Priority"
-                    hint="0 to 10"
-                />
-            </div>
-
-            <div v-if="showSubG" class="q-gutter-sm">
-                <q-input v-model="time" filled type="time" hint="Default time" />
-                
-                <br>
-
-                <q-input v-model="score" 
-                filled 
-                label="Score" 
-                hint="format: #on#"
-                lazy-rules
-                :rules="[ val => val && val.includes('on') && val.length > 3 || 'hint, hint!']"
-                /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview -->
-
-                Duration (min)
-                <q-knob
-                    :min="5"
-                    :max="120"
-                    :thickness="0.22"
-                    :step="5"
-                    v-model="duration"
-                    show-value
-                    size="75px"
-                    color="teal"
-                    track-color="grey-3"
-                    class="q-ma-md"
-                /><!--v-model="duration"  
-                    :model-value=duration -->
-                <br>
-                <q-toggle
-                v-model="canMove"
-                label="Can Move"
-                left-label
-                color="green">
-                    <q-badge
-                    color="orange" floating
-                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                    ? <q-tooltip>Have to confirm any timeslot change</q-tooltip>
-                    </q-badge>
-                </q-toggle>
-
-                <br>
-                <q-toggle
-                v-model="inDefaults"
-                label="In Defaults"
-                left-label
-                color="blue">
-                    <q-badge 
-                    color="orange" floating
-                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                    ? <q-tooltip>Is scheduled by default</q-tooltip>
-                    </q-badge>
-                </q-toggle>
-                <br>
-
-                <q-toggle v-if="duration<30"
-                v-model="isAlternative"
-                label="As Alternative"
-                left-label
-                color="blue">
-                    <q-badge 
-                    color="orange" floating
-                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                    ? <q-tooltip>Can be scheduled as an alternative</q-tooltip>
-                    </q-badge>
-                </q-toggle>
-
-            </div>
-
-            <div>
-            <q-btn :label="buttonLabel" type="submit" color="primary" class="q-ml-sm" align="between" />
-            <!--<q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />  label="Submit"-->
-            </div>
-        </q-form>
-    </div>
-    
-    <!--<draggable v-model="mainGoals" draggable=".item" item-key="id">
-        <template #item="{element}">
-            <div class="item">
-            {{element.title}} - {{element.details}} - {{element.priority}} -> {{element.bgcolor}}
-            </div>
+        </div>
+        <div v-else align="center">
+            *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
+        </div>
         </template>
-        <template #footer>
-         <button @click="addPeople">Add</button>
-        </template>
-    </draggable> -->
-
-    <!-- should use component template instead--todo**-->
-    <br>
-    
-    <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
-        <q-item>
-            <q-item-section>
-              <q-item-label overline class="q-mx-lg q-px-md" style="max-width:100%">Swipe to Edit or Delete Goal</q-item-label>
-            </q-item-section>
-         </q-item>
-    
-        <q-separator spaced />
-    
-        <transition-group name="dalist">
-            <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
-            v-model="expanded[goal.id]"
-            :key="goal.id"
-            :label="goal.title"
-            :caption="goal.details"
-            popup
-            expandSeparator
-            :header-class= "classyHeader(goal.bgcolor)"
-            clickable>
-            <!--<template v-slot:header></template> -->
-        
-             <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
-                <!--<q-card-section>
-                    {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}   class="q-my-sm"  color="red"
-                </q-card-section> -->
-                <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
-                    <template v-slot:left> <!--had no need for @left="onLeft" in q-slide-item above BUT using it to edit here -->
-                    Edit
-                    </template>
-                    <template v-slot:right>
-                    Delete
-                    </template>
-
-                    <q-item>
-                        <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabe(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
-                        <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
-                    </q-item>
-                </q-slide-item>
-                <q-separator :color="goal.bgcolor.toLocaleLowerCase()"/>
-             </q-card>
-
-             <q-card v-if="!hasSubG(goal.id)">
-                <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
-                OR
-                <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
-             </q-card>
-            </q-expansion-item>
-     </transition-group>
-    </q-list>
-
-    <br>
-    <!--<div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
-        <div class="row justify-center"> All Goals </div>
-        <q-separator />
-        <br>
-        <q-tree
-          :nodes="treeGoals"
-          node-key="label"
-          v-model:expanded="expandedNodes"
-          v-model:selected="selected"
-          no-connectors
-          dense
-          default-expand-all>
-    
-          <template v-slot:default-header="prop">
-              <div :class="classyColor(prop.node)">
-                <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mx-sm" />
-                <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
-              </div>
-            </template>
-          <template v-slot:default-body="prop">
-              <div v-if="prop.node.isChildren">
-                <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
-              </div>
-              <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
-            </template>
-        </q-tree> 
-    </div> -->
-    <!--below work But hard to change background via props(below)...cause using slot >> sigh...hard to expand when using select even
-          :selected-color="red"
-          :on-update:selected="euh"
-          selected-color="lime"
-        -->
-    <!--<div class="text-h6">Selected</div>
-    <div>{{ selected }}</div> -->
-
+    </q-splitter>
     </q-pull-to-refresh>
-    <q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="blue"
-        elevated
-        label="Print"
-        no-caps
-        @click="doPrint"
-    />
-    <q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="red"
-        elevated
-        label="Reset GoalType"
-        no-caps
-        @click="doReset"
-    />
- <!--</div> -->
+    
 </main>
 </template>
 <script>
@@ -277,8 +241,10 @@ export default {
     // },
     name: 'addGoalForm',
     setup () {
-        //form
+        const splitterModel = ref(40) //at 40%
+        const Adminy = ref(false)
         const goalTitle = ref('')
+
         const details = ref('')
         const bgcolor = ref('')
         const avColors = ref([]) // oldie >> ref(pGColors())
@@ -707,6 +673,7 @@ export default {
         }
 
         return {
+            splitterModel,Adminy,
             showSubG,
             mainGoals,
             subGoals,

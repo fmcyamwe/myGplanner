@@ -14,13 +14,16 @@
               option-value="id"
               option-label="title"
               item-aligned
-              popupContentClass="q-px-md"
+              popupContentClass="q-px-md scheduly"
+              
               :label="labely()"
               :options-selected-class="goalyColor('c')"
               :label-color="goalyColor('l')"
+              
               /><!--popupContentStyle="text-align: center;" >>for whole popup! bgColor="red" >>dropbox area(meh...toSee)  margin: 0 auto;
                 optionsSelectedClass="bg-red"
                 labelColor="green"
+                scheduly class!? >dont seem to work... wanted hover to change background to proper color...oh well--toTry later
               -->
             </div>
             
@@ -62,7 +65,7 @@
       'doCancel'
     ],
     computed: {
-      allScheduled:{
+      allScheduled:{ //try to add parentGoals somehow?!? toSee**
         get(){return this.canBeScheduled},
         //set?!? >>no need!
       },
@@ -102,6 +105,10 @@
   justify-content: center
   text-align: center
   width: 100%
+
+.scheduly:hover
+  width: 10%
+
 </style>
 
 
