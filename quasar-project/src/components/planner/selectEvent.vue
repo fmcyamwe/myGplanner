@@ -29,6 +29,8 @@
             
             <q-card-actions align="center">
             <q-checkbox dense v-model="doForce" label="Force" color="teal" class="q-pa-sm" />
+            <q-space/> 
+            <q-checkbox v-if="canBalance" dense v-model="useBalance" label="Use Balance" color="brown" class="q-pa-sm" />
             </q-card-actions>
             <q-card-actions align="center">
                 <q-btn flat label="Cancel" color="primary" @click="$emit('doCancel')"/>
@@ -52,12 +54,14 @@
     name: 'selectEvent',
     props: {
       canBeScheduled: Array,
+      toBalance:Number,
       //doCancel: Function, // can execute function BUT better to emit...
     },
     data(){
       return {//no need for ref..prolly
         doForce:false, //ref(false), //force schedule and skip asking confirmation from user...
-        toAddE:null  //ref(null),
+        toAddE:null,  //ref(null),
+        useBalance:false
       }
     },
     emits: [
@@ -79,10 +83,11 @@
     methods: {
       onAddClicked () {
         //console.log('huh picking event', this.toAdd,this.doForce)
-        this.$emit('onPickEvent',this.toAdd,this.doForce)
+        this.$emit('onPickEvent',this.toAdd,this.doForce,this.useBalance)
         
         //reset...needed prolly...
         this.doForce = false
+        this.useBalance = false
         this.toAdd = null 
       },
       goalyColor(l){
@@ -90,6 +95,12 @@
       },
       labely(){
         return this.toAdd == null ? 'Sub Goal' : 'Of: '+this.toAdd?.pg
+      },
+      canBalance(){
+        ////true when balance >toadd.duration || isAlt?
+        let canBalance = this.toBalance + parseInt(this.toAdd?.duration) || this.toAdd?.isAlternative
+        console.log(`canBalance`,canBalance)//canBalance...umm
+        return this.toAdd == null ? false : (this.toBalance + parseInt(this.toAdd?.duration) || this.toAdd?.isAlternative)
       }
     }
 }

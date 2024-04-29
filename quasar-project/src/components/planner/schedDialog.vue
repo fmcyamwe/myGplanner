@@ -12,6 +12,7 @@
           <div class="q-ma-md event-select">
             <select-event
               :canBeScheduled="allScheduled"
+              :toBalance="balance"
               @on-Pick-Event="onAddClicked"
               @do-Cancel="onCancelBtn"
             />
@@ -22,7 +23,7 @@
           <div class="q-ma-md event-select">
             <ad-hoc-event
               :mainGoals="parentGoals"
-              @save-Event="addNewEvent"
+              @save-Event="adHocNewEvent"
               @do-Cancel="onCancelBtn"
             />
             <q-space/><!--better here?!?-->
@@ -56,6 +57,7 @@ export default defineComponent ({  //this be Options Vue notation
   props: {
     parentGoals: Array,
     canBeScheduled: Array, //array of objects...
+    balance:Number, //prolly
   },
   data(){
     return{
@@ -65,8 +67,7 @@ export default defineComponent ({  //this be Options Vue notation
     }
   },
   emits: [
-    //'onChooseEvent', //redundant
-    'onAddNewEvent',
+    'addAdHocEvent',
     'onPickEvent',
     'euhHidin'
   ],
@@ -93,27 +94,28 @@ export default defineComponent ({  //this be Options Vue notation
         get(){
           //console.log(`allScheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
 
+          //why this again?!?--still valid?***
           this.canBeScheduled.forEach((obj) => { //not too expensive?!? toSee...
             let a = this.parentGoals.find(item => item.id == obj.parentGoal)
             a ? obj.color = a.bgcolor : obj.color = ''
             obj.pg = a?.title.trim() //also add parentTitle as well for use...
           }) 
 
-          //console.log(`allScheduled..AFTER`,JSON.parse(JSON.stringify(this.canBeScheduled)))
+          console.log(`allScheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
           return this.canBeScheduled
         },
         //set?!? >>no need!
     }
   },
   methods: {
-    onAddClicked(toAdd,forceFlag){
+    onAddClicked(toAdd,forceFlag,useBalance){
       //console.log(`onPickEvent..emitting`,toAdd,forceFlag)
-      this.$emit('onPickEvent',toAdd,forceFlag) //this.toAddE,this.doForce)
+      this.$emit('onPickEvent',toAdd,forceFlag,useBalance)
       this.reset()
     },
-    addNewEvent(aTitle, daP, own, duration) {//pass in the arguments like so?!? >>yup
-        //console.log(`addNewEvent..emitting`,aTitle, daP, own, duration)
-      this.$emit('onAddNewEvent',aTitle, daP, own, duration)
+    adHocNewEvent(aTitle, daP, own, duration) {
+      //console.log(`addAdHocEvent..emitting`,aTitle, daP, own, duration)
+      this.$emit('addAdHocEvent',aTitle, daP, own, duration)
       this.reset() 
     },
     onChooseExisting(){ // hide the main dialog and show the pickEvent dialog

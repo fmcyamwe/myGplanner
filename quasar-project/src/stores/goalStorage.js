@@ -50,6 +50,9 @@ export const useGoalStore = defineStore('allGoals', () => {
         //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
         JSON.parse($q.localStorage.getItem("AllDates"))
     )
+    const getBalance = computed(() => //toTEST** if access after change computed is ok to use*** or move to methods!
+        JSON.parse($q.localStorage.getItem("Balancey"))
+    )
 
     function doCopy(arr){  //copy >>this {...obj} is for objects
         if(arr) return [...arr]  //oldie that crap out when arr is null >> arr.length > 0
@@ -63,6 +66,10 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     //dummy logged duration Task summary 
     const loggedTest = [0.5, 2.0, 3.5, 4.0, 4.5, 1.0]
+
+    function setBalance(amt){
+        $q.localStorage.set('Balancey', JSON.stringify(amt))
+    }
 
     function addMainGoal(goal,details,color,priority) {
        
@@ -123,7 +130,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         $q.localStorage.set('mainGoals', JSON.stringify(current))
     }
 
-    function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults,isAlternative) {
+    function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults,isAlternative,moods) {
         
         //console.log(pGoal+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults)
         
@@ -139,7 +146,8 @@ export const useGoalStore = defineStore('allGoals', () => {
                 duration: duration,
                 canMove: canMove,
                 inDefaults:inDefaults,
-                isAlternative:isAlternative
+                isAlternative:isAlternative,
+                jeSuis: moods ? moods : []  //to not add nulls...
             }]))
             return
         }
@@ -160,7 +168,8 @@ export const useGoalStore = defineStore('allGoals', () => {
             duration: duration,
             canMove: canMove,
             inDefaults:inDefaults,
-            isAlternative:isAlternative
+            isAlternative:isAlternative,
+            jeSuis: moods ? moods : []  //to not add nulls...
         })
 
         $q.localStorage.set('subGoals', JSON.stringify(current))
@@ -169,7 +178,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         return newID
     }
 
-    function editSubGoal(goalId, title,score,time, duration, canMove, inDefaults,isAlternative){
+    function editSubGoal(goalId, title,score,time, duration, canMove, inDefaults,isAlternative,moods){
         //console.log("editSubGoal", goalId+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults+' '+isAlternative)
         
         let current = this.getSubGoals
@@ -182,6 +191,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[i].canMove = canMove
                 current[i].inDefaults = inDefaults
                 current[i].isAlternative = isAlternative
+                current[i].jeSuis = moods ? moods : []  //to not add nulls...
                 //console.log("editSubGoal for",current[i], i)
                 break
             }
@@ -204,6 +214,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         $q.localStorage.remove('subGoals')
         $q.localStorage.remove('mainGoals')
         $q.localStorage.remove('AllDates')
+        $q.localStorage.remove('Balancey')
         //remove schedule too prolly--todo**
 
         console.log("removed ALL")
@@ -501,6 +512,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                     details: `${subG[i]?.time}${when(subG[i]?.time)} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`, // >> 
                     color:`${goal?.bgcolor}`, //toSee look...
                     isChildren:true,
+                    moods: subG[i].jeSuis || []
                 })
             }
             //console.log("Childy"+goal.id,JSON.parse(JSON.stringify(toAdd.children)))
@@ -629,6 +641,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         getSubGoals,
         //getSubGoalsByParent,
         getAllDates,
+        getBalance,
+        setBalance,
         addMainGoal,
         addSubGoal,
         editSubGoal,

@@ -70,6 +70,21 @@
                             :rules="[ val => val && val.includes('on') && val.length > 3 || 'hint, hint!']"
                             /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview -->
 
+                            <br>
+                            <q-select
+                                label="Moods: 'je-suis'"
+                                filled
+                                v-model="moods"
+                                use-input
+                                use-chips
+                                multiple
+                                hide-dropdown-icon
+                                input-debounce="0"
+                                new-value-mode="add-unique"
+                                style="width: 100%"
+                            /> <!--bon show the chips better***-->
+
+                            <br>
                             Duration (min)
                             <q-knob
                                 :min="5"
@@ -82,8 +97,7 @@
                                 color="teal"
                                 track-color="grey-3"
                                 class="q-ma-md"
-                            /><!--v-model="duration"  
-                                :model-value=duration -->
+                            />
                             <br>
                             <q-toggle
                             v-model="canMove"
@@ -250,8 +264,9 @@ export default {
         const avColors = ref([]) // oldie >> ref(pGColors())
         const time = ref('')
         const priority = ref(3)
-        const duration = ref(15) //min of 30
+        const duration = ref(15) //min of 15
         const score = ref('')
+        const moods = ref(null)
         const canMove = ref(false)
         const inDefaults = ref(false) //NOT by default?!?
         const isAlternative = ref(false)
@@ -342,7 +357,7 @@ export default {
         }
 
         function doReset () {
-            if (goalType.value ==='main') {//shoulg confirm AND also remove the subgoals!!
+            if (goalType.value === 'main') {//shoulg confirm AND also remove the subgoals!!
                 
                 $q.dialog({
                 title: 'Warning',
@@ -356,7 +371,7 @@ export default {
                     //expanded.value[id] = false
                 })
 
-            } else if(goalType.value ==='sub') {
+            } else if(goalType.value === 'sub') {
                 store.resetSub()
             } else {
                 $q.dialog({
@@ -373,14 +388,11 @@ export default {
         }
 
         function onSubmit() {
-            //console.log("onSubmit Goal of type:",goalType.value, buttonLabel.value)
+            
             let action = buttonLabel.value === "Save" ? 'Save' : 'Add'
 
             if(action === "Save"){
                 editAction()
-                //editSubGoal()
-                //expanded.value[pId.id] = false //just so that it can be updated!
-                //buttonLabel.value = "Submit"
             } else { //adding new goal
                 if (goalTitle.value.trim() == ''){
                     $q.notify({
@@ -392,12 +404,12 @@ export default {
                     return
                 }
 
-                if (goalType.value ==='main') {
+                if (goalType.value === 'main') {
                     store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
                 } else {
                     if(pGoal.value){
                         let pId = pGoal.value
-                        store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value)
+                        store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value,moods.value)
                         console.log("Subgoal Goal added for parent:",pId.title)
                     }else{//subG have to have a parentG
                         $q.notify({
@@ -410,7 +422,6 @@ export default {
                         return
                     }
                 }
-
             }
 
             $q.notify({
@@ -495,6 +506,7 @@ export default {
                 canMove.value = subby.canMove
                 inDefaults.value = subby.inDefaults
                 isAlternative.value = subby.isAlternative
+                moods.value = subby.jeSuis //? moods : []  //to not add nulls...
 
                 updatingSubG = subId  //keep track of this for submit
 
@@ -565,7 +577,7 @@ export default {
 
         function editSubGoal(){
             if(updatingSubG){
-                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value)
+                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value,moods.value)
             } else{
                 $q.notify({
                     color: 'negative',
@@ -574,7 +586,6 @@ export default {
                     icon: 'report_problem'
                 })
             }
-            //return?
         }
 
         function editAction(){ //for all edits
@@ -647,6 +658,8 @@ export default {
             inDefaults.value = false
             isAlternative.value = false
 
+            moods.value = null
+
             updatingSubG = null
 
             console.log("hardReset...")
@@ -681,7 +694,7 @@ export default {
             daRefs:hRefs,
             expanded, //see if can trigger close >>does!
             buttonLabel,
-            expandedNodes,treeGoals,selected,
+            expandedNodes,treeGoals,selected,moods,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
             hasSubG,
             doPrint,
