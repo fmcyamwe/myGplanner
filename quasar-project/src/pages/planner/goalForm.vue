@@ -72,17 +72,31 @@
 
                             <br>
                             <q-select
-                                label="Moods: 'je-suis'"
-                                filled
-                                v-model="moods"
-                                use-input
-                                use-chips
-                                multiple
-                                hide-dropdown-icon
-                                input-debounce="0"
-                                new-value-mode="add-unique"
-                                style="width: 100%"
-                            /> <!--bon show the chips better***-->
+                            label="Moods: 'je-suis'"
+                            filled
+                            v-model="moods"
+                            use-input
+                            use-chips
+                            multiple
+                            hide-dropdown-icon
+                            input-debounce="0"
+                            new-value-mode="add-unique"
+                            style="width: 100%"
+                            >
+                             <template v-slot:selected-item="scope">
+                                <q-chip
+                                  removable
+                                  dense
+                                  @remove="scope.removeAtIndex(scope.index)"
+                                  :tabindex="scope.tabindex"
+                                  text-color="black"
+                                  class="q-ma-none"
+                                  style="width:100px"
+                                >
+                                  {{ scope.opt }}
+                                </q-chip>
+                              </template>
+                            </q-select>
 
                             <br>
                             Duration (min)
