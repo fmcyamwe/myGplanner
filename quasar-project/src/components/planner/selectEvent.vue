@@ -13,7 +13,6 @@
               class="q-gutter-md"
               option-value="id"
               option-label="title"
-              item-aligned
               popupContentClass="q-px-md scheduly"
               
               :label="labely()"

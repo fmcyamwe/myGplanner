@@ -30,15 +30,13 @@
     no-caps
   >
   <!--
-    <q-space />
-    <q-separator 
-      vertical
-      color="red"
+    see about adding border to options below via class..
+    class="q-px-xl"
   /> -->
   
-  <q-list>
+  <q-list bordered padding>
       <q-item v-for="e in daOptions" :key="e" clickable v-close-popup @click="onSelect(e)" ><!--chooseScore(e)-->
-        <q-item-section>
+        <q-item-section  style="text-align: center;">
           <q-item-label>{{ e }}</q-item-label>
         </q-item-section>
       </q-item>
