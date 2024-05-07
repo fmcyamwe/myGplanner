@@ -26,10 +26,10 @@
               -->
             </div>
             
-            <q-card-actions align="center">
-            <q-checkbox dense v-model="doForce" label="Force" color="teal" class="q-pa-sm" />
-            <q-space/> 
-            <q-checkbox v-if="canBalance" dense v-model="useBalance" label="Use Balance" color="brown" class="q-pa-sm" />
+            <q-card-actions align="center" class="q-px-xl">
+              <q-checkbox dense v-model="doForce" label="Force" color="teal"/> <!--class="q-pa-sm"-->
+              <q-space/> 
+              <q-checkbox v-if="canBalance" dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
             </q-card-actions>
             <q-card-actions align="center">
                 <q-btn flat label="Cancel" color="primary" @click="$emit('doCancel')"/>

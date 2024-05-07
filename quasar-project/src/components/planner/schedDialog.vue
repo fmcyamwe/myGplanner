@@ -94,17 +94,15 @@ export default defineComponent ({  //this be Options Vue notation
         get(){
           //console.log(`allScheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
 
-          //why this again?!?--still valid?***
-          this.canBeScheduled.forEach((obj) => { //not too expensive?!? toSee...
+          this.canBeScheduled.forEach((obj) => { //not too expensive?!? meh...
             let a = this.parentGoals.find(item => item.id == obj.parentGoal)
             a ? obj.color = a.bgcolor : obj.color = ''
-            obj.pg = a?.title.trim() //also add parentTitle as well for use...
-          }) 
+            obj.pg = a?.title.trim() //useful for label
+          })
 
-          console.log(`allScheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
+          //console.log(`allScheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
           return this.canBeScheduled
         },
-        //set?!? >>no need!
     }
   },
   methods: {

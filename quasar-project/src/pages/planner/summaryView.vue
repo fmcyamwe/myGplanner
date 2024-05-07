@@ -129,7 +129,7 @@
 
     <template v-slot:after>
       <div class="q-pa-md">
-        <div v-if="treeGoals.length > 0" class="q-pa-xl bg-grey-12" style="max-width: 400px">
+        <div v-if="treeGoals.length > 0" class="q-pa-md bg-grey-12" style="max-width: 400px">
           <div class="row justify-center"> Goals & Goal Events </div>
           <q-separator />
           <!--<q-space/> have to be inside qComponent-->
@@ -146,7 +146,7 @@
             <!--class="row items-center" :style="titleStyles(prop.node)"-->
             <template v-slot:default-header="prop">
                 <div :class="classyColor(prop.node)">
-                  <q-icon :name="prop.node.icon || 'arrow'" size="28px" class="q-mr-sm" />
+                  <q-icon v-if="!prop.node.isChildren" :name="prop.node.icon || prop.expanded ? 'expand_less' : 'expand_more'" size="28px" class="q-mr-sm" />
                   <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
                 </div>
               </template>
