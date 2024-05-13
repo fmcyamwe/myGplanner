@@ -210,7 +210,7 @@
           </q-badge>
         </div>
         <div class="row justify-center">
-            <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 500px;">
+            <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 600px;">
               <q-calendar-day
                 ref="calendar"
                 view="day"
@@ -353,15 +353,6 @@
             :doForce="force" works? as not a prop.... >>warning Extraneous non-props and doesnt open...
             :showDefaultEvtByType="addEventDialog" >>mutating prop error
             -->
-
-            <sched-dialog v-if="addEventDialog"
-            :parentGoals="storedCompPG"
-            :canBeScheduled="canbeScheduled"
-            :balance="currentBalance"
-            @add-ad-hoc-event="onAddHocEvent"
-            @on-pick-event="onPickEvent"
-            @euh-hidin="closingDialog"
-            />
         </div>
 
         <div class="row justify-center">
@@ -387,6 +378,14 @@
           />
         </div>
         <br>
+        <sched-dialog v-if="addEventDialog"
+          :parentGoals="storedCompPG"
+          :canBeScheduled="canbeScheduled"
+          :balance="currentBalance"
+          @add-ad-hoc-event="onAddHocEvent"
+          @on-pick-event="onPickEvent"
+          @euh-hidin="closingDialog"
+        />
       </template>
     </q-splitter>
 
@@ -683,7 +682,7 @@ computed: {
  },
 
  methods: {
-  parentGoalsMap(){ //at least now it's up to date esti!! runs too much tho?!?
+  parentGoalsMap(){ //at least now it's up to date esti!! runs too much tho?!?---umm seems bad to do all the work too for each invocation!--toReview**
     const map = new Map()
     //this.pGoals = this.storedCompPG
     //let mG = this.parentGs //smh neither >> this.storedCompPG// nope > this.storedPG()  //this.storedMainG()
@@ -762,7 +761,7 @@ computed: {
 
       return `Scheduled => ${this.scheduledEvents.length} out of ${total} \n`   //On ${this.currentDate} With  //this.scheduledEvents.length  this.storedEvents.length
     }
-    return `Balance: ${this.currentBalance} \n`
+    return `Balance: ${this.currentBalance ? this.currentBalance : 0} \n`
     
   },  
   // get all events for the specified date
@@ -1135,7 +1134,7 @@ computed: {
       //timeout?: number; // time to display (in milliseconds)>>default is 5000
     })
   },
-  useGroupNotify(messg, colorNotif = undefined, position = 'top',group=false,timeout=5000){
+  useGroupNotify(messg, colorNotif = undefined, position = 'top',group=false,timeout=5000){ //prolly redundant--toREmove**
     this.$q.notify({
       color: colorNotif !== undefined ? colorNotif : 'negative',
       position: position,
@@ -1143,6 +1142,18 @@ computed: {
       icon: colorNotif == undefined ? 'report_problem' : 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
       group: group, //boolean | string | number;
       timeout: timeout, // time to display (in milliseconds)>>default is 5000
+    })
+  },
+  withDismissNotify(messg, colorNotif = undefined, position = 'top',timeout = null,dismiss = null){  //timeout=5000 //group=false
+    this.$q.notify({
+      color: colorNotif !== undefined ? colorNotif : 'negative',
+      position: position,
+      message: messg,
+      icon: colorNotif == undefined ? 'report_problem' : 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+      //group: group, //boolean | string | number;
+      timeout: timeout ?? 5000, // time to display (in milliseconds)>>default is 5000
+      closeBtn:"Okey",
+      onDismiss:dismiss, //no need for ()
     })
   },
   updateButtons(defaultBool=null, scoreScheduleBool=null, priorityScheduleBool = null){ //reloadBool=null,
@@ -1652,7 +1663,7 @@ computed: {
 
             //>could have multiple default that are overlapping yes!
             //
-            console.log("WOAH WOAH, multiple overlaps with same obj!"+j, obj,oOth)
+            //console.log("WOAH WOAH, multiple overlaps with same obj!"+j, obj,oOth)
             if (oDets.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",oDets.inConflict); delete euhOverlaps[oDets.inConflict] }
             if (oOth[j-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",oOth[j-1].inConflict); delete euhOverlaps[oOth[j-1].inConflict] }
 
@@ -2300,21 +2311,8 @@ computed: {
         console.log("fixyOverlaps...unknown key found",key) //could happen with fixMultiConflicts()--see below! 
         continue
       }
-      
-      let toH = toHandle[key]
-      //console.log(`fixOverlaps::handlin...${key}`)  
 
-      if (toH.length > 1) {//for multiple overlapps with same events
-        console.log(`fixyOverlaps::WOAH WOAH...multiple overlaps!!`) //,JSON.parse(JSON.stringify(toH))
-        if ("withID" in toHandle){
-          this.fixMultiConflicts(toH,override,from)
-        }else {
-          this.multiConflicts(toH,override,from)
-        }
-        continue
-      }
-
-      //proper reset by iteration means declaring Opts here smh
+      //proper reset by iteration means declaring Opts here smh--would putting into lambda be better? toTry***
       let defaultOpts = [
         //{ label: 'Choose by Priority', value: 'opt1', color: 'secondary' },
         //{ label: 'Choose by Score', value: 'opt2' },
@@ -2339,6 +2337,20 @@ computed: {
         )
       }
 
+      let toH = toHandle[key]
+      //console.log(`fixOverlaps::handlin...${key}`)  
+
+      if (toH.length > 1) {//for multiple overlapps with same events
+        console.log(`fixyOverlaps::WOAH WOAH...multiple overlaps!!`) //,JSON.parse(JSON.stringify(toH))
+        if ("withID" in toHandle){
+          this.fixMultiConflicts(toH,override,from)
+        }else {
+          this.multiConflicts(toH,override,from)
+        }
+        continue
+      }
+
+
       const aConf = toH.pop() //toH.shift() to resolve in order? >>dont matter!
 
       let toAdd = this.getLocalEvt(aConf.target) //number
@@ -2348,8 +2360,24 @@ computed: {
       console.log(`fixyOverlaps::adding ${toAdd.id}:${toAdd.title.trim()}(${toAdd.time})++${toAdd.duration} AT >> ${aConf?.targetStart?.time} -- ${aConf.direction} 
       Overlap with ${currScheduled.id}:${currScheduled.title.trim()}(${currScheduled.time})++${currScheduled.duration}`,override,'from:'+from,'toHandle='+toHandleSize) //aConf
 
+      //case sensitive?!? toSEE***
       let toAddInclud = toAdd.title.trim().includes(currScheduled.title.trim())
       let scheduledInclud = currScheduled.title.trim().includes(toAdd.title.trim())
+
+      //check also for the parent relation?--toSee...especially if too much for no reason....
+      let toAddPrt = this.parentGoalsMap().get(toAdd.parentGoal)
+      let currSPrt = this.parentGoalsMap().get(currScheduled.parentGoal)
+
+      let toAddPrtInclud = toAdd.title.trim().includes(currSPrt.title.trim())
+      let currSPrtInclud = currScheduled.title.trim().includes(toAddPrt.title.trim())
+      if (toAddPrtInclud || currSPrtInclud){ //auto-schedule...for parents!!---todo***
+        //should schedule the subGoal!!! (Next of 'Me Me' parent)
+        // OR (if cant for any reason?!?)
+        // one of the subGoals of the parent? (parentGoal 'Next' with subgoals-Jobs,Massage,PmP/Pilot,etc)--which should be the one of scheduled or toAdd prolly
+        //
+        console.log(`fixyOverlaps:: WOAH PARENT AUTO schedule`,toAddPrtInclud, currSPrtInclud,"Normal AUTO>>", toAddInclud, scheduledInclud,'direction == surrounding? >>', aConf.direction == 'surrounding')
+
+      }
       
       if (toAddInclud || scheduledInclud){ //auto-schedule...shouldnt when can force?!? toMonitor**
         console.log(`fixyOverlaps:: can AUTO schedule`,toAddInclud, scheduledInclud,'direction == surrounding? >>', aConf.direction == 'surrounding')
@@ -3194,15 +3222,13 @@ computed: {
           console.log(`doLoadNotPresent..OVERLAPS in past?${inPast} on ${onDate}`,e.size) //JSON.parse(JSON.stringify(e))
           this.doNotify(`${onDate} with conflicts to fix!`, "warning",'bottom')  //${inPast ? 'past': 'future'}: 
 
-          this.fixSameStart(e)  //loadDate
+          this.fixSameStart(e)  //loadForDate
           
         } else {
           this.showReloadBtn = false
           this.disableSaveSchedule = true
           this.doNotify(`Loaded schedule for ${inPast ? 'past': 'future'}:: ${onDate}`, "positive",'bottom')
         }
-
-        //return e.size //'ouais' //see about return...especially for conflicts... >>no point as goes too fast!
       }
 
       let OverlapCheckLoadToday = () => {
@@ -4008,8 +4034,12 @@ computed: {
         toReload.push(local)
         this.usingMoods[toAdd[i].id]=toAdd[i]?.mood  //umm add already here?!? hard to undo in case of overlaps smh---toTest**
       }else { 
-        console.log(`scheduleByMood>>>no time eh >>`+ local?.title) //could be error?!? toMonitor**
-        this.doNotify(`Evts '${local?.title}' has no set time for scheduling, Manually Add them.`, "warning",'top') 
+        //console.log(`scheduleByMood>>>no time eh >>`+ local?.title) //could be error?!? toMonitor**
+        //this.doNotify(`Evts '${local?.title}' has no set time for scheduling, Manually Add them.`, "warning",'top')
+        this.withDismissNotify(`Evt '${local?.title}' has no set time for scheduling, Manually Add it!`, "warning",'top',null,
+        function(){ //onDismiss....
+          console.log(`scheduleByMood>>>no time eh >> `+local?.title) //could be error?!? toMonitor**
+        })
       }
     }
 
@@ -4048,7 +4078,11 @@ computed: {
           title += `'${x?.title}'. `
         })
 
-        this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top')
+        //this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top') //defaults
+        this.withDismissNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top',null,
+          function(){ //onDismiss....
+            console.log(`scheduleDefaults::dismiss >> `, title) //, JSON.parse(JSON.stringify(evts))
+        })       
       }
       return evts
     }
@@ -4199,7 +4233,11 @@ computed: {
             title += `'${x?.title}'. `
           })
 
-          this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top')
+          //this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top') //oneEach
+          this.withDismissNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top',null,
+          function(){ //onDismiss....
+            console.log(`scheduleOneEach::dismiss >> `, title) //, JSON.parse(JSON.stringify(evts))
+          })
         }
         return evts
       }
@@ -4349,7 +4387,11 @@ computed: {
             title += `'${x?.title}'. `
           })
 
-          this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top')
+          //this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top') //ByPrio
+          this.withDismissNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top',null,
+          function(){ //onDismiss....
+            console.log(`scheduleSamePrio::dismiss >> `, title) //JSON.parse(JSON.stringify(evts))
+          })
         }
         return evts
       }
@@ -4503,7 +4545,12 @@ computed: {
             title += `'${x?.title}'. `  //else save title...toSee
           })
 
-          this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top')
+          //this.doNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top') //ByScore
+
+          this.withDismissNotify(`Evts ${title} without set time not scheduled, Manually Add them.`, "warning",'top',null,
+          function(){ //onDismiss....
+            console.log(`scheduleByScore::dismiss >> `,title) //, JSON.parse(JSON.stringify(evts))
+          })
         }
         return evts
       }

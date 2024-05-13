@@ -1,8 +1,9 @@
 
 export function applyClasses (event, type) {
     const isHeader = type === 'header'
+    const bgC = event.bgcolor ? 'bg-'+event?.bgcolor?.toLocaleLowerCase() : 'bg-black'  //oldie >> bg-${ event?.bgcolor?.toLocaleLowerCase() }`
     return {
-      [ `text-white bg-${ event.bgcolor.toLocaleLowerCase() }` ]: true, // >>account for colors with uppercased first letter..could also add # between 1 & 14 added at end...toSee**
+      [ `text-white ${bgC}` ]: true, // >>account for colors with uppercased first letter..could also add # between 1 & 14 added at end...toSee**
       'full-width': !isHeader && (!event.side || event.side === 'full'),
       'left-side': !isHeader && event.side === 'left',
       'right-side': !isHeader && event.side === 'right',

@@ -6,24 +6,43 @@
             </q-card-section>
             <q-separator />
             <div class="q-mx-md event-select">
-            <!-- could start being too much goals...break down by parentGoal?!? tbd** maybe could change label='PgoalTitle' ? -->
               <q-select
               v-model="toAdd" 
               :options="allScheduled"
-              class="q-gutter-md"
+              class="q-gutter-md q-px-md"
               option-value="id"
               option-label="title"
               popupContentClass="q-px-md scheduly"
-              
               :label="labely()"
               :options-selected-class="goalyColor('c')"
               :label-color="goalyColor('l')"
-              
-              /><!--popupContentStyle="text-align: center;" >>for whole popup! bgColor="red" >>dropbox area(meh...toSee)  margin: 0 auto;
+              @filter="filterFn"
+              @input-value="setModel"
+              use-input
+              hide-selected
+              fill-input
+              input-debounce="0">
+                <template v-slot:no-option>
+                  <q-item>
+                    <q-item-section class="text-grey">
+                      No results
+                    </q-item-section>
+                  </q-item>
+                </template>
+                <!--<template v-if="toAdd" v-slot:prepend>
+                  <q-icon name="cancel" @click.stop.prevent="toAdd = null" class="cursor-pointer" />
+                </template> bon too ugly and append goes way too far...-->
+              </q-select>
+              <!-- using the filterFn >> lose the background color of selected smh....@remove handler?!>>nope dont work either---setModel is better
+                
+                popupContentStyle="text-align: center;" >>for whole popup! bgColor="red" >>dropbox area(meh...toSee)  margin: 0 auto;
                 optionsSelectedClass="bg-red"
                 labelColor="green"
-                scheduly class!? >dont seem to work... wanted hover to change background to proper color...oh well--toTry later
-              -->
+                scheduly class!? >dont seem to work... wanted hover to change background to proper color...oh well--toTry later...maybe
+                
+                could start being too much goals?...break down by parentGoal?!? tbd**
+                  >>see if filterFn is good and the change of label='PgoalTitle' ?
+                -->
             </div>
             
             <q-card-actions align="center" class="q-px-xl">
@@ -32,23 +51,20 @@
               <q-checkbox v-if="canBalance" dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
             </q-card-actions>
             <q-card-actions align="center">
-                <q-btn flat label="Cancel" color="primary" @click="$emit('doCancel')"/>
-                    
-                <q-btn elevated color="primary" @click="onAddClicked"> 
-                    <div class="q-mx-md" style="text-align: center;"> 
-                        Add 
-                    </div>  
-                </q-btn>
+              <q-btn flat label="Cancel" color="primary" @click="$emit('doCancel')" />
+              <q-btn elevated color="primary" @click="onAddClicked">
+                <div class="q-mx-md" style="text-align:center;">
+                  Add 
+                </div>
+              </q-btn>
             </q-card-actions>
- 
-            <!--<q-card-actions align="evenly">
-            <q-btn flat align="center" label="Cancel" color="primary" @click="onCancelPickEvent"/>
-            </q-card-actions>  -->
         </q-card>
     </div>
 </template>
 <script>
 //import { defineComponent } from 'vue' --see about using this...
+//import { ref, onBeforeMount } from 'vue'
+
   export default {  //this be Options Vue notation
     name: 'selectEvent',
     props: {
@@ -57,10 +73,14 @@
       //doCancel: Function, // can execute function BUT better to emit...
     },
     data(){
+      //const allEvts = ref(null)  //toSee when here? >>nope gotta be in return 
+
       return {//no need for ref..prolly
         doForce:false, //ref(false), //force schedule and skip asking confirmation from user...
         toAddE:null,  //ref(null),
-        useBalance:false
+        useBalance:false,
+        allEvts: this.canBeScheduled,//bon start with this....//null //ref(null)
+        //empty:0 //smh >>no need as was hackish way to reset toAddE when not filtering!
       }
     },
     emits: [
@@ -68,9 +88,13 @@
       'doCancel'
     ],
     computed: {
-      allScheduled:{ //try to add parentGoals somehow?!? toSee**
-        get(){return this.canBeScheduled},
-        //set?!? >>no need!
+      allScheduled:{
+        get(){return this.allEvts}, //return this.canBeScheduled
+        //set?!? >>no need! >> 'twas before filtering...
+        set(value){
+          //this.canBeScheduled = value  //umm ?? > nope error of mutating props....
+          this.allEvts = value
+        }
       },
       toAdd:{
         get(){return this.toAddE},
@@ -79,21 +103,48 @@
         }
       },
     },
+    //onBeforeMount(){ //doesnt seem like it's needed....
+    //  console.log('onBeforeMount')
+    //  this.allScheduled = this.canBeScheduled
+    //},
     methods: {
       onAddClicked () {
         //console.log('huh picking event', this.toAdd,this.doForce)
         this.$emit('onPickEvent',this.toAdd,this.doForce,this.useBalance)
-        
-        //reset...needed prolly...
+
         this.doForce = false
         this.useBalance = false
         this.toAdd = null 
       },
+      filterFn (val, update, abort) {
+        update(() => {
+          //if(val == ''){ //huh needed to reset toAdd >> but problem as start empty when there is already a selected toAdd smh >>fixed by using setModel()
+            //console.log('empty'+val,this.toAdd)
+            //this.empty++
+            //this.allScheduled = this.canBeScheduled
+            //this.toAdd = null 
+            //return
+          //}
+          const needle = val.toLowerCase()
+          this.allScheduled = this.canBeScheduled.filter(v => v?.title.toLowerCase().indexOf(needle) > -1)
+        })
+        //abort(() =>{ //bof dont seem like it can run...
+        //  console.log('huh...abort?'+val,this.toAdd)
+        //})
+      },
+      setModel(val){
+        //console.log('huh...setModel?',this.toAdd, val)
+        this.toAdd = val 
+      },
+      //removeFn(details) { //doesnt run smh--toRemove***
+      //  console.log('huh...removeFn?',details)
+      //},
       goalyColor(l){
+        //console.log(`goalyColor `+l,this.toAdd?.color, this.allScheduled.length)
         return this.toAdd == null ? '' : l == 'c' ? 'bg-'+this.toAdd?.color : this.toAdd?.color
       },
-      labely(){
-        return this.toAdd == null ? 'Sub Goal' : 'Of: '+this.toAdd?.pg
+      labely(){ //sheesh gotta check '' too due setModel() above smh
+        return (this.toAdd == null  || this.toAdd == undefined || this.toAdd == '') ? ' Sub Goal' : ' Of: '+this.toAdd?.pg
       },
       canBalance(){
         ////true when balance >toadd.duration || isAlt?

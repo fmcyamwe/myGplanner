@@ -9,6 +9,7 @@
                 <q-form @submit="onSubmit" class="q-gutter-md form" >
                         <div class="q-gutter-sm">
                             <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
+                            <!--add space in here --todo***-->
                             <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
                         </div>
 
@@ -176,7 +177,7 @@
             <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
                 <q-item>
                     <q-item-section>
-                    <q-item-label overline class="q-mx-lg q-px-md" style="max-width:100%">Swipe to Edit or Delete Goal</q-item-label>
+                    <q-item-label overline class="q-mx-lg q-px-md row justify-center" style="max-width:100%;font-weight: bolder;">Swipe to Edit or Delete Goal</q-item-label>
                     </q-item-section>
                 </q-item>
             
@@ -190,7 +191,7 @@
                     :caption="goal.details"
                     popup
                     expandSeparator
-                    :header-class= "classyHeader(goal.bgcolor)"
+                    :header-class= "classyHeader(goal?.bgcolor)"
                     clickable>
                     <!--<template v-slot:header></template> -->
                 
@@ -207,11 +208,11 @@
                             </template>
 
                             <q-item>
-                                <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabe(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
+                                <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
                                 <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
                             </q-item>
                         </q-slide-item>
-                        <q-separator :color="goal.bgcolor.toLocaleLowerCase()"/>
+                        <q-separator :color="goal?.bgcolor?.toLocaleLowerCase()"/>
                     </q-card>
 
                     <q-card v-if="!hasSubG(goal.id)">
@@ -227,24 +228,125 @@
         <q-checkbox dense v-model="Adminy" label="Admin Stuff" color="teal" class="q-pa-sm" />
         
         <div v-if="Adminy">
-            <q-btn
-            class="q-mt-xl"
-            color="white"
-            text-color="blue"
-            elevated
-            label="Print"
-            no-caps
-            @click="doPrint"
-            />
-            <q-btn
-            class="q-mt-xl"
-            color="white"
-            text-color="red"
-            elevated
-            label="Reset GoalType"
-            no-caps
-            @click="doReset"
-            />
+            <div class="q-pa-md" v-if="showGoalsArea">
+                <q-btn v-if="isImporting && mainGJson && mainGJson !='' && subGJson && subGJson !=''" label="Reset" push color="white" text-color="primary" @click="doPrint" class="q-px-md" /> <!-- oldie >> "() => { resetBoxes(); step = 1 }"-->
+              
+                  <q-stepper
+                    v-model="step"
+                    header-nav
+                    ref="stepper"
+                    color="primary"
+                    animated
+                  >
+                    <q-step
+                      :name="1"
+                      title="Main Goals"
+                      icon="settings"
+                      :done="step > 1"
+                      :header-nav="step > 1"
+                      :error="step > 1 && mainGJson == void 0"
+                    > <!-- :error="step > 1 " && mainGJson == null ... == void 0 -->
+                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
+                            <q-input
+                            v-model="mainGJson"
+                            filled
+                            type="textarea"
+                            autogrow
+                            /> <!--autogrow? yup better-->
+                        </div>
+                        <div v-else> 
+                            {{ mainGJson }}
+                        </div>
+                     <q-stepper-navigation>
+                        <q-btn @click="() => { done1 = true; step = 2 }" noWrap align="around" color="primary" label="SubGoals->"/>
+                     </q-stepper-navigation>
+                    </q-step>
+              
+                    <q-step
+                      :name="2"
+                      title="SubGoals"
+                      icon="create_new_folder"
+                      :done="step > 2"
+                      :header-nav="step > 2"
+                      :error="step > 2 && subGJson == void 0"
+                    >
+                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
+                            <q-input
+                            v-model="subGJson"
+                            filled
+                            type="textarea"
+                            autogrow
+                            />
+                        </div>
+                        <div v-else> 
+                            {{ subGJson }}
+                        </div>
+                     <q-stepper-navigation>
+                        <q-btn @click="() => { done2 = true; step = 3 }" noWrap align="around" color="primary" label="AllScheduled->" />
+                        <q-btn flat @click="step = 1" noWrap align="around" color="primary" label="Back" class="q-ml-sm" />
+                     </q-stepper-navigation>
+                    </q-step>
+              
+                    <q-step
+                      :name="3"
+                      title="All Dates"
+                      caption="Optional"
+                      icon="add_comment"
+                      :header-nav="step > 3"
+                    >
+                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
+                            <q-input
+                            v-model="allJson"
+                            filled
+                            type="textarea"
+                            autogrow
+                            />
+                        </div>
+                        <div v-else> 
+                            {{ allJson }}
+                        </div>
+                      <q-stepper-navigation>
+                        <q-btn color="primary" @click="() => { done3 = true; doImport() }" :label="AdminLabel" noWrap align="around"/> <!-- oldie >> @click="done3 = true"-->
+                        <q-btn flat @click="step = 2" noWrap align="around" color="primary" label="Back" class="q-ml-sm" />
+                      </q-stepper-navigation>
+                    </q-step>
+                  </q-stepper>
+            </div>
+            <div class="row justify-center q-pa-md">
+                <q-btn
+                class="q-mt-md"
+                color="white"
+                text-color="blue"
+                elevated
+                label="Print"
+                no-caps
+                align="around"
+                @click="doPrint"
+                />
+                <q-space/>
+                <q-btn
+                class="q-mt-md"
+                color="white"
+                text-color="red"
+                elevated
+                align="around"
+                no-wrap
+                label="Reset GoalType"
+                no-caps
+                @click="doReset"
+                />
+                <q-space/>
+                <q-btn v-if="!isImporting"
+                class="q-mt-md"
+                color="white"
+                text-color="red"
+                elevated
+                align="around"
+                label="Import"
+                no-caps
+                @click="() => {showGoalsArea = true ; isImporting = true; step = 1}"
+                /><!--huh above works! -->
+            </div>
         </div>
         <div v-else align="center">
             *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
@@ -271,8 +373,14 @@ export default {
     setup () {
         const splitterModel = ref(40) //at 40%
         const Adminy = ref(false)
+        const showGoalsArea = ref(false)
+        const isImporting = ref(false)
+        const step = ref(1)  //stepper import/export
+        const mainGJson = ref(null)
+        const subGJson = ref(null)
+        const allJson = ref(null)
+        
         const goalTitle = ref('')
-
         const details = ref('')
         const bgcolor = ref('')
         const avColors = ref([]) // oldie >> ref(pGColors())
@@ -317,6 +425,8 @@ export default {
 
         const showSubG = computed(() => goalType.value ==='main' ? false : true )
 
+        const AdminLabel = computed(() => isImporting.value ? "Import" : "Finish" )
+
         watchEffect(() => {
             // tracks A0 and A1
             //A2.value = A0.value + A1.value
@@ -355,23 +465,165 @@ export default {
             clearTimeout(timer)  //or with .value? >>no need when seclaring with 'let' 
         })
 
-        //function euh(t){
-        //    console.log(`euh...changed selected...`,t,this.selected.value)
-        //}
-
         function doPrint () {
-            //console.log(headers) //not proper
             //JSON.stringify(store.goalList,null,1)  >>works!
-            // also works for >> store.headerRefs  BUT trying hRefs above gives an error
-            if (goalType.value ==='main') {
-                console.log(JSON.stringify(mainGoals.value,null,1)) //store.getMainGoals
-            } else {
-                console.log(JSON.stringify(subGoals.value,null,1)) //store.getSubGoals
+
+            step.value = 1
+            showGoalsArea.value = true
+            isImporting.value = false
+
+            //if (goalType.value ==='main') { //oldie
+            //    console.log(JSON.stringify(mainGoals.value,null,1)) //store.getMainGoals
+            //} else {
+            //    console.log(JSON.stringify(subGoals.value,null,1)) //store.getSubGoals
+            //}
+
+            //populate boxes
+            mainGJson.value = JSON.stringify(mainGoals.value,null,1)  //1-space indents...logging mostly---toSee with two-space? bof..
+            subGJson.value = JSON.stringify(subGoals.value,null,1)
+            allJson.value = JSON.stringify(store.getAllDates,null,1)
+            
+        }
+
+        function doImport () {
+            showGoalsArea.value = true
+
+            if (isImporting.value){
+                if(!subGJson.value || subGJson.value == '' || !mainGJson.value || mainGJson.value == ''){
+                    console.log("ERROR::importing empty!")
+                    $q.notify({
+                        color: 'negative',
+                        position: 'top',
+                        message: 'Something is empty :(',
+                        icon: 'report_problem'
+                    })
+                    return
+                }
+
+                //const obj = JSON.parse('{"name":"John", "age":30, "city":"New York"}');
+                let mainG = null
+                let subG = null
+                let allS = null
+                try{
+                    //const 
+                    mainG = JSON.parse(mainGJson.value)
+                    let hasError = []
+
+                    // "id": 7,"title": "Tinker","details": "Tinker","priority": 2,"bgcolor": "amber",
+                    for (let i in mainG) {
+                        let g = mainG[i]
+                        if ("id" in g && "title" in g && "priority" in g){  //umm bgcolor needed?!? toSee**
+                            //store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
+                            //store.addMaMinGoal(g)
+                            //console.log("valid pGoal...",g?.title)
+                        }else{
+                            //throw error? >> throw "too low"; >>would stop everything!
+                            console.log("ERROR::invalid Parent Goal!",g)
+                            //OR save it and throw in the end? >>better as would log in one go! 
+                            hasError.push(`:INVALID pGoal >> ${JSON.stringify(g)}`) 
+                        }
+                    }
+                    if(hasError.length > 0){ throw hasError } else { console.log("Yeee!! PGoals are good!") }
+                }catch (e) {
+                    //console.log(e instanceof SyntaxError)
+                    if (e instanceof SyntaxError){
+                        console.log("ERROR:: MainG SyntaxError!",e)
+                    } else{
+                        console.log("ERROR:: MainG dataError!",e)
+                    }
+                    $q.notify({
+                        color: 'negative',
+                        position: 'top',
+                        message: 'Error with Parent goals :(...check logs',
+                        icon: 'report_problem'
+                    })
+                    
+                    return
+                }
+
+                try{
+                    //const 
+                    subG = JSON.parse(subGJson.value)
+                    //"id": 31,"parentGoal": 7, "title": "Tinker",  "score": "1on5",  "time": "08:00",  "duration": 30,  
+                    //"canMove": true,"inDefaults": false,"isAlternative": false, "jeSuis": []
+                    let hasError = []
+
+                    for (let i in subG) {
+                        let g = subG[i]
+                        if ("id" in g && "parentGoal" in g && "title" in g && "score" in g && "duration" in g){ //just check for defaults....
+                            //store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value,moods.value)
+                            //store.addSubyGoal(g)
+                            //console.log("valid subGoal...",g?.title)
+                        }else{
+                            //throw error? >> throw "too low";
+                            console.log("ERROR::invalid subGoal!",g)
+                            hasError.push(`:INVALID subGoal >> ${JSON.stringify(g)}`) 
+                        }
+                    }
+                    if(hasError.length > 0){ throw hasError } else { console.log("Yeee!! subGoals are good!") }
+                }catch (e) {
+                    //console.log(e instanceof SyntaxError)
+                    if (e instanceof SyntaxError){
+                        console.log("ERROR:: subG SyntaxError!",e)
+                    } else{
+                        console.log("ERROR:: subGoals dataError!",e)
+                       //q.notify 
+                    }
+                    $q.notify({
+                        color: 'negative',
+                        position: 'top',
+                        message: 'Error with Sub goals :(...check logs',
+                        icon: 'report_problem'
+                    })
+
+                    return
+                }
+
+                if(allJson.value && allJson.value != ''){
+                    try{
+                        allS = JSON.parse(allJson.value)
+                        //should check that valid?!? 
+                    } catch (e) {
+                        //console.log(e instanceof SyntaxError)
+                        if (e instanceof SyntaxError){
+                            console.log("ERROR:: allS SyntaxError!",e)
+                        }
+                        $q.notify({
+                            color: 'negative',
+                            position: 'top',
+                            message: 'Error parsing AllEvents...skipping!',
+                            icon: 'report_problem'
+                        })
+                    }
+                }
+
+                console.log("importing...",mainG,subG,allS)
+
+                //import >>implicit overwriting!
+                store.importGoals(mainG,subG,allS)  
+
+                //and then reset to view...doesnt actually properly reset--toREview***
+                this.doPrint()
+                
+            }else{
+                console.log("finished prolly?.....")
+                showGoalsArea.value = false
+                this.resetBoxes()
             }
+            
+        }
+        
+        function resetBoxes(){
+
+            mainGJson.value = null
+            subGJson.value = null //JSON.stringify(subGoals.value,null,1)
+            allJson.value = null //JSON.stringify(store.getAllDates,null,1)
+
+            console.log('resetBoxes!!')
         }
 
         function doReset () {
-            if (goalType.value === 'main') {//shoulg confirm AND also remove the subgoals!!
+            if (goalType.value === 'main') {
                 
                 $q.dialog({
                 title: 'Warning',
@@ -380,6 +632,7 @@ export default {
                 }).onOk(() => {
                     //store.removeMaingoal(id, false)
                     store.resetMain() 
+                    //should Also remove the subgoals!!---todo**
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                     //expanded.value[id] = false
@@ -558,7 +811,7 @@ export default {
                   //  reload()
                 //})            
                 //return
-            } else if(action == 'edit'){ // store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
+            } else if(action == 'edit'){
                 let pGoally = mainGoals.value.find(elt => elt.id == id)
                 if(pGoally) {
                     buttonLabel.value = "Save"
@@ -678,16 +931,22 @@ export default {
 
             console.log("hardReset...")
         }
+        //redundant--toRemove**
         function classyColor(proppy){//bg-{color} or text-{color} in class
             //if (proppy.label == this.selected){console.log("classyColor for selected..."); return 'text-white bg-red'} //works but not needed!
             return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
         }
         function classyHeader(att){
-            return 'text-white bg-'+att.toLocaleLowerCase()
+            if(att){
+                return 'text-white bg-'+att.toLocaleLowerCase()
+            }
+            //console.log("classyHeader...no color",att)
+            return 'bg-white'
+
             //return `'text-white bg-'}${att.toLocaleLowerCase()} `  //row items-center ${proppy.isChildren ? 'text-' :  //oldie >> bg-${proppy.color}
         }
 
-        function niceyLabe(att){
+        function niceyLabel(att){
             let when = (timey) => {
                 if(!timey) return ''
 
@@ -700,7 +959,8 @@ export default {
         }
 
         return {
-            splitterModel,Adminy,
+            splitterModel,
+            Adminy,step,mainGJson,subGJson,allJson, isImporting,AdminLabel,showGoalsArea,
             showSubG,
             mainGoals,
             subGoals,
@@ -711,10 +971,10 @@ export default {
             expandedNodes,treeGoals,selected,moods,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
             hasSubG,
-            doPrint,
-            onSubmit,doReset,getSubGoals,
+            doPrint,doReset,doImport,resetBoxes,
+            onSubmit,getSubGoals,
             onRightDelete,onLeftEdit,softReset,onParentAction,refresh,
-            classyColor,classyHeader,niceyLabe //,euh
+            classyColor,classyHeader,niceyLabel //,euh
         }
     }
 }

@@ -1,6 +1,6 @@
 import {computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { event, useQuasar } from 'quasar'
+import { useQuasar } from 'quasar'  //event, 
 
 //see from Blu file original Option store to this Setup Store
 //ref()s become 'state' properties
@@ -71,6 +71,26 @@ export const useGoalStore = defineStore('allGoals', () => {
         $q.localStorage.set('Balancey', JSON.stringify(amt))
     }
 
+    function importGoals(pGoals, sGoals,allDates=null){ //umm wonder if can overload with below addMainGoal() ?!? >>nope no overloading in JS smh...
+
+        //check for .id? to edit/add ? >> toSee** but should be present...prolly
+        //return this.editMainGoal(obj.id,obj.title,obj.details,obj.color,obj.priority)
+
+        //console.log("::importGoals", pGoals, sGoals,allDates)
+
+        resetAll()  //umm so no this. requiered?!? >>seems so!
+
+        $q.localStorage.set('mainGoals', JSON.stringify(pGoals))
+
+        $q.localStorage.set('subGoals', JSON.stringify(sGoals))
+
+        if (allDates){
+             $q.localStorage.set("AllDates", JSON.stringify(allDates))
+        }
+       
+        return
+    }
+
     function addMainGoal(goal,details,color,priority) {
        
         //console.log(goal+ ' ' +details + ' ' +color + ' ' +priority)
@@ -84,7 +104,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 details: details,
                 priority: priority,
                 bgcolor: color,
-                icon: 'fas fa-utensils' 
+                icon: 'fas fa-utensils' //remove this prop as redundant...todo***
             }]))
             return
         }
@@ -116,19 +136,33 @@ export const useGoalStore = defineStore('allGoals', () => {
         //console.log("editMainGoal", id+ ' ' + title + ' ' + details + ' ' + color + ' ' +priority)
         
         let current = this.getMainGoals
-        
+        let found = false  //flag for success/found?!? >>return it?!? tbd**
+
         for( var i = 0; i < current.length; i++){ 
             if (current[i].id === id) {
                 current[i].title = title.trim(),
                 current[i].details = details,
                 current[i].bgcolor = color
                 current[i].priority = priority
+
+                found = true
                 break
             }
         }
                  
         $q.localStorage.set('mainGoals', JSON.stringify(current))
     }
+
+    //function addSubyGoal(obj){ //same concern about overloading with addSubGoal() >>nope no overloading in JS smh...
+
+    //    console.log("euuh subGoal",obj)
+
+        //check for .id? to edit || add ....
+        //addSubGoal() //specially for parentGoal!!! >>meh 
+
+        //goalId, title,score,time, duration, canMove, inDefaults,isAlternative,moods
+        //return this.editSubGoal(obj.id,obj.title,obj.score,obj.time, obj.duration, obj.canMove, obj.inDefaults,obj.isAlternative,obj.jeSuis)
+    //}
 
     function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults,isAlternative,moods) {
         
@@ -182,6 +216,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         //console.log("editSubGoal", goalId+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults+' '+isAlternative)
         
         let current = this.getSubGoals
+        let found = false //flag for success/found?!? >>return it?!? tbd***
+
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) {
                 current[i].title = title.trim(),
@@ -193,6 +229,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[i].isAlternative = isAlternative
                 current[i].jeSuis = moods ? moods : []  //to not add nulls...
                 //console.log("editSubGoal for",current[i], i)
+                found = true
                 break
             }
         }
@@ -215,7 +252,6 @@ export const useGoalStore = defineStore('allGoals', () => {
         $q.localStorage.remove('mainGoals')
         $q.localStorage.remove('AllDates')
         $q.localStorage.remove('Balancey')
-        //remove schedule too prolly--todo**
 
         console.log("removed ALL")
     }
@@ -281,8 +317,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             ///$q.localStorage.getItem("AllDates"))
             console.log(`Adding new schedule for ${aDate}`)
             current = {}
-            current[`${aDate}`] = events //umm to see if no need to put {}  or do push? //aDate
-            //$q.localStorage.set("AllDates", JSON.stringify(current)) //[aDate]
+            current[`${aDate}`] = events
         }else{
             //current.push(aDate) //unshift ...
             ////map[ event.date ].push(event)
@@ -296,8 +331,6 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
 
         $q.localStorage.set("AllDates", JSON.stringify(current))
-
-        //$q.localStorage.set(`${aDate}`, JSON.stringify(events)) //this is what grabs events per day
     }
 
     function getEventsForDate(aDate){
@@ -616,8 +649,8 @@ export const useGoalStore = defineStore('allGoals', () => {
 
             for (let i = 0; i < subG.length; i++) { //if(toAdd.children.length > 0) {
                 let uSub = updateGoal(subG[i], goal.id)
-                if (uSub.logged.length == 0) { //not adding evts that have not been schedule-saved yet and appearing as blank rows!
-                    console.log(`Oooh no logged for parent ${goal.title}`, uSub)
+                if (uSub.logged.length == 0) { //not adding evts that have not been schedule-saved yet as appear as blank rows!
+                    //console.log(`Oooh no logged for parent ${goal.title}`, uSub)
                     continue
                 }
                 toAdd.logged.push(...uSub.logged) //logged child's gets added to parent(makes sense) so that calculations are correct!
@@ -647,6 +680,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         addSubGoal,
         editSubGoal,
         editMainGoal,
+        importGoals,
         getGoalByTitle,
         saveSubProp,
         saveDailySchedule,
