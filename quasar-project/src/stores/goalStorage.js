@@ -503,7 +503,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             if(!timey) return ''
     
             let o = timey.split(':')
-            return parseInt(o[0]) >= 12 ? "PM" : "AM" //let oAmPm = 
+            return parseInt(o[0]) >= 12 ? timey+"PM" : timey+"AM" 
         }
 
         let findSubGoals = parentID => {
@@ -539,11 +539,14 @@ export const useGoalStore = defineStore('allGoals', () => {
                 let def = subG[i].inDefaults ? 'Dft' : '#'
                 let cM = subG[i].canMove ? 'Mv' : '#'
                 let alt = subG[i].isAlternative ? 'Alt' : '#'
+                let mess =  [`${when(subG[i]?.time)} for ${subG[i]?.duration} mins`, //bon proper multiline? >>especially using .join(\n) >>nope! smh  >>> gotta use css class!!
+                `:: ${def}~${cM}~${alt}`].join('\n')
+                //console.log("findSubGoals",JSON.parse(JSON.stringify(mess))) //JSON.parse(JSON.stringify(mess.join('\n')))
                 toAdd.children.push({
                     id: subG[i].id, //for sorting....
-                    label: `${subG[i].id} -- ${subG[i]?.title.trim()} (${subG[i]?.score})`, //canMove and inDefault at end
-                    details: `${subG[i]?.time}${when(subG[i]?.time)} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`, // >> 
-                    color:`${goal?.bgcolor}`, //toSee look...
+                    label: `${subG[i].id})- ${subG[i]?.title.trim()} (${subG[i]?.score})`, //canMove and inDefault at end
+                    details: mess,//.join('\n'), //oldie >> `${when(subG[i]?.time)} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`,
+                    color:`${goal?.bgcolor}`,
                     isChildren:true,
                     moods: subG[i].jeSuis || []
                 })

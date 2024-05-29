@@ -1574,15 +1574,15 @@ computed: {
     //so adding the '=' equal sign, also finds evts next to each other(without space in between) and that's a conflict--want some breather?!?
     //prolly better to have evts NEXT to each other!
     let dir = false
-    if(targetStart > evtStart && targetStart <= evtEnd){// overlap left...beware of '=' removal after &&
+    if(targetStart > evtStart && targetStart < evtEnd){// overlap left...beware of '=' removal >>evts are next to each other!
       //return 'bas'  //so target is EARLIER than scheduled evt...prolly?
       dir = 'bas'
     } 
-    if (targetEnd > evtStart && targetEnd <= evtEnd){ // overlap right ...see effect of not removing '=' as in above (evts can be next to each other!!)
+    if (targetEnd > evtStart && targetEnd < evtEnd){ // overlap right ...>> effects of removing '=' as above (evts can be next to each other!!)
       //return 'haut'  //so target is LATER than scheduled evt...prolly?
       dir = 'haut'
     }
-    if((evtStart >= targetStart && targetEnd >= evtEnd) || (targetStart > evtStart && targetEnd < evtEnd)){ //have to also check opposite!!!
+    if((evtStart >= targetStart && targetEnd >= evtEnd) || (targetStart >= evtStart && targetEnd <= evtEnd)){ //have to also check opposite!!!
       //return 'surrounding'  //prolly? 
       dir = 'surrounding'
     }
@@ -1640,7 +1640,7 @@ computed: {
         //console.log(`overlapCheckEvtsAdd at ${startTime.time} for ${obj.id}:"${obj.title.trim()}">>`,oOth)  //oOth.length  // obj //Object.keys(oOtherO).length //`${obj.id}::${obj.title}
         
         //beware of semantics!
-        //shouldnt overlap with many evts?!?--TOTEST with more than one**
+        //TOTEST with more than one evts**
         let j = 0
         do {
           let oDets = oOth[j]
@@ -1856,6 +1856,7 @@ computed: {
         //console.log(`Move`,messA,mess); //seems good here with that extra \n after cancel showing!!
 
         //bof see if multi-line >>nope even with r\n smh >>nor + "\n" +  >>Nor concatenation smh
+        //---toTry** >> use class >> (see .liney)
         //shouldnt cancel/dismiss NOT schedule?!?
 
         this.confirmTimeChange('Default Time Change!',
@@ -1892,6 +1893,7 @@ computed: {
 
         // for only Temporary ${doAdd ? 'add':'move'}.
         //bof see if multi-line >>nope even with r\n smh 
+        //---toTry** >> use class >> (see .liney)
         //&#8203 or U+200B
         //\n\u2800\n
         
@@ -3197,6 +3199,10 @@ computed: {
             //console.log("savedEvtFunc::usingMoods?!?", this.usingMoods, val.byMood)
             this.usingMoods[key] = val.byMood ////.join() ?!? meh done later when getting label
           }
+          if(val.notes !== void 0){
+            console.log("savedEvtFunc::NOTES", val.notes, val.atScore)
+            //umm what to do?!?
+          }
 
           return {
             id:parseInt(key),
@@ -3237,7 +3243,7 @@ computed: {
 
         if (!evts) {console.log(`ERROR no evts found for today:${onDate} ?!?`, evts); return}
 
-        let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))  //so DO get the byMood array>>set up moods somehow!!todo**
+        let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))
 
         //let arry = Object.entries(evts).map((key) => savedEvtFunc(key[0],key[1])) //works as well but using above.
         
@@ -3370,13 +3376,17 @@ computed: {
           time: value.start.time,
           duration: value.for,
           //originalAt: value.originalAt,
-          //atScore: value.score  //should save this? tbd**
+          //atScore: value.score  //should save this? >>see below
         }
         //for isViewingPast..?>>bof
 
-        if (this.usingMoods[key]){
-          //console.log("doSaveSchedule..huh mood?!?",key, this.usingMoods[key])
+        if(this.usingMoods[key]){
           toSave[key].byMood = this.usingMoods[key]
+        }
+        if(value?.notes !=''){
+          //console.log("doSaveSchedule",value?.notes,value?.score)
+          toSave[key].atScore = value?.score
+          toSave[key].notes = value?.notes
         }
       })
     }
@@ -3827,11 +3837,11 @@ computed: {
       return
     }
   },
-  onSaveScore(newVal, id){
+  onSaveScore(newVal, id,note=''){
 
     let ev = this.dailyScheduled.get(id)
     if (ev){
-      let f = this.getLocalEvt(id)
+      //let f = this.getLocalEvt(id)
       //console.log(`oooh onSaveScore from ${ev.score} to ${newVal}`, id,JSON.parse(JSON.stringify(f)))
 
       //also add check to do second value is higher than first...for later score calculations!
@@ -3842,14 +3852,19 @@ computed: {
         return
       }
       
-      ev.score = newVal
-      //this.store.saveSubProp(id, null, newVal)
-      this.doSaveEvtProp(id, null, newVal)
+      this.doSaveEvtProp(id, null, newVal)   //this.store.saveSubProp(id, null, newVal)
 
       let h = this.getScheduledEvent(id) //send changes down to child component...
       if (h){
           h.score = newVal
-      }else{console.log('onSaveScore ERROR not found',h, id) }
+      }else{console.log('onSaveScore ERROR not found',h, id) }  //very baaad!
+       
+      if(note !==''){
+        console.log(`onSaveScore ${id} to ${newVal} with note`,note)
+        ev.score = newVal //umm not needed?!? toSee**
+        ev.notes = note
+        this.doSaveSchedule()
+      }
 
     }else {
       console.log(`ERROR onSaveScore could not find event ${id}?!?`) //this would be baaad! 
@@ -4101,9 +4116,9 @@ computed: {
 
       let toReload = this.addPropsEventsTo(this.currentDate, dEvts)
   
-      if(flag == 'add'){
+      if(flag == 'add'){  //here should use the e var instead --todo**
         let orig = toReload.length
-        toReload = toReload.filter(x => !this.scheduledEvents.find(item => item.id == x.id)) //filter out already scheduled
+        toReload = toReload.filter(x => x?.inDefaults && !this.scheduledEvents.find(item => item.id == x.id)) //filter out already scheduled no need for >> x?.time != '' as done below 
         console.log(`scheduleDefaults..ADDIN from ${orig} to ${toReload.length}`) //toReload
       } else { //overwrite flag to reset first!
         this.scheduledEvents = []
@@ -4139,7 +4154,7 @@ computed: {
 
         toReload = removeNoTimes(toReload)
 
-        if(flag == 'add'){//still check for add flag in future though
+        if(flag == 'add'){//still check for add flag in future...also should use the e var instead --todo**
           let orig = toReload.length
           toReload = toReload.filter(x => !this.scheduledEvents.find(item => item.id == x.id)) //filter out already scheduled
           console.log(`scheduleDefaults..ADDIN to ${this.currentDate} of ${this.scheduledEvents.length} from ${orig} to `,toReload.length)
@@ -5040,4 +5055,8 @@ computed: {
   background-color: white
   margin: 10px 0
   cursor: pointer
+
+.liney
+  white-space: pre-wrap
+  word-break: break-all
 </style>

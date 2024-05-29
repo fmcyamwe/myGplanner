@@ -80,7 +80,7 @@
                       >
                         <span class="title q-calendar__ellipsis">
                           {{ event.title }}
-                          <q-tooltip>{{ event.details }}</q-tooltip>
+                          <q-tooltip class="lineyy">{{ event.details }}</q-tooltip>
                         </span>
                       </div>
                     </template>
@@ -145,9 +145,9 @@
                 </template>
               <template v-slot:default-body="prop">
                   <div v-if="prop.node.isChildren">
-                    <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+                    <span class="text-weight-bold liney">  >> {{ prop.node.details }} </span> <!--for multiline gotta use .liney class -->
                   </div>
-                  <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+                  <span v-else class="text-weight-light text-black liney" >{{ prop.node.details }}</span>
                 </template>
               </q-tree>
           </div>
@@ -276,6 +276,7 @@ export default defineComponent({
   },
   methods: {
     classyColor(proppy){//bg-{color} or text-{color} in class
+    //console.log("classyColor",JSON.parse(JSON.stringify(proppy.details))) 
     return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
     },
     loadEvts(){
@@ -296,10 +297,23 @@ export default defineComponent({
                 //console.log("eeee",prt)
                 let eS = addToDate(parsed(dateKey), { minute: parseTime(dEvts[evtId].time)})
                 let eE = addToDate(eS, { minute: parseInt(dEvts[evtId].duration)})
+                //let notes = dEvts[evtId]?.notes
+                let detz = '' 
+                if(dEvts[evtId].notes !== void 0 && dEvts[evtId]?.notes !== ''){
+                  console.log(`loadEvts::notes>>`,dEvts[evtId]?.notes, e.score,dEvts[evtId]?.atScore)
+                  
+                  detz = [`${eS.time} - ${eE.time} \n\r`,
+                  `${dEvts[evtId]?.atScore} >> ${e.score} \n\r`,
+                  `${dEvts[evtId]?.notes}`].join("\n")
+                  //detz = `${dEvts[evtId]?.notes}` //``+ "&#013;&#010;"+   //nope no multiLine*** smh 
+
+                } else{
+                  detz =  `${eS.time} - ${eE.time}`
+                }
                 this.events.push({
                   id: e.id,
                   title: e.title,
-                  details: `${eS.time} - ${eE.time}`, //oldie >> "from:"+ prt.title, 
+                  details: detz, //`${eS.time} - ${eE.time}`, //oldie >> "from:"+ prt.title, 
                   time: dEvts[evtId].time,//'10:00',
                   duration: dEvts[evtId].duration, //120,
                   date: dateKey,//getCurrentDay(1),
@@ -412,4 +426,19 @@ export default defineComponent({
   justify-content: center
   align-items: center
   height: 100%
+
+.lineyy
+  white-space: pre-wrap
+  overflow: scroll
+  text-overflow:ellipsis
+  display: block
+  
+.liney
+  white-space: pre-wrap
+  word-break: break-all
+
+.texty__dontWork4Multiline
+  display: block
+  text-overflow: ellipsis
+  
 </style>

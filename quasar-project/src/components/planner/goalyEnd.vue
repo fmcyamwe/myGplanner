@@ -51,8 +51,61 @@
            
           auto-save >>needed to save when user clicks outside...mais bon.. better to have them click green btn for obviousness?!?tbd
         -->
+        <q-card class="my-card bg-secondary text-white">
+          <q-card-section class="q-gutter-md">
+            <q-input v-model="scope.value" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
+              <!--
+                <template #after>
+                <q-btn
+                flat dense color="positive" icon="check_circle"
+                @click.stop.prevent="scope.set"
+                />
+                <q-separator :vertical="true"/>
+                    <q-btn
+                    label="Del"
+                    flat dense color="negative" icon="delete_forever"
+                    @click="onDelete"
+                    />
+              </template> -->
+            </q-input>
+          </q-card-section>
+    
+          <q-card-section class="q-gutter-md">
+            <!--braaa class="q-ml-md" max-width: 250px q-gutter-md -->
+            <q-input
+            filled
+            v-model="aNote"
+            label="titly"
+            autogrow
+            lazy-rules
+            item-aligned
+            :rules="[ val => val && val.length > 0 || 'Add a note...']"
+            />
+          </q-card-section>
+    
+          <q-separator dark />
+    
+          <q-card-actions class="q-gutter-md q-mx-md inputBtn">
+            <!--<q-btn flat>Action 1</q-btn> -->
+            <!--<q-btn flat>Action 2</q-btn> -->
+            <q-btn
+            flat dense color="positive" icon="check_circle"
+            @click.stop.prevent="scope.set"
+            @click="onSave"
+            /> <!--umm onSave is redundant?!? -->
+
+            <q-separator :vertical="true"/>
+            
+            <q-btn
+            label="Del"
+            flat dense color="negative" icon="delete_forever"
+            @click="onDelete"
+            />
+          </q-card-actions>
+        </q-card>
        
-          <q-input v-model="scope.value" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
+          <!-- oldie but moved in card above!
+            <q-input v-model="scope.value" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
             <template #after>
               <q-btn
               flat dense color="positive" icon="check_circle"
@@ -64,8 +117,9 @@
                   flat dense color="negative" icon="delete_forever"
                   @click="onDelete"
                   />
-              </template>
-            </q-input>
+            </template>
+          </q-input>-->
+
             <!-- >>oldie >>counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...
             now though no need for @keyup.enter="scope.set" toSee how it works!-->
 
@@ -97,10 +151,14 @@ import { defineComponent,ref } from 'vue'
     data(){
       const errorMessageScore = ref('')
       const errorScore = ref(false)
+      let note = ref('')
       return {
         errorMessageScore,
         errorScore,
-        /*bof dont work!
+        note,
+        daScore:this.score
+
+        /*bof dont work! >>see below...
         scoreValidation(val){ //8on9
           //console.log(`scoreValidation got`,val, id) //this.id
           if (val.length < 4 ) {  //|| !(val.includes("on"))  //also should check that second var is higher than first mais bon....toSee**
@@ -127,21 +185,28 @@ import { defineComponent,ref } from 'vue'
     ],
     computed: { //bon use other methods as these are not useful...
       aScore:{
-        get(){return this.score},
+        get(){return this.daScore},
         set(value){
           //console.log(`aScore getting set`,value, this.id) 
           //this.$emit('saveScore', value, this.id) //auto-save does update it? >>does!
           //let e = this.aScoreValidation >>dont work..some side-effect error..cause it's in computed section...
           //def roundabout way to validate instead of using :validate smh..toReview **
           let e = this.aScorey(value)
-          //console.log(`valid?`,e)
+          //console.log(`aScore valid?`,e,this.daScore, this.aNote)
           if (e){
-            this.$emit('saveScore', value, this.id)
+            this.daScore = value
+          // this.$emit('saveScore', value, this.id,this.aNote) //bon no need to emit yet...
           }
          
         },
         cancel(){ //doesnt do anything...prolly cause of auto-save?--would prolly trigger when it's absent? //for when user clicks outside popup.--toSee if needed and use @cancel="" 
           console.log(`aScore remove?`, this.id) 
+        }
+      },
+      aNote:{
+        get(){return this.note},
+        set(value){
+          this.note = value
         }
       },
        /*neither the below smh
@@ -187,7 +252,11 @@ import { defineComponent,ref } from 'vue'
     methods: {
       onDelete () { //no need for @click="(e) => onDelete(e)"...phew!
         //console.log('huh delete?',this.id)
-        this.$emit('deleteNow', this.id) //no need for this.id either!!--toReview**
+        this.$emit('deleteNow') //, this.id) //no need for this.id either!!--toReview**
+      },
+      onSave () {
+        //console.log('huh saveScore?',this.aScore, this.id,this.aNote)
+        this.$emit('saveScore', this.aScore, this.id,this.aNote)
       },
       wannaEnd(){
         //console.log("eeeuh wish to end for", this.id, this.disabledScore ,this.happeningNow )
@@ -233,4 +302,8 @@ import { defineComponent,ref } from 'vue'
   align-items: center
   height: 100%
 
+.c-section
+  max-width: 250px
+.my-card
+  width: 100%
 </style>
