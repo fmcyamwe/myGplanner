@@ -52,6 +52,7 @@
           auto-save >>needed to save when user clicks outside...mais bon.. better to have them click green btn for obviousness?!?tbd
         -->
         <q-card class="my-card bg-secondary text-white">
+          <div class="title"> NoteyOnScore :: {{title}}</div>
           <q-card-section class="q-gutter-md">
             <q-input v-model="scope.value" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
               <!--
@@ -75,7 +76,7 @@
             <q-input
             filled
             v-model="aNote"
-            label="titly"
+            label="Note"
             autogrow
             lazy-rules
             item-aligned
@@ -89,6 +90,7 @@
             <!--<q-btn flat>Action 1</q-btn> -->
             <!--<q-btn flat>Action 2</q-btn> -->
             <q-btn
+            label="Save"
             flat dense color="positive" icon="check_circle"
             @click.stop.prevent="scope.set"
             @click="onSave"

@@ -65,7 +65,7 @@
                       </q-badge>
                     </template>
                   </div>
-                </template><!--huh get stuff from diff places..for head-day-event vs day-body below...toReview? -->
+                </template>
 
                 <template #day-body="{ scope: { timestamp, timeStartPos, timeDurationHeight } }">
                     <template
@@ -80,7 +80,11 @@
                       >
                         <span class="title q-calendar__ellipsis">
                           {{ event.title }}
-                          <q-tooltip class="lineyy">{{ event.details }}</q-tooltip>
+                          <q-tooltip>
+                            <div class="lineyy"><!--div seems to work for line break!! maxHeight="100%" maxWidth="100%"-->
+                              {{ event.details }}
+                            </div>
+                            </q-tooltip> 
                         </span>
                       </div>
                     </template>
@@ -298,18 +302,19 @@ export default defineComponent({
                 let eS = addToDate(parsed(dateKey), { minute: parseTime(dEvts[evtId].time)})
                 let eE = addToDate(eS, { minute: parseInt(dEvts[evtId].duration)})
                 //let notes = dEvts[evtId]?.notes
-                let detz = '' 
+                let detz = ''
                 if(dEvts[evtId].notes !== void 0 && dEvts[evtId]?.notes !== ''){
-                  console.log(`loadEvts::notes>>`,dEvts[evtId]?.notes, e.score,dEvts[evtId]?.atScore)
+                  //console.log(`loadEvts::notes>>`,dEvts[evtId]?.notes, e.score,dEvts[evtId]?.atScore)
                   
-                  detz = [`${eS.time} - ${eE.time} \n\r`,
-                  `${dEvts[evtId]?.atScore} >> ${e.score} \n\r`,
-                  `${dEvts[evtId]?.notes}`].join("\n")
+                  detz = [`${eS.time} - ${eE.time}`,
+                  `${dEvts[evtId]?.atScore} >> ${e.score}`, //\n\r
+                  `${dEvts[evtId]?.notes}`].join("\n\r") //\r not even needed it seems mais bon!
                   //detz = `${dEvts[evtId]?.notes}` //``+ "&#013;&#010;"+   //nope no multiLine*** smh 
 
                 } else{
                   detz =  `${eS.time} - ${eE.time}`
                 }
+                //todo**review look of title,details info! especially with tooltips for header vs body evt!***
                 this.events.push({
                   id: e.id,
                   title: e.title,
@@ -409,6 +414,7 @@ export default defineComponent({
     }
   }
 })
+
 </script>
 <style lang="sass" scoped>
 .my-event
@@ -416,8 +422,6 @@ export default defineComponent({
   font-size: 12px
   justify-content: center
   margin: 0 1px
-  text-overflow: ellipsis
-  overflow: hidden
   cursor: pointer
 
 .title
@@ -430,8 +434,7 @@ export default defineComponent({
 .lineyy
   white-space: pre-wrap
   overflow: scroll
-  text-overflow:ellipsis
-  display: block
+  word-break: break-all
   
 .liney
   white-space: pre-wrap
