@@ -463,6 +463,7 @@ data () {
     scoreOptions:ref([1,2,3,4,5,6]),
     chosenScore:ref(null),
     chosenPrio:ref(null),
+    hello:ref(null),
     scheduledEvents: [], //for scheduled events currently viewed--can change...prolly no need to put in return BUT have to in order to be set initially and accessed.
     dailyScheduled:ref(new Map()),
     endTimesSet: ref(new Set()),
