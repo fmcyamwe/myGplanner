@@ -62,7 +62,7 @@
                 </div>
 
                 <div v-if="showScoreBtn">
-                  <sched-drop-btn
+                  <drop-dwn-btn
                   class="sched-drop-btn"
                   text-color="teal"
                   :disableBtn="disableScoreBtn"
@@ -74,7 +74,7 @@
                 </div>
 
                 <div v-if="showPrio">
-                  <sched-drop-btn
+                  <drop-dwn-btn
                   class="sched-drop-btn"
                   text-color="teal"
                   :disableBtn="disablePrioBtn"
@@ -99,7 +99,7 @@
           <template v-slot:after> <!--legend tree + jeSuis-->
             <br>
             <div v-if="treeGoals.length > 0" class="q-pa-sm bg-grey-12" style="max-width: 400px">
-              <div class="row justify-center">
+              <div class="q-pa-sm row justify-center">
                 {{labelGoals('s')}} 
               </div>
               <div class="row justify-center"> 
@@ -109,6 +109,7 @@
               </div>
               
               <q-separator />
+              <br>
               <!--<q-space/> have to be inside qComponent-->
   
               <!--oldie but q-select below better
@@ -132,7 +133,7 @@
               hide-dropdown-icon
               input-debounce="0"
               new-value-mode="add-unique"
-              class="q-pa-sm q-gutter-sm"
+              class="q-gutter-sm"
               >
                 <template v-slot:selected-item="scope">
                   <q-chip
@@ -418,7 +419,7 @@ import addGoalForm from '../planner/goalForm.vue'
 import GoalyEnd from '../../components/planner/goalyEnd.vue'
 //import adHocEvent from '../../components/planner/adHocEvent.vue'
 import schedBtn from '../../components/planner/schedBtn.vue'
-import schedDropBtn from '../../components/planner/reloadDropDBtn.vue'
+import dropDwnBtn from '../../components/planner/dropDwnBtn.vue'
 import schedDialog from '../../components/planner/schedDialog.vue'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
@@ -437,7 +438,7 @@ components: {
   GoalyEnd,
   //adHocEvent,
   schedBtn,
-  schedDropBtn,
+  dropDwnBtn,
   schedDialog
 },
 data () {

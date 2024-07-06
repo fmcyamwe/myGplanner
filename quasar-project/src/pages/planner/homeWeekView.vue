@@ -92,9 +92,10 @@
                 </q-calendar>
             </div>
         </div>
+        <br>
         <div class="row justify-center items-center">
             <q-btn
-               class="q-ma-xl"
+               class="q-ma-sm"
                color="white"
                text-color="blue"
                unelevated
@@ -103,7 +104,7 @@
                no-caps
             />
             <q-btn
-               class="q-ma-xl"
+               class="q-ma-sm"
                color="white"
                text-color="blue"
                unelevated
@@ -113,7 +114,7 @@
             />
           
             <q-btn
-               class="q-ma-xl"
+               class="q-ma-sm"
                color="white"
                text-color="blue"
                unelevated

@@ -22,6 +22,9 @@
             -->
     <q-btn-dropdown
     split
+    dense
+    nowrap
+    align="evenly"
     color=""
     elevated
     :disable-main-btn= "disableBtn"
@@ -47,7 +50,7 @@
 <script>
 import { defineComponent } from 'vue'   //needed to have the intelliSense?!?
 export default defineComponent ({  //this be Options Vue notation
-  name: 'schedDropBtn',
+  name: 'dropDwnBtn',
   props: {
       optionLabel: String,//huh does stay reactive!
       disableBtn: Boolean, //same as above :)

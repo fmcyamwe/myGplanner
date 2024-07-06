@@ -42,10 +42,10 @@
             >
             <template #head-tasks="{ /* scope */ }">
               <div
-                class="header ellipsis"
+                class="header ellipsis q-ma-sm"
                 style="font-weight: 600"
               >
-                <div class="issue ellipsis">{{getViewedMonth}}</div>
+                <div class="issue ellipsis q-px-xs">{{getViewedMonth}}</div>
                 <div class="key">Key</div>
                 <div class="logged">Logged</div>
               </div>

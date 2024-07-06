@@ -13,7 +13,10 @@
           />-->
         <q-btn
         color=""
+        align="evenly"
         elevated
+        dense
+        nowrap
         @click="onClicked"
         no-caps
         >

@@ -670,9 +670,9 @@ export const useGoalStore = defineStore('allGoals', () => {
     }
 
     return {
-        headers, 
-        headerRefs, 
-        getHeaders, 
+        //headers, 
+        //headerRefs, 
+        //getHeaders, 
         getMainGoals,
         getSubGoals,
         //getSubGoalsByParent,

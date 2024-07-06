@@ -418,8 +418,8 @@ export default {
         let timer 
         let updatingSubG = null //to keep track of goalID when editing
 
-        const hRefs = computed(() => store.headerRefs) //tosee if works
-        const headers = computed(() => store.getHeaders) //ditto as above
+        //const hRefs = computed(() => store.headerRefs) //tosee if works
+        //const headers = computed(() => store.getHeaders) //ditto as above
 
         const allMGoals = computed(() => mainGoals.value) //oldie store.getMainGoals >> doesnt updates
 
@@ -965,7 +965,7 @@ export default {
             mainGoals,
             subGoals,
             allMGoals,howThis,
-            daRefs:hRefs,
+            //daRefs:hRefs,
             expanded, //see if can trigger close >>does!
             buttonLabel,
             expandedNodes,treeGoals,selected,moods,
