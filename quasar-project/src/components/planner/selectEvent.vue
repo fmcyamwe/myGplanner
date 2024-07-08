@@ -12,7 +12,7 @@
               class="q-gutter-md q-px-md"
               option-value="id"
               option-label="title"
-              popupContentClass="q-px-md scheduly"
+              popupContentClass="q-px-sm"
               :label="labely()"
               :options-selected-class="goalyColor('c')"
               :label-color="goalyColor('l')"

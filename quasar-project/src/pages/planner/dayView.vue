@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showForm" class="q-gutter-md">
+  <!--<div v-if="showForm" class="q-gutter-md">
     <q-btn
       class="q-pl-xl justify-center"
       color=""
@@ -10,9 +10,9 @@
       no-caps
     />
      <add-goal-form /> 
-  </div>
- 
-  <div v-if="!showForm" class="subcontent">
+  </div> -->
+  <q-page padding>
+  <div class="subcontent"> <!--v-if="!showForm" -->
     <q-splitter
       v-model="splitterPage"
       :limits="[30, 70]"
@@ -94,8 +94,32 @@
                   />
                 </div>
             </div>
+          
+            <div class="row justify-center">
+              <q-btn
+              class="q-mt-md"
+              color="Green"
+              text-color="blue"
+              elevated
+              label="SaveSchedule"
+              :disable="saveScheduleDisabled"
+              @click="doSaveSchedule"
+              no-caps
+              />
+              
+              <q-btn
+              class="q-mt-md"
+              color=""
+              text-color="green"
+              elevated
+              label="ShowLegend"
+              @click="showGoalForm = !showGoalForm"
+              no-caps
+              />
+            </div> 
             <br>
           </template>
+
           <template v-slot:after> <!--legend tree + jeSuis-->
             <br>
             <div v-if="treeGoals.length > 0" class="q-pa-sm bg-grey-12" style="max-width: 400px">
@@ -121,6 +145,7 @@
 
               huh suprised that isViewingPast() works below!
               -->
+              <div v-if="showForm" class="q-gutter-md">
               <q-select
               label="Moods: 'je-suis'"
               ref="filterRef"
@@ -161,8 +186,7 @@
                 v-model:expanded="expanded"
                 no-connectors
                 dense
-                default-expand-all
-                >
+                ><!-- 'default-expand-all' but too much -->
                 <template v-slot:default-header="prop">
                     <div :class="classyColor(prop.node)">
                       <q-icon v-if="!prop.node.isChildren" :name="prop.node.icon || prop.expanded ? 'expand_less' : 'expand_more'" size="28px" right/>
@@ -193,6 +217,7 @@
               @do-btn-action="onMoodAdd"
               />
             </div>
+          </div>
           </template>
        </q-splitter>
       </template>
@@ -310,6 +335,9 @@
                       v-for="event in getDateEvents(timestamp.date)"
                       :key="event.id"
                     >
+                    <!--v-touch-hold="handleHold" in div below for mobile touch...
+                      using mouse doesnt work i.e: v-touch-hold:600:12:15.mouse="handleHold"
+                    -->
                       <div
                         v-if="event.time !== undefined"
                         class="my-event"
@@ -356,6 +384,7 @@
             -->
         </div>
 
+       <!-- moved up above
         <div class="row justify-center">
           <q-btn
           class="q-mt-xl"
@@ -377,7 +406,8 @@
           @click="showGoalForm = !showGoalForm"
           no-caps
           />
-        </div>
+        </div> -->
+
         <br>
         <sched-dialog v-if="addEventDialog"
           :parentGoals="storedCompPG"
@@ -389,8 +419,8 @@
         />
       </template>
     </q-splitter>
-
   </div>
+  </q-page>
 </template>
 <script>
 import {
@@ -415,7 +445,7 @@ import { defineComponent,ref } from 'vue'
 import NavigationBar from '../../components/NavigationBar.vue'
 import { isMobile } from '../util/isMobile'
 import { applyClasses, applyStyles, pGColors } from '../util/utiFunc'
-import addGoalForm from '../planner/goalForm.vue'
+//import addGoalForm from '../planner/goalForm.vue'
 import GoalyEnd from '../../components/planner/goalyEnd.vue'
 //import adHocEvent from '../../components/planner/adHocEvent.vue'
 import schedBtn from '../../components/planner/schedBtn.vue'
@@ -434,7 +464,7 @@ name: 'dayCalendar',
 components: {
   NavigationBar,
   QCalendarDay,
-  addGoalForm,
+  //addGoalForm,
   GoalyEnd,
   //adHocEvent,
   schedBtn,
@@ -518,6 +548,7 @@ beforeMount() {
 
   this.resetGoalEvts(true)
   this.constructTree()
+  //this.testyV() //toRemove***....test for now!
   
   //this.startTimesSet = new Set()
   //this.dailyScheduled = new Map()  //here it's not a proxy map...
@@ -686,6 +717,17 @@ computed: {
  },
 
  methods: {
+  testyV(){ //platform detection....to maaaybe not render stuff? would have to export $q and use it in template with div example below....
+    //https://quasar.dev/options/platform-detection
+
+    console.log("Platform detect:",this.$q.platform)
+    //$q.platform.is.mobile
+    /*
+    <div v-if="$q.platform.is.desktop"> //$q.platform.is.mobile || $q.platform.is.electron
+      I'm only rendered on desktop!
+    </div>
+    */
+  },
   parentGoalsMap(){ //at least now it's up to date esti!! runs too much tho?!?---umm seems bad to do all the work too for each invocation!--toReview**
     const map = new Map()
     //this.pGoals = this.storedCompPG
@@ -4829,6 +4871,9 @@ computed: {
     this.showClearBtn = true 
 
     this.reset() //onDrop
+  },
+  handleHold({ evt, ...newInfo }){ //for testing drag in mobile!
+    console.log("handleHold", evt, newInfo)
   },
   //problematic to activate this when evt has score enabled smh... workaround with onScoreBtn
   onDblClickEvent(e, event) {  

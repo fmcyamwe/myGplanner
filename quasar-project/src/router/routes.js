@@ -1,5 +1,33 @@
+import PlannerLayout from 'layouts/PlannerLayout.vue'
+import weekCalendar from 'pages/planner/homeWeekView.vue'
+import summaryCalendar from 'pages/planner/summaryView.vue'
+import dayCalendar from 'pages/planner/dayView.vue'
+import addGoalForm from 'pages/planner/goalForm.vue'
 
 const routes = [
+  {
+    path : '/',
+    component: PlannerLayout,
+    children: [
+      { path: '', component: weekCalendar },
+      { path: 'summary', component: summaryCalendar },
+      { path: 'dayCalendar', component: dayCalendar },
+      { path: 'viewGoals', component: addGoalForm }
+    ]
+  },
+  // Always leave this as last one,
+  // but you can also remove it
+  {
+    path: '/:catchAll(.*)*',
+    component: () => import('pages/ErrorNotFound.vue')
+  }
+  
+]
+
+export default routes
+
+
+//const routes = [
   /*{
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
@@ -29,15 +57,17 @@ const routes = [
       //  component: () => import('pages/calendarPage.vue'),
       //},
     ]
-  },*/
+  }, 
+  //the below is the lazy-loading which might be adding overhead---trying immediatefile load above as in >> 
+  //https://quasar.dev/layout/routing-with-layouts-and-pages
   {
     path: '/', // oldie >> /planner
     component: () => import('layouts/PlannerLayout.vue'),
     children: [
-      /*{
-        path: '', 
-        component: () => import('pages/planner/weekCalendar.vue') //oldie >>pages/planner/weekViewPlanner.vue
-      },*/
+      //{
+       // path: '', 
+        //component: () => import('pages/planner/weekCalendar.vue') //oldie >>pages/planner/weekViewPlanner.vue
+      //},
       {
         path: '',
         component: () => import('pages/planner/homeWeekView.vue') //oldie >>pages/planner/weekViewPlanner.vue
@@ -53,11 +83,7 @@ const routes = [
       {
         path: 'viewGoals', 
         component: () => import('pages/planner/goalForm.vue')
-      }
-      /*{
-        path: 'eventSummary',
-        component: () => import('pages/planner/eventTask.vue')
-      }*/    
+      }   
     ]
   },
 
@@ -69,4 +95,4 @@ const routes = [
   }
 ]
 
-export default routes
+export default routes */

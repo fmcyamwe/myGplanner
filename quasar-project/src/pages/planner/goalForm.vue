@@ -1,5 +1,5 @@
 <template>
-<main class="page page--table q-pa-md" >
+<main class="page page--table q-pa-md" > <!--no need for </q-page> ? toSee-->
 <q-pull-to-refresh @refresh="refresh">
     <q-splitter
     v-model="splitterModel"
@@ -195,31 +195,37 @@
                     clickable>
                     <!--<template v-slot:header></template> -->
                 
-                    <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
-                        <!--<q-card-section>
-                            {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}   class="q-my-sm"  color="red"
-                        </q-card-section> -->
-                        <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
-                            <template v-slot:left> <!--had no need for @left="onLeft" in q-slide-item above BUT using it to edit here -->
-                            Edit
-                            </template>
-                            <template v-slot:right>
-                            Delete
-                            </template>
+                        <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
+                            <!-- bon touchswipe seem to work except that doesnt show the sliding animation...toSee if should use***
 
-                            <q-item>
-                                <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
-                                <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
-                            </q-item>
-                        </q-slide-item>
-                        <q-separator :color="goal?.bgcolor?.toLocaleLowerCase()"/>
-                    </q-card>
+                            <q-card-section v-touch-swipe.mouse="(e) => onSwipeAction(e,subGoal.id, goal.id)"
+                            class="custom-area cursor-pointer bg-primary text-white shadow-2 relative-position row flex-center">
+                               // {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}  class="q-my-sm"  color="red"//
+                               <div class="q-mx-sm"> {{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}})</div>
+                               <div class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}} </div>
+                            </q-card-section> -->
 
-                    <q-card v-if="!hasSubG(goal.id)">
-                        <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
-                        OR
-                        <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
-                    </q-card>
+                            <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
+                                <template v-slot:left>
+                                Edit
+                                </template>
+                                <template v-slot:right>
+                                Delete
+                                </template>
+
+                                <q-item>
+                                    <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
+                                    <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
+                                </q-item>
+                            </q-slide-item>
+                            <q-separator :color="goal?.bgcolor?.toLocaleLowerCase()"/>
+                        </q-card>
+
+                        <q-card v-if="!hasSubG(goal.id)">
+                            <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
+                            OR
+                            <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
+                        </q-card>
                     </q-expansion-item>
             </transition-group>
             </q-list>
@@ -731,6 +737,10 @@ export default {
             }, 0)
         }
 
+        function onSwipeAction({evt, ...newInfo },id, pID) {
+            console.log("onSwipeAction", evt,newInfo,id, pID) 
+        }
+
         function onRightDelete({reset},id, pID) {
             //console.log("onRightDelete", e, id) 
 
@@ -972,7 +982,7 @@ export default {
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
             hasSubG,
             doPrint,doReset,doImport,resetBoxes,
-            onSubmit,getSubGoals,
+            onSubmit,getSubGoals,onSwipeAction,
             onRightDelete,onLeftEdit,softReset,onParentAction,refresh,
             classyColor,classyHeader,niceyLabel //,euh
         }

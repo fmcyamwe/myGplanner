@@ -1,4 +1,5 @@
 <template>
+  <q-page padding>
     <div class="subcontent">
       <q-splitter
       v-model="splitterModel"
@@ -162,6 +163,7 @@
     </template>
     </q-splitter>
   </div>
+</q-page>
 </template>
 <script>
 import {
@@ -181,7 +183,7 @@ import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
 
 export default defineComponent({
-  name: 'TaskDark',
+  name: 'summaryCalendar',
   components: {
     NavigationBar,
     QCalendarTask

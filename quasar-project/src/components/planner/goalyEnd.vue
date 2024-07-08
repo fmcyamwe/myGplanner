@@ -247,7 +247,7 @@ import { defineComponent,ref } from 'vue'
       }
     },
     watch: {
-      title (val) {
+      title (val) {//(newValue, oldValue) ...could trigger emit to store/update storage--toTest**
          console.log('titleValue:', val)
       }
     },

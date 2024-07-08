@@ -24,7 +24,7 @@
       option-label="title"
       :disable="own!='misc'"
       :label="labely"
-      popupContentClass="q-px-md"
+      popupContentClass="q-px-sm"
       :options-selected-class="goalyColor('c')"
       :label-color="goalyColor('l')"
       />
