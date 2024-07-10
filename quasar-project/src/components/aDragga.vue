@@ -51,6 +51,7 @@ import draggable from 'vuedraggable'  ///vuedraggable/src/vuedraggable
 import { useQuasar } from 'quasar'
 
 export default {
+  name:'aDragga',
   components: {
     draggable
   },
@@ -68,15 +69,15 @@ export default {
     //keeps data longest as user need to manually clears the browser cache or cleared by app
     //up 10MB for both(or just 5MB each for a total of 10?)
     //can only store strings--but get around this using JSON
-    const aValue = $q.localStorage.getItem("first") 
+    //const aValue = $q.localStorage.getItem("first") 
 
         //$q.sessionStorage.set('second', "umm second?")
     //persisted only until the window or tab is closed.
-    const otherValue = $q.sessionStorage.getItem("second")
+    //const otherValue = $q.sessionStorage.getItem("second")
 
-    console.log(JSON.stringify(aValue, null,1))
+    //console.log(JSON.stringify(aValue, null,1))
     console.log("and then")
-    console.log(JSON.stringify(otherValue, null,1))
+    //console.log(JSON.stringify(otherValue, null,1))
   }
   //mounted() {
   //  console.log(JSON.stringify(otherValue, null,1))   //works?

@@ -235,12 +235,14 @@
             {{scheduleMoodsLabel}}
           </q-badge>
         </div>
+        <!-- v-touch-swipe.mouse.left.right="handleSwipe"-->
         <div class="row justify-center">
             <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 600px;">
               <q-calendar-day
                 ref="calendar"
                 view="day"
                 v-model="currentDate"
+                v-touch-hold="handleHold"
                 :drag-enter-func="onDragEnter"
                 :drag-over-func="onDragOver"
                 :drag-leave-func="onDragLeave"
@@ -267,6 +269,12 @@
                 @mousemove-time="onMouseMoveTime"
               >
               <!--
+                v-touch-hold="handleHold"
+                v-touch-swipe="handleSwipe"
+                v-touch-hold="handleHold" in div below for mobile touch...
+                      using mouse doesnt work i.e: v-touch-hold:600:12:15.mouse="handleHold"
+                      also doesnt seem to fire >>fires when added to q-calendar tag above!
+
                 dark
                 @mouseenter-time="onMouseEnter"
                 @mouseleave-time="onMouseLeave" works!!
@@ -335,9 +343,6 @@
                       v-for="event in getDateEvents(timestamp.date)"
                       :key="event.id"
                     >
-                    <!--v-touch-hold="handleHold" in div below for mobile touch...
-                      using mouse doesnt work i.e: v-touch-hold:600:12:15.mouse="handleHold"
-                    -->
                       <div
                         v-if="event.time !== undefined"
                         class="my-event"
@@ -350,8 +355,14 @@
                         @drop="(e) => onDrop(e, 'goal-item', scope)"
                         @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
                         @dragover="(e) => onDragOver(e, 'goal-item', scope)"
+                        @touchstart="(e) => onTouchEvent(e, 'goal-item', event)"
+                        @touchmove="(e) => onTouchEvent(e, 'goal-item', event)"
+                        @touchend="(e) => onTouchEvent(e, 'goal-item', event)"
                         >
-                        <!--<div class="title q-calendar__ellipsis"> -->
+                        <!--onTouchEvent
+                          onTouchyMove, onTouchyStart,onTouchyEnd
+                          @touchmove="(e) => {}"  
+                          <div class="title q-calendar__ellipsis"> -->
                           <!--{{ event.title }}
                           <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip> -->
                           <!-- interfere with double click for removing when enabled..toSee if using component would help -->
@@ -452,7 +463,8 @@ import schedBtn from '../../components/planner/schedBtn.vue'
 import dropDwnBtn from '../../components/planner/dropDwnBtn.vue'
 import schedDialog from '../../components/planner/schedDialog.vue'
 import { useGoalStore } from 'stores/goalStorage'
-import { useQuasar } from 'quasar'
+import { useQuasar,Platform } from 'quasar'
+//import 'drag-drop-touch'  //no likey smh
 
 function isLeftClick (e) {
 return e.button === 0
@@ -4340,14 +4352,14 @@ computed: {
         return allEvts.filter(evt => evt.parentGoal == id)
       }
 
-      const selectOneFromP = (useRandom) => {  
+      const selectOneFromP = (useRandom) => {
         //implicit that useRandom == overwrite
         //flag to check if already scheduled? or implicit above?
         let toAdd =[]
         this.parentGoalsMap().forEach((value, key, map) => {
           let subs = subGoalsOfParent(value.id)
           //console.log("selectOneFromP::subs of "+value.id,value.title,subs.length)
-          if (subs){
+          if (subs.length > 0){
             let gottaAdd = null
             let i = subs.length
             if(useRandom) {
@@ -4369,7 +4381,7 @@ computed: {
 
             toAdd.push(gottaAdd) //add check for null? >>prolly no need--toMonitor**
           }else {
-            console.log(`scheduleOneEach::selectOneFromP...huh no subgoals for`,value)
+            console.log(`scheduleOneEach::selectOneFromP...huh no subgoals for parentGoal`,value)
           }
         })
         
@@ -4405,9 +4417,9 @@ computed: {
       
         //random...implicit that overwrite and no need to check 'notScheduled' ...
 
-        toAdd = selectOneFromP(true) 
+        toAdd = selectOneFromP(true)
+        //console.log('scheduleOneEach...ADD! for> '+choice,toAdd)
         toAdd = this.addPropsEventsTo(this.currentDate, toAdd)
-        //console.log('scheduleOneEach...ADD! for> '+choice,toAdd)   
         toAdd = this.removeNoTimes(toAdd,"scheduleOneEach")
       }
 
@@ -4739,7 +4751,59 @@ computed: {
 
     this.loadForDate(data.start, this.hasEventsForDate,this.isViewingPast())
   },
+  onTouchEvent(e, type,item){ //for touchstart, touchmove, touchend
+
+      const getTimey = (ariaLabel) => {
+        let str = ariaLabel.split(' ') //target.ariaLabel.split(' ')
+        let tr = str[str.length-2] //+ ' '+ str[str.length-1]
+        //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+        
+        return addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+      }
+
+    if(e.type == "touchstart"){
+      this.draggedItem = item
+      //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+      //console.log("onTouchyStart:"+type,this.draggedItem,e) //.currentTarget,e?.currentTarget?.tagName,target,target?.classList)
+      e.preventDefault()
+      return true
+    }
+
+    if(e.type == "touchmove"){
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+      if(target.ariaLabel){
+        let s = getTimey(target.ariaLabel)
+        //console.log("onTouchyMoveeey:",this.draggedItem, s ) //e?.currentTarget?.tagName
+        this.targetDrop = s
+      }//else{
+        //console.log("onTouchyMove:ERROR?",e, target,target.classList) //no arialLabel...prolly when over another event! || or same one but early stages of dragging
+      //}
+
+      e.preventDefault()
+      return 
+    }
+
+    if(e.type == "touchend"){
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+      //console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel) 
+      if(target.ariaLabel){
+        let s = getTimey(target.ariaLabel)
+        this.targetDrop = s
+        this.doDroppy()
+      } else{
+        console.log("onTouchyEnd:ERROR?OVERLAP?",e, target,target.classList) //currentTarget
+        if(target.classList.contains("title")){
+          console.log("onTouchyEnd--has title!",this.targetDrop)
+          this.doDroppy()  //just drop on top to see
+        }
+      }
+      e.preventDefault()
+      e.stopPropagation() //needed?@?  
+    }
+    
+  },
   onDragStart(e, item) {
+    //console.log("onDragStart",item)
       if(this.isViewingPast()){
         this.doNotify("Editing past is no no!")
         e.preventDefault() 
@@ -4750,7 +4814,7 @@ computed: {
       this.draggedItem = item
   },
   onDragEnter (e, type, scope) {
-    //console.log('insideDragEnter',e.preventDefault) // e,type,scope
+    //console.log('insideDragEnter',type) // e,type,scope
     if(type === 'goal-item'){
       //console.log('onDragEnter..goal-item',e, scope) // scope is undefined here hence saving it below
       e.preventDefault()
@@ -4763,6 +4827,87 @@ computed: {
     }
     return true
   },
+  /*onTouchyStart(e, type,item){
+    //console.log("onTouchyStart",e,type,item,this.mobile)
+    this.draggedItem = item
+    //e.type==="touchstart"
+
+    //e.touches[0] || e.targetTouches[0] || e.changedTouches 
+    let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+    
+    
+    console.log("onTouchyStart:"+type,e.currentTarget,e?.currentTarget?.tagName,this.draggedItem,target,target?.classList) //target.classList
+    //e.currentTarget has the whole div evt including target(which is specific)
+    //target.ariaLabel == null as it's custom....
+    //document.getElementById
+   
+    
+    e.preventDefault()
+
+    //e.stopPropagation() //needed?
+    //return true
+  },
+  onTouchyMove(e, type,item) { // fires A LOT
+    //console.log("onTouchyMove",e,type,item, this.mobile,Platform.is.mobile)
+    //check and keep track of coordinates....
+
+    //e.type==="touchmove"
+    let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+  
+    //if (e.clientX) { //doesnt usually have clientX and need to dig as above...
+      //target = document.elementFromPoint(e.clientX, e.clientY)
+     
+    //console.log("onTouchyMove:"+type,e?.currentTarget, this.mobile, target, target.classList) //this.draggedItem,
+
+    //could simulate drag with updating the elt moving...toSee***
+
+    //should only scope timestamp when aria-label != null
+    //<div tabindex="-1" class="q-calendar-day__day-interval--section q-calendar__hoverable" aria-label="Wednesday, July 10, 2024 at 10:15 AM" style="height: 28px;"><!----><span aria-hidden="true" class="q-calendar__focus-helper"></span></div>
+    
+    if(target.ariaLabel){
+      let str = target.ariaLabel.split(' ')
+      let tr = str[str.length-2] //+ ' '+ str[str.length-1]
+      let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+
+      console.log("onTouchyMoveeey:",str,tr, s ) //e?.currentTarget?.tagName
+      this.targetDrop = s
+    }
+    
+    e.preventDefault() //needed?!? 
+    
+    //return true
+  },
+  onTouchyEnd(e, type, item) { //scope is undefined!
+    //console.log("onTouchyEnd",e,type,item,this.mobile,Platform.is.mobile) //Platform.is.destkop == undefined!!
+  
+    // target = document.elementFromPoint(event.clientX, event.clientY); || elementFromPoint(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+    
+    let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+    console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel) //target.classList //this.draggedItem,
+
+    //gotta extract drop from the labelling of target
+    //let f = parsed(target.ariaLabel)
+    //let d = Date.parse(target.ariaLabel)
+
+    if(target.ariaLabel){
+      let str = target.ariaLabel.split(" ")
+      let tr = str[str.length-2] //+ ' '+ str[str.length-1] //just need time...
+
+      let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+      console.log("Enddy:",str,tr,s) //,e?.currentTarget?.tagName
+      this.targetDrop = s
+      this.doDroppy()
+      
+    } else { //if not present then likely overlapping!!! toTest**=
+        console.log("Enddy OVERLAP?!?:",target.classList)
+    
+    }
+
+    e.preventDefault()
+    e.stopPropagation() //needed?@?  
+    
+    //return 
+  },*/
   onDragOver (e, type, scope) { // needed for onDrop but nothing to do and fires A LOT
     //console.log('onDragOver', scope, type)
     e.preventDefault() //to allow drop
@@ -4783,6 +4928,73 @@ computed: {
       curColEl.classList.remove('drag-over')
     }*/
     //console.log('onDragEnd', this.startTimesSet,this.endTimesSet)
+  },
+  doDroppy(){ //some duplication of onDrop() --toFIX**
+    console.log("doDroppy:",this.targetDrop, this.draggedItem)
+    if(this.targetDrop && this.draggedItem){
+      let isClose = this.tooClose(this.targetDrop, this.draggedItem.duration)
+      if(isClose){
+        console.log("onDrop::tooClose to>>",isClose) //could happen when dropping next to scheduled...
+        if(isClose === true){
+          this.doNotify("Dropping event TOO close to midnight!")
+          this.reset() //onDrop
+          return
+        }
+      }
+
+    let anyOverlap =  this.hasOverlappingEvent(this.draggedItem.id, this.targetDrop, this.draggedItem.duration)
+    
+    let euhOverlaps={}
+
+    let sizey = anyOverlap.length
+    if(sizey > 0) {
+      let i = 0
+      do {
+        if(anyOverlap[i].inConflict == anyOverlap[i].target){
+          console.log("EUUUH...self overlap?!?", anyOverlap[i]) 
+          break //continue? nope wouldnt move!
+        }
+        console.log("doDroppy...OVERLAP handlin::size="+sizey, anyOverlap[i].direction) //anyOverlap[i], //object
+       
+        //anyOverlap[i].direction == "surrounding" ? this.fixyOverlaps(anyOverlap, true) : this.recurChangeTime(anyOverlap[i].inConflict, draggy, targetTimey, true)
+        //check for 'surrounding' and handle overlap... otherwise should just push the evt(instead of giving options to resolve/choose!) using recurChangeTime()
+        //meh better to use fixyOverlaps as cancelling is clearer!
+
+          let toH = anyOverlap[i]
+          if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]}
+
+
+          if(i > 0){// where it's better to use the obj.id as the evt being added!--See fixMultiConflicts()
+            //keep in mind the obj.id is target
+            
+            console.log(i+" WOAH WOAH,doDroppy.. multiple overlaps with same target!",anyOverlap[i].target)//>could have multiple default that are overlapping yes!
+            //ummm this where using inConflict is wrong as evt CAN overlap with two others....
+            if (toH.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",toH.inConflict); delete euhOverlaps[toH.inConflict] }
+            if (anyOverlap[i-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",anyOverlap[i-1].inConflict); delete euhOverlaps[anyOverlap[i-1].inConflict] }
+
+            if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
+            
+            euhOverlaps[toH.target].unshift(anyOverlap[i-1]) //also add previous as makes sense..
+            euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
+          } 
+       
+      } while (++i < sizey)
+
+      console.log("doDroppy...OVERLAP with fixOverlap",euhOverlaps)
+      this.fixyOverlaps(euhOverlaps, true,'onDrop')  //end of loop for all conflicts!!!
+
+    } else {
+      //so no overlapp, just change dragged event time--ask User
+      this.changeEvtTime(this.draggedItem.id, this.targetDrop, false) //onDrop
+      console.log(`doDroppy with No overlap complete (${this.draggedItem.id}) to ${this.targetDrop.time}`)  //worked,
+    }
+
+      this.disableSaveSchedule = false
+      this.showReloadBtn = this.hasEventsForDate
+      this.showClearBtn = true 
+
+      this.reset() //
+    }
   },
   onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above
     //console.log("onDrop", e, type, scope)//JSON.stringify(item)
@@ -4874,6 +5086,30 @@ computed: {
   },
   handleHold({ evt, ...newInfo }){ //for testing drag in mobile!
     console.log("handleHold", evt, newInfo)
+    let target = document.elementFromPoint(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY)
+    console.log("handleHoldy",target)
+    //could then invoke onDblClickEvent(e, event) AFTER figuring out which event....toSee**
+  },
+  handleSwipe({ evt, ...newInfo }){ //for testing swip in mobile!
+    console.log("handleSwipe", evt, newInfo)
+    /*
+    handleSwipe ({ evt, ...info }) {
+      if (this.dragging === false) {
+        if (info.duration >= 30 && this.ignoreNextSwipe === false) {
+          if (info.direction === 'right') {
+            this.calendarPrev()
+          }
+          else if (info.direction === 'left') {
+            this.calendarNext()
+          }
+        }
+        else {
+          this.ignoreNextSwipe = false
+        }
+      }
+      stopAndPrevent(evt) //from import { stop, prevent, stopAndPrevent } from 'quasar/src/utils/event'
+    },
+    */
   },
   //problematic to activate this when evt has score enabled smh... workaround with onScoreBtn
   onDblClickEvent(e, event) {  
@@ -4928,7 +5164,7 @@ computed: {
   },
   ///Mouse event handler for range selection
   onMouseDownTime ({ scope, event }) {
-    //console.log('onMouseDownTime', { scope, event })
+    //console.log('onMouseDownTime', this.mobile,{ scope, event })
     if (isLeftClick(event)) {
       //console.log('onMouseDownTime and its a leftClick event')
       if (this.mobile === true
@@ -4949,7 +5185,7 @@ computed: {
   //this actually unfurl(destructure) the data parameter in two with those {}
   //can also further destructure keeping only needed variables with { scope: { timestamp } }
   onMouseUpTime ({ scope, event }) {
-    //console.log('onMouseUpTime', { scope, event })
+    //console.log('onMouseUpTime', this.mobile, { scope, event })
     if (this.mobile !== true && isLeftClick(event)) {
         // mouse is up, capture last and cancel selection
         this.otherTimestamp = scope.timestamp

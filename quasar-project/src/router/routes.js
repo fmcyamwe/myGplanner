@@ -3,6 +3,7 @@ import weekCalendar from 'pages/planner/homeWeekView.vue'
 import summaryCalendar from 'pages/planner/summaryView.vue'
 import dayCalendar from 'pages/planner/dayView.vue'
 import addGoalForm from 'pages/planner/goalForm.vue'
+//import aDragga from 'components/aDragga.vue'
 
 const routes = [
   {
@@ -13,6 +14,7 @@ const routes = [
       { path: 'summary', component: summaryCalendar },
       { path: 'dayCalendar', component: dayCalendar },
       { path: 'viewGoals', component: addGoalForm }
+      //{ path: 'draggy', component: aDragga }
     ]
   },
   // Always leave this as last one,

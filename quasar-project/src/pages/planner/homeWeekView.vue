@@ -14,7 +14,7 @@
             @next="onNext"
         />
         <div class="row justify-center">
-            <div style="display: flex; max-width: 800px; width: 100%;height: 400px;overflow: auto;"><!--class="row justify-center items-center" use 'no-scroll' to disallow scrolling border: 1px solid #ddd>>-->
+            <div class="q-px-md" style="display: flex; max-width: 800px; width: 100%;height: 400px;overflow: auto;"><!--class="row justify-center items-center" use 'no-scroll' to disallow scrolling border: 1px solid #ddd>>-->
                 <q-calendar
                 ref="calendar"
                 v-model="currentDate"
@@ -122,7 +122,17 @@
                label="Goals"
                no-caps
             />
-        </div>
+
+            <!--<q-btn
+            class="q-ma-sm"
+            color="white"
+            text-color="red"
+            unelevated
+            to="/draggy"
+            label="Draggy"
+            no-caps
+            /> -->
+         </div>
       </div>
     </template>
     <template v-slot:after>
