@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf"><!--toReview this layout todo***-->
+  <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <q-toolbar>
         <q-btn
@@ -8,23 +8,15 @@
           round
           icon="menu"
           aria-label="Menu"
+          class="q-gutter-md"
           @click="toggleLeftDrawer"
         />
 
         <q-toolbar-title>
-          Planner App
+          My G. Planner
         </q-toolbar-title>
 
-        <!--<div>Quasar v{{ $q.version }}</div> -->
-        <!--<q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="blue"
-        unelevated
-        label="Retrieve..."
-        no-caps
-        @click="checkStored"
-        />-->
+        <!--  class="q-mt-xl"-->
       <div class="text-white">
         <q-btn
             class="q-mt-sm"
@@ -38,25 +30,25 @@
       </q-toolbar>
     </q-header>
 
-   <!-- <q-drawer
+   <q-drawer
       v-model="leftDrawerOpen"
-      show-if-above
       bordered
-    >
+    ><!--show-if-above >> default open on render...-->
       <q-list>
         <q-item-label
           header
         >
-          Essential Links
-        </q-item-label>
+          
+        </q-item-label> 
 
         <EssentialLink
           v-for="link in essentialLinks"
           :key="link.title"
           v-bind="link"
+          @reset="clicky"
         />
       </q-list>
-    </q-drawer>  style="background-color:black"-->
+    </q-drawer> 
 
     <q-page-container>
       <router-view />
@@ -66,40 +58,56 @@
 
 <script>
 import { defineComponent, ref } from 'vue'
-import { useQuasar } from 'quasar'
-//import EssentialLink from 'components/EssentialLink.vue'
+//import { useQuasar } from 'quasar'
+import EssentialLink from 'components/EssentialLink.vue'
 
 const linksList = [
   {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
+    title: 'Summary',
+    caption: 'Summary',
+    icon: 'summarize', //self_improvement ?
+    link: '/summary', //'https://quasar.dev'
+    //clicky: 
+  },
+  {
+    title: 'Day View',
+    caption: 'Schedule',
+    icon: 'self_improvement', //event_upcoming || //today
+    link: '/dayCalendar', //'https://quasar.dev'
+    //clicky: clicky
+  },
+  {
+    title: 'Goals',
+    caption: 'All Goals',
+    icon: 'edit_note',
+    link: '/goalsPage', //'https://quasar.dev'
+    //clicky: clicky
   }
 ]
 
 export default defineComponent({
   name: 'PlannerLayout',
 
-  //components: {
-  //  EssentialLink
-  //},
+  components: {
+    EssentialLink
+  },
 
   setup () {
     const leftDrawerOpen = ref(false)
     
-    const $q = useQuasar()
-    function checkStored() {
+    function clicky() { //to close drawer on navigation, otherwise it stays open on the new page!
+      //const $q = useQuasar()
       //$q.localStorage.set('first', "i be first!")
       //$q.sessionStorage.set('second', "umm second?")
       
-      let e = JSON.parse($q.localStorage.getItem("allGoals"))
-      console.log(e)
+      //let e = JSON.parse($q.localStorage.getItem("allGoals"))
+      
+      leftDrawerOpen.value = !leftDrawerOpen.value
     }
 
     return {
       essentialLinks: linksList,
-      checkStored,
+      clicky,
       leftDrawerOpen,
       toggleLeftDrawer () {
         leftDrawerOpen.value = !leftDrawerOpen.value

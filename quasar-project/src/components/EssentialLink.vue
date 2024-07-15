@@ -2,9 +2,13 @@
   <q-item
     clickable
     tag="a"
-    target="_blank"
-    :href="link"
+    :to="link"
+    @click="$emit('reset')"
   >
+  <!--
+    @click="clicky()"
+    target="_blank"  >> opens new tab
+    :href="link"-->
     <q-item-section
       v-if="icon"
       avatar
@@ -43,7 +47,15 @@ export default defineComponent({
     icon: {
       type: String,
       default: ''
-    }
-  }
+    },
+
+    //clicky: { //to reset drawer but have to use 'emits' below
+    //  type: Function,
+    //  default() {
+    //    return 'Default function'
+    //  }
+    //},
+  },
+  emits: [ 'reset']
 })
 </script>

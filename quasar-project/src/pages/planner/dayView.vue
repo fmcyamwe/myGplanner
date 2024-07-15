@@ -222,6 +222,10 @@
        </q-splitter>
       </template>
 
+      <!--<template v-slot:separator>
+        <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
+      </template> -->
+
       <template v-slot:after><!-- Calendar and dialogs...-->
         <q-pull-to-refresh @refresh="onRefresh"> <!--have to put here or drag in calendar does this refresh when it shouldnt-->
           <navigation-bar
@@ -1800,9 +1804,11 @@ computed: {
         let sav = this.getLocalEvt(obj.id) //here overwrites though....
         //console.log("addPropsEventsTo",JSON.parse(JSON.stringify(sav)),JSON.parse(JSON.stringify(obj)))
         if (sav){
-          let clone = Object.assign({}, obj)
-          // copies all properties from permissions1 and permissions2 into user
-          Object.assign(clone,{...sav,date:aDate})
+          let clone = Object.assign({}, {...sav,date:aDate}, obj) //Object.assign({}, obj)
+          
+          //Object.assign(clone,{...sav,date:aDate})
+
+          //console.log("addPropsEventsTo",JSON.parse(JSON.stringify(sav)),JSON.parse(JSON.stringify(obj)),JSON.parse(JSON.stringify(clone)))
 
           //sav.duration = obj.duration //def gotta use duration in case it has changed!
           //sav.time = obj.time
@@ -1886,7 +1892,7 @@ computed: {
           this.updateEvtInScheduleMaps(evID, oldy)
           evty.time = oldy
           this.updatedEvtDetails(evty) //potensh to overwrite--toReview**
-          console.log("changeEventTime::keepAsIs:: !NOT! doAdd afterProps..",evID,evty.id) //,JSON.parse(JSON.stringify(evt)))
+          console.log("changeEventTime::keepAsIs:: !NOT! doAdd afterProps..",evID,evty.id,JSON.parse(JSON.stringify(evt)) )
         }
       }
       
@@ -3267,7 +3273,8 @@ computed: {
         
     let toReload = this.addPropsEventsTo(datey, arr) ////REDO*** to keep notes and atScore when present**
 
-    //console.log(`OverlapCheckLoadToday ${onDate} loading:${toReload.length} into current:${this.scheduledEvents.length}`) //,JSON.parse(JSON.stringify(toReload)))
+    console.log(`OverlapCheckLoadToday ${datey} loading:${toReload.length} into current:${this.scheduledEvents.length}`)
+    // JSON.parse(JSON.stringify(arr)),JSON.parse(JSON.stringify(toReload)) ) //,JSON.parse(JSON.stringify(toReload)))
 
     if(checkOverlaps){
       return this.overlapCheckEvtsAdd(toReload) //, onDate
@@ -4751,57 +4758,6 @@ computed: {
 
     this.loadForDate(data.start, this.hasEventsForDate,this.isViewingPast())
   },
-  onTouchEvent(e, type,item){ //for touchstart, touchmove, touchend
-
-      const getTimey = (ariaLabel) => {
-        let str = ariaLabel.split(' ') //target.ariaLabel.split(' ')
-        let tr = str[str.length-2] //+ ' '+ str[str.length-1]
-        //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-        
-        return addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-      }
-
-    if(e.type == "touchstart"){
-      this.draggedItem = item
-      //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-      //console.log("onTouchyStart:"+type,this.draggedItem,e) //.currentTarget,e?.currentTarget?.tagName,target,target?.classList)
-      e.preventDefault()
-      return true
-    }
-
-    if(e.type == "touchmove"){
-      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-      if(target.ariaLabel){
-        let s = getTimey(target.ariaLabel)
-        //console.log("onTouchyMoveeey:",this.draggedItem, s ) //e?.currentTarget?.tagName
-        this.targetDrop = s
-      }//else{
-        //console.log("onTouchyMove:ERROR?",e, target,target.classList) //no arialLabel...prolly when over another event! || or same one but early stages of dragging
-      //}
-
-      e.preventDefault()
-      return 
-    }
-
-    if(e.type == "touchend"){
-      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-      //console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel) 
-      if(target.ariaLabel){
-        let s = getTimey(target.ariaLabel)
-        this.targetDrop = s
-        this.doDroppy()
-      } else{
-        console.log("onTouchyEnd:ERROR?OVERLAP?",e, target,target.classList) //currentTarget
-        if(target.classList.contains("title")){
-          console.log("onTouchyEnd--has title!",this.targetDrop)
-          this.doDroppy()  //just drop on top to see
-        }
-      }
-      e.preventDefault()
-      e.stopPropagation() //needed?@?  
-    }
-    
-  },
   onDragStart(e, item) {
     //console.log("onDragStart",item)
       if(this.isViewingPast()){
@@ -4827,87 +4783,6 @@ computed: {
     }
     return true
   },
-  /*onTouchyStart(e, type,item){
-    //console.log("onTouchyStart",e,type,item,this.mobile)
-    this.draggedItem = item
-    //e.type==="touchstart"
-
-    //e.touches[0] || e.targetTouches[0] || e.changedTouches 
-    let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-    
-    
-    console.log("onTouchyStart:"+type,e.currentTarget,e?.currentTarget?.tagName,this.draggedItem,target,target?.classList) //target.classList
-    //e.currentTarget has the whole div evt including target(which is specific)
-    //target.ariaLabel == null as it's custom....
-    //document.getElementById
-   
-    
-    e.preventDefault()
-
-    //e.stopPropagation() //needed?
-    //return true
-  },
-  onTouchyMove(e, type,item) { // fires A LOT
-    //console.log("onTouchyMove",e,type,item, this.mobile,Platform.is.mobile)
-    //check and keep track of coordinates....
-
-    //e.type==="touchmove"
-    let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-  
-    //if (e.clientX) { //doesnt usually have clientX and need to dig as above...
-      //target = document.elementFromPoint(e.clientX, e.clientY)
-     
-    //console.log("onTouchyMove:"+type,e?.currentTarget, this.mobile, target, target.classList) //this.draggedItem,
-
-    //could simulate drag with updating the elt moving...toSee***
-
-    //should only scope timestamp when aria-label != null
-    //<div tabindex="-1" class="q-calendar-day__day-interval--section q-calendar__hoverable" aria-label="Wednesday, July 10, 2024 at 10:15 AM" style="height: 28px;"><!----><span aria-hidden="true" class="q-calendar__focus-helper"></span></div>
-    
-    if(target.ariaLabel){
-      let str = target.ariaLabel.split(' ')
-      let tr = str[str.length-2] //+ ' '+ str[str.length-1]
-      let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-
-      console.log("onTouchyMoveeey:",str,tr, s ) //e?.currentTarget?.tagName
-      this.targetDrop = s
-    }
-    
-    e.preventDefault() //needed?!? 
-    
-    //return true
-  },
-  onTouchyEnd(e, type, item) { //scope is undefined!
-    //console.log("onTouchyEnd",e,type,item,this.mobile,Platform.is.mobile) //Platform.is.destkop == undefined!!
-  
-    // target = document.elementFromPoint(event.clientX, event.clientY); || elementFromPoint(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
-    
-    let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-    console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel) //target.classList //this.draggedItem,
-
-    //gotta extract drop from the labelling of target
-    //let f = parsed(target.ariaLabel)
-    //let d = Date.parse(target.ariaLabel)
-
-    if(target.ariaLabel){
-      let str = target.ariaLabel.split(" ")
-      let tr = str[str.length-2] //+ ' '+ str[str.length-1] //just need time...
-
-      let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-      console.log("Enddy:",str,tr,s) //,e?.currentTarget?.tagName
-      this.targetDrop = s
-      this.doDroppy()
-      
-    } else { //if not present then likely overlapping!!! toTest**=
-        console.log("Enddy OVERLAP?!?:",target.classList)
-    
-    }
-
-    e.preventDefault()
-    e.stopPropagation() //needed?@?  
-    
-    //return 
-  },*/
   onDragOver (e, type, scope) { // needed for onDrop but nothing to do and fires A LOT
     //console.log('onDragOver', scope, type)
     e.preventDefault() //to allow drop
@@ -4929,8 +4804,80 @@ computed: {
     }*/
     //console.log('onDragEnd', this.startTimesSet,this.endTimesSet)
   },
-  doDroppy(){ //some duplication of onDrop() --toFIX**
+  onTouchEvent(e, type,item){ //for touchstart, touchmove, touchend
+
+      const getTimey = (ariaLabel) => {
+        let str = ariaLabel.split(' ')
+        let tr = str[str.length-2] //+ ' '+ str[str.length-1]
+        let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+        
+        if(str[str.length-1] == 'PM'){ //for adding 12hrs to account when time is in PM 
+          //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+          if (s.hour == 12){//EXCEPT for noon!
+            //console.log("getTimeyyyyy:",s)
+            return s
+          }
+          
+          return addToDate(parsed(this.currentDate), { hour: 12, minute: parseTime(tr)})
+        }
+
+        return s //addToDate(parsed(this.currentDate), { minute: parseTime(tr) }) //s
+      }
+
+    if(e.type == "touchstart"){
+      if(this.isViewingPast()){
+        this.doNotify("Editing past is no no!")
+        e.preventDefault() 
+        return
+      }
+
+      this.draggedItem = item
+      //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+      //console.log("onTouchyStart:"+type,this.draggedItem,e) //.currentTarget,e?.currentTarget?.tagName,target,target?.classList)
+      e.preventDefault()
+      return true
+    }
+
+    if(e.type == "touchmove"){ //fires a lot!
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+      //could simulate drag with updating the elt moving...toSee***
+
+      if(target.ariaLabel){ //needed when still in calendar's interval
+        let s = getTimey(target.ariaLabel)
+        //console.log("onTouchyMoveeey:",this.draggedItem, s ) //e?.currentTarget?.tagName
+        this.targetDrop = s
+      }//else{
+        //console.log("onTouchyMove:ERROR?",e, target,target.classList) //no arialLabel...prolly when over another event! || or same one but early stages of dragging
+      //}
+
+      e.preventDefault()
+      return 
+    }
+
+    if(e.type == "touchend"){
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+      //console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel) 
+      if(target.ariaLabel){
+        let s = getTimey(target.ariaLabel)
+       // console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel,s) 
+        this.targetDrop = s
+        this.doDroppy()
+      } else{
+        console.log("onTouchyEnd:ERROR?OVERLAP?",e, target,target.classList) //currentTarget
+        if(target.classList.contains("title")){
+          console.log("onTouchyEnd--has title!",this.targetDrop)
+          this.doDroppy()  //just drop on top to see
+        }
+      }
+      e.preventDefault()
+      e.stopPropagation() //needed?@?  
+    }
+    
+  },
+  doDroppy(){ //some duplication with onDrop() --toFIX**
     console.log("doDroppy:",this.targetDrop, this.draggedItem)
+    
     if(this.targetDrop && this.draggedItem){
       let isClose = this.tooClose(this.targetDrop, this.draggedItem.duration)
       if(isClose){
@@ -4994,6 +4941,10 @@ computed: {
       this.showClearBtn = true 
 
       this.reset() //
+
+    } else {
+      console.log("doDroppy null ERROR?", this.targetDrop,this.draggedItem )
+      return
     }
   },
   onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above

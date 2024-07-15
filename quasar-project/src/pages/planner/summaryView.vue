@@ -124,8 +124,11 @@
             5. Check out the summary of all goals here!
           </q-card>
         </div>
-
       </div>
+    </template>
+
+    <template v-slot:separator>
+      <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
     </template>
 
     <template v-slot:after>

@@ -92,7 +92,7 @@
                 </q-calendar>
             </div>
         </div>
-        <br>
+        <!--<br>
         <div class="row justify-center items-center">
             <q-btn
                class="q-ma-sm"
@@ -123,18 +123,23 @@
                no-caps
             />
 
-            <!--<q-btn
-            class="q-ma-sm"
+            //<q-btn
+            class="q-ma-sm q-mr-lg"
             color="white"
             text-color="red"
             unelevated
             to="/draggy"
             label="Draggy"
             no-caps
-            /> -->
-         </div>
+            /> 
+        </div> -->
       </div>
     </template>
+
+    <template v-slot:separator>
+      <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
+    </template>
+
     <template v-slot:after>
       <div class="q-pa-md">
           <div v-if="treeGoals.length > 0" class="q-pa-md bg-grey-12" style="max-width: 400px">

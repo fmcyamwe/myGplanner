@@ -3,6 +3,7 @@
 <q-pull-to-refresh @refresh="refresh">
     <q-splitter
     v-model="splitterModel"
+    :limits="[30, 100]"
     >
         <template v-slot:before >
            <div style="max-width: 400px">
@@ -173,6 +174,11 @@
 
             <!-- should use component template instead--todo**-->
         <br>
+
+        <template v-slot:separator>
+            <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
+        </template>
+
         <template v-slot:after>
             <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
                 <q-item>
@@ -375,7 +381,7 @@ export default {
     //components: {
     //   draggable
     // },
-    name: 'addGoalForm',
+    name: 'goalsPage',
     setup () {
         const splitterModel = ref(40) //at 40%
         const Adminy = ref(false)
