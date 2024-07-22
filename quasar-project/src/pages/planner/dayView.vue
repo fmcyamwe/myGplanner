@@ -1,18 +1,6 @@
 <template>
-  <!--<div v-if="showForm" class="q-gutter-md">
-    <q-btn
-      class="q-pl-xl justify-center"
-      color=""
-      text-color="green"
-      elevated
-      label="HideForm"
-      @click="showGoalForm = !showGoalForm"
-      no-caps
-    />
-     <add-goal-form /> 
-  </div> -->
   <q-page padding>
-  <div class="subcontent"> <!--v-if="!showForm" -->
+  <div class="subcontent">
     <q-splitter
       v-model="splitterPage"
       :limits="[30, 70]"
@@ -72,7 +60,6 @@
                   @choose-option="onChoosenScore"
                   />
                 </div>
-
                 <div v-if="showPrio">
                   <drop-dwn-btn
                   class="sched-drop-btn"
@@ -98,9 +85,10 @@
             <div class="row justify-center">
               <q-btn
               class="q-mt-md"
-              color="Green"
               text-color="blue"
               elevated
+              push
+              align="evenly"
               label="SaveSchedule"
               :disable="saveScheduleDisabled"
               @click="doSaveSchedule"
@@ -109,11 +97,12 @@
               
               <q-btn
               class="q-mt-md"
-              color=""
               text-color="green"
               elevated
-              label="ShowLegend"
-              @click="showGoalForm = !showGoalForm"
+              push
+              align="evenly"
+              label="TreeLegend"
+              @click="showTree = !showTree"
               no-caps
               />
             </div> 
@@ -145,38 +134,41 @@
 
               huh suprised that isViewingPast() works below!
               -->
-              <div v-if="showForm" class="q-gutter-md">
-              <q-select
-              label="Moods: 'je-suis'"
-              ref="filterRef"
-              filled
-              v-model="filter"
-              use-input
-              use-chips
-              multiple
-              :disable="isViewingPast()"
-              hide-dropdown-icon
-              input-debounce="0"
-              new-value-mode="add-unique"
-              class="q-gutter-sm"
-              >
-                <template v-slot:selected-item="scope">
-                  <q-chip
-                    removable
-                    dense
-                    @remove="scope.removeAtIndex(scope.index)"
-                    :tabindex="scope.tabindex"
-                    text-color="black"
-                    class="q-ma-none"
-                    style="width:80px"
-                  >
-                    {{ scope.opt }}
-                  </q-chip>
-                </template>
-                <template v-slot:append>
-                  <q-icon v-if="filter.length > 0 " name="clear" class="cursor-pointer" @click="resetFilter" />
-                </template>
-              </q-select>
+              
+              <div v-if="showTreeForm" class="q-gutter-md">
+                <q-select
+                label="'je-suis'"
+                hint="Keyword >> Enter"
+                hide-hint
+                ref="filterRef"
+                
+                v-model="filter"
+                use-input
+                use-chips
+                multiple
+                :disable="isViewingPast()"
+                hide-dropdown-icon
+                input-debounce="0"
+                new-value-mode="add-unique"
+                class="q-gutter-sm"
+                >
+                  <template v-slot:selected-item="scope">
+                    <q-chip
+                      removable
+                      dense
+                      @remove="scope.removeAtIndex(scope.index)"
+                      :tabindex="scope.tabindex"
+                      text-color="black"
+                      class="q-ma-none"
+                      style="width:80px"
+                    >
+                      {{ scope.opt }}
+                    </q-chip>
+                  </template>
+                  <template v-slot:append>
+                    <q-icon v-if="filter.length > 0 " name="clear" class="cursor-pointer" @click="resetFilter" />
+                  </template>
+                </q-select>
 
               <q-tree
                 :nodes="treeGoals"
@@ -200,31 +192,31 @@
                     <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
                   </template>
               </q-tree>
+              </div>
+              <!--
+                :on-remove="resetFiltery"  >> even with filterResults as Set or Map, issue with proper update when removed a mood
+                --oh well gotta filter again smh
+                
+                :name="prop.node.icon || 'arrow'"
+                class="q-mr-sm bg-red" 
+                color="red"
+              -->
+              <div v-if="filter.length > 0" class="q-pa-md q-gutter-sm bg-grey-12" style="max-width: 400px">
+                <sched-btn
+                text-label="Add Moods"
+                class="q-mt-xl sched-btn"
+                text-color="red"
+                @do-btn-action="onMoodAdd"
+                />
+              </div>
             </div>
-            <!--
-              :on-remove="resetFiltery"  >> even with filterResults as Set or Map, issue with proper update when removed a mood
-              --oh well gotta filter again smh
-              
-              :name="prop.node.icon || 'arrow'"
-              class="q-mr-sm bg-red" 
-              color="red"
-            -->
-            <div v-if="filter.length > 0" class="q-pa-md q-gutter-sm bg-grey-12" style="max-width: 400px">
-              <sched-btn
-              text-label="Add Moods"
-              class="q-mt-xl sched-btn"
-              text-color="red"
-              @do-btn-action="onMoodAdd"
-              />
-            </div>
-          </div>
           </template>
-       </q-splitter>
+        </q-splitter>
       </template>
 
-      <!--<template v-slot:separator>
-        <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
-      </template> -->
+      <template v-slot:separator>
+        <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" style="position: relative; top: 70%;"/> <!--nudge this down by 70 percent...huh-->
+      </template>
 
       <template v-slot:after><!-- Calendar and dialogs...-->
         <q-pull-to-refresh @refresh="onRefresh"> <!--have to put here or drag in calendar does this refresh when it shouldnt-->
@@ -246,7 +238,6 @@
                 ref="calendar"
                 view="day"
                 v-model="currentDate"
-                v-touch-hold="handleHold"
                 :drag-enter-func="onDragEnter"
                 :drag-over-func="onDragOver"
                 :drag-leave-func="onDragLeave"
@@ -273,6 +264,7 @@
                 @mousemove-time="onMouseMoveTime"
               >
               <!--
+                v-touch-repeat.mouse="(e) => handleRepeat(e, event)"  >>fucks up drag/drop in mobile smh
                 v-touch-hold="handleHold"
                 v-touch-swipe="handleSwipe"
                 v-touch-hold="handleHold" in div below for mobile touch...
@@ -311,7 +303,7 @@
                           :style="badgeStyles(event, 'header')"
                           style="width: 100%; cursor: pointer; height: 12px; font-size: 10px; margin: 1px;"
                         >
-                          <div class="title q-calendar__ellipsis">
+                          <div class="heady q-calendar__ellipsis">
                             {{ event.title }}
                             <q-tooltip>{{ event.details }}</q-tooltip>
                           </div>
@@ -359,13 +351,16 @@
                         @drop="(e) => onDrop(e, 'goal-item', scope)"
                         @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
                         @dragover="(e) => onDragOver(e, 'goal-item', scope)"
-                        @touchstart="(e) => onTouchEvent(e, 'goal-item', event)"
-                        @touchmove="(e) => onTouchEvent(e, 'goal-item', event)"
-                        @touchend="(e) => onTouchEvent(e, 'goal-item', event)"
+                        @touchstart="(e) => onTouchStart(e, event)"
+                        @touchmove="(e) => onTouchEvt(e,event)"
+                        @touchend="(e) => onTouchEvt(e, event)"
                         >
-                        <!--onTouchEvent
-                          onTouchyMove, onTouchyStart,onTouchyEnd
-                          @touchmove="(e) => {}"  
+                        <!-- 
+                          v-touch-hold:400:12:15.mouse="(e) => handleHold(e, event)" 
+                            on goaly-end or div above makes no diff!! but seem to log errors more in div
+
+                          handleTouchEvt(e,event) for better distinction...
+                          
                           <div class="title q-calendar__ellipsis"> -->
                           <!--{{ event.title }}
                           <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip> -->
@@ -373,55 +368,41 @@
                           <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
                           
                           <goaly-end
-                            :disabledScore="disabledScoreEvts[event.id]"
+                            :disabledScore="isDisabledScoreEdit[event.id]"
                             :title="event.title"
                             :id="event.id"
                             :startTime="event.time"
                             :score="event.score"
                             :details="event.details"
+                            :notes="event.notes"
                             :happeningNow="hasStarted[event.id] ? hasStarted[event.id] : false"
                             @end-now="onEndNow"
                             @save-score="onSaveScore"
                             @add-mins="onAddMins"
                             @delete-now="removeEvtInSchedule(event)"
+                            v-touch-hold:400:12:15.mouse="(e) => handleHold(e, event)"
                             />
-                            <!--pass :hidden="flag" to hide delete btn when inPast? or handle it?-->
+                            
+                          <!--TESTMOBILE...should reset allowDialog?toTest!-->
+                          <scoreEditDialog v-if="allowDialog[event.id]"
+                            :title="event.title"
+                            :id="event.id"
+                            :startTime="event.time"
+                            :score="event.score"
+                            :details="event.details"
+                            :notes="event.notes"
+                            :show-dialog="allowDialog[event.id]"
+                            @save-score="onSaveScore"
+                            @delete-now="removeEvtInSchedule(event)"
+                          />
 
                       </div>
+                      
                     </template>
                   </template>
               </q-calendar-day>
             </div>
-          <!--
-            showPickEventDialog=pickEventDialog >> dont work
-            :doForce="force" works? as not a prop.... >>warning Extraneous non-props and doesnt open...
-            :showDefaultEvtByType="addEventDialog" >>mutating prop error
-            -->
         </div>
-
-       <!-- moved up above
-        <div class="row justify-center">
-          <q-btn
-          class="q-mt-xl"
-          color="Green"
-          text-color="blue"
-          elevated
-          label="SaveSchedule"
-          :disable="saveScheduleDisabled"
-          @click="doSaveSchedule"
-          no-caps
-          />
-          
-          <q-btn
-          class="q-mt-xl"
-          color=""
-          text-color="green"
-          elevated
-          label="ShowForm"
-          @click="showGoalForm = !showGoalForm"
-          no-caps
-          />
-        </div> -->
 
         <br>
         <sched-dialog v-if="addEventDialog"
@@ -460,14 +441,15 @@ import { defineComponent,ref } from 'vue'
 import NavigationBar from '../../components/NavigationBar.vue'
 import { isMobile } from '../util/isMobile'
 import { applyClasses, applyStyles, pGColors } from '../util/utiFunc'
-//import addGoalForm from '../planner/goalForm.vue'
 import GoalyEnd from '../../components/planner/goalyEnd.vue'
-//import adHocEvent from '../../components/planner/adHocEvent.vue'
 import schedBtn from '../../components/planner/schedBtn.vue'
 import dropDwnBtn from '../../components/planner/dropDwnBtn.vue'
 import schedDialog from '../../components/planner/schedDialog.vue'
+import scoreEditDialog from '../../components/planner/onScoreEditDialog.vue'
 import { useGoalStore } from 'stores/goalStorage'
-import { useQuasar,Platform } from 'quasar'
+import { useQuasar } from 'quasar'  //Platform
+//import { stop, prevent, stopAndPrevent } from 'quasar/src/utils/event'
+
 //import 'drag-drop-touch'  //no likey smh
 
 function isLeftClick (e) {
@@ -485,11 +467,14 @@ components: {
   //adHocEvent,
   schedBtn,
   dropDwnBtn,
-  schedDialog
+  schedDialog,
+  scoreEditDialog
 },
 data () {
-  const draggedItem = ref(null)
+  const draggedItem = ref(null)  //toRename** >> selectedItem(whether touch/drag)
   const targetDrop = ref(null)
+
+  const touchedItem = ref(null) //for touch mobile elt 
 
   const currentTime = ref(null)
   
@@ -532,12 +517,14 @@ data () {
 
     timeStartPos:ref(0), ///This is the one for actually showing current time and needs to be in return for proper update
 
-    showGoalForm: ref(false), //showing addGoal form
+    showTree: ref(false), //showing Legend Tree
     //pickEventDialog:ref(false), //showing pick event to schedule dialog ..no need
     addEventDialog: ref(false),
     
-    disabledScoreEvts:ref({}),
-    hasStarted:ref({}),  //just for happening now..should combine with disabledScoreEvts var above!
+    isDisabledScoreEdit:ref({}),
+    hasStarted:ref({}),  //just for happening now..should combine with isDisabledScoreEdit var above!
+    mobileEnableScore:ref({}), //reverse of isDisabledScoreEdit...mobile and should be dynamically set when touch-repeat....
+    allowDialog:ref({}),//non mais c'est fou lala! for showing mobile dialog still
 
     disableSaveSchedule:ref(true),
     //force:ref(false),  //skip confirming for default time changes--placed in inner component...
@@ -618,9 +605,9 @@ computed: {
       top: this.timeStartPos + 'px'
     }
   },
-  showForm() { //return
-    if (!this.showGoalForm) {this.constructTree()}
-    return this.showGoalForm
+  showTreeForm() { //return
+    if (!this.showTree) {this.constructTree()}
+    return this.showTree
   },
   saveScheduleDisabled(){
       return this.disableSaveSchedule 
@@ -869,9 +856,7 @@ computed: {
   isViewingPast(){
     let isToday = today()
 
-    //data.start == 
     if (this.currentDate && this.currentDate == isToday){
-      //console.log('onChange', data, this.currentDate, isToday, inDates)
       return false
     }
 
@@ -994,11 +979,11 @@ computed: {
   },
   allowScoreEdit(flag){ 
     this.dailyScheduled.forEach( (value, key, map) => {
-        this.disabledScoreEvts[key] = !flag   //need to inverse the flag!!
+        this.isDisabledScoreEdit[key] = !flag   //need to inverse the flag!!
     })
   },
   enableEvtScoreEdit(evtID, flag){
-    this.disabledScoreEvts[evtID] = !flag  //confirm flag inversion
+    this.isDisabledScoreEdit[evtID] = !flag  //confirm flag inversion
   },
   //canEditScore()//when past || today(when evtStartedOrPassed)
   //enable score edit for already completed events by comparing with currentTime
@@ -1010,23 +995,35 @@ computed: {
     
       //console.log(`canEnableEditScore`,now,evtID,endTime)
       if(diffy > 0){ //so evt has NOT ended
-          this.disabledScoreEvts[evtID] = true   //disable scoreEdit
+          this.isDisabledScoreEdit[evtID] = true   //disable scoreEdit
+
+          this.mobileEnableScore[evtID] = false 
       }else { //negative so evt has ended
-          this.disabledScoreEvts[evtID] = false //enable score edit
           this.hasStarted[evtID] = false  //umm bon hide when button when past as well
+
+          if(this.mobile){
+            console.log(`canEnableEditScore`,evtID,diffy,this.mobile) //should inverse this for mobile
+           // this.mobileEnableScore[evtID] = true //true //--can edit score... should be false? or named proper?
+            //return
+            this.allowDialog[evtID] = false
+          }
+          this.mobileEnableScore[evtID] = true 
+
+          this.isDisabledScoreEdit[evtID] = false //enable score edit
       }
 
-     // console.log(`canEnableEditScore for ${evtID}`,now,endTime,diffy, this.disabledScoreEvts[evtID])
+     // console.log(`canEnableEditScore for ${evtID}`,now,endTime,diffy, this.isDisabledScoreEdit[evtID])
   },
   //parses score and returns the difference btween the interval
+  //the second value should be higher than the first...for later score calculations!
   parseScore(t){
-    const tokens = t.split(/on/)
+    const tokens = t.split(/on/) 
     if (tokens.length != 2) {//should be at most two variables....
-      console.log(`parseScore error?${t}`, tokens)
-      return -1
+      //console.log(`parseScore error? >>${t}`, tokens)  
+      return -89 //guardrails to distinguish with potensh error below*** could still fail with 'one' though smh..toReview***
     }
-          //console.log(`parseScore for ${t}`, tokens)
-    return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!**to add guardrails...
+    //console.log(`parseScore for ${t}`, tokens)
+    return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!
   },
   doEnableEndNowBtn(timey,hasEnd, hasStart){ //to enable/disable endButton...should replace one of the functions for endBtn around--toDO** 
 
@@ -1034,9 +1031,9 @@ computed: {
       let toComp = hasEnd ? val.end.time : val.start.time  //bon should work..prolly both flags are mutually exclusive?
       //let euhStart = hasStart ? val.start.time : timey  //just in case but redundant..toRemove**
       if (toComp == timey){
-        //console.log(`doEnableEndNowBtn found hasStart:${hasStart}`, entry,JSON.parse(JSON.stringify(this.disabledScoreEvts[entry])) ) //val
+        //console.log(`doEnableEndNowBtn found hasStart:${hasStart}`, entry,JSON.parse(JSON.stringify(this.isDisabledScoreEdit[entry])) ) //val
         this.hasStarted[entry] = !hasEnd 
-        this.disabledScoreEvts[entry] = !hasEnd //enable/disable score edit--toTEST...should use hasEnd?!? or hasStart?!?
+        this.isDisabledScoreEdit[entry] = !hasEnd //enable/disable score edit--toTEST...should use hasEnd?!? or hasStart?!?
       }
       //ELSE for hasStart to SHOW enableBtn--TODO? OR just test above?** 
     }
@@ -1507,7 +1504,6 @@ computed: {
         
       startTimes.has(startTime.time) ? sameTime.add({at:startTime.time, id:event.id}) : startTimes.add(startTime.time)
        
-      //this.disabledScoreEvts[event.id] = true  //uncomment when doing drag/drop stuff
 
       let isToday = this.currentDate == today() 
       if (isToday || !this.isViewingPast()){ //only allow for today and future
@@ -3244,25 +3240,26 @@ computed: {
     this.updateButtons(inPast ? false : unscheduledDefs, inPast ? false : true, inPast ? false : true) //unscheduledDefs ? true : false,
   },
   getEventsForDatey(datey,checkOverlaps){ //checkOverlaps for today only...
-    let savedEvtFunc = (key, val) => {
-      if ('byMood' in val) {
-        //console.log("savedEvtFunc::usingMoods?!?", this.usingMoods, val.byMood)
-        this.usingMoods[key] = val.byMood ////.join() ?!? meh done later when getting label
-      }
 
-      let ret = {}
-      if(val.notes !== void 0){
-        //prevent overwrite on update by carrying it around...
-        console.log("savedEvtFunc::NOTES", key, val.notes, val.atScore)
-        ret.notes = val.notes
-        ret.atScore = val.atScore
+      let savedEvtFunc = (key, val) => {
+        if ('byMood' in val) {
+          //console.log("savedEvtFunc::usingMoods?!?", this.usingMoods, val.byMood)
+          this.usingMoods[key] = val.byMood ////.join() ?!? meh done later when getting label
+        }
+
+        let ret = {}
+        if(val.notes !== void 0){
+          //prevent overwrite on update by carrying it around...
+          //console.log("savedEvtFunc::NOTES", key, val.notes, val.atScore, this.mobile)
+          ret.notes = val.notes
+          ret.atScore = val.atScore
+        }
+        ret.id = parseInt(key)
+        ret.duration = val.duration, //30,
+        ret.time = val.time //"01:30"
+            
+        return ret
       }
-      ret.id = parseInt(key)
-      ret.duration = val.duration, //30,
-      ret.time = val.time //"01:30"
-          
-      return ret
-    }
 
     let evts = this.getEventsForDate(datey)
         
@@ -3288,81 +3285,6 @@ computed: {
     return this.updateCurrentSchedule()  //beware!! not same struct as with overlapCheckEvtsAdd() 
 
   },
-  //loadForDate(onDate, hasSavedEvents, inPast){
-      /*let savedEvtFunc = (key, val) => {
-          if ('byMood' in val) {
-            //console.log("savedEvtFunc::usingMoods?!?", this.usingMoods, val.byMood)
-            this.usingMoods[key] = val.byMood ////.join() ?!? meh done later when getting label
-          }
-
-          let ret = {}
-          if(val.notes !== void 0){ 
-            //prevent overwrite on update by carrying it around...
-            console.log("savedEvtFunc::NOTES", key, val.notes, val.atScore)
-            ret.notes = val.notes
-            ret.atScore = val.atScore
-          }
-          ret.id = parseInt(key)
-          ret.duration = val.duration, //30,
-          ret.time = val.time //"01:30"
-          
-          return ret 
-          //{
-            //id:parseInt(key),
-            //duration: val.duration, //30,
-            //time: val.time //"01:30"
-          //}
-      }*/
-
-      /*let doLoadNotPresent = () => {
-        let evts = this.getEventsForDate(onDate)
-        if (!evts) {console.log(`ERROR no evts found for ${onDate}...`, evts); return}
-        
-        console.log(`doLoadNotPresent ${onDate}::evts=${Object.keys(evts).length}`) //JSON.parse(JSON.stringify(evts))
-        
-        let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))
-        this.scheduledEvents = this.addPropsEventsTo(onDate, arr) //REDO*** to keep notes and atScore when present**
-        
-        //console.log("doLoadNotPresent:scheduled",JSON.parse(JSON.stringify(this.scheduledEvents)))
-          
-        let e = this.updateCurrentSchedule()
-          
-        if (e.size > 0 && !inPast){//review overlaps in futur only
-          console.log(`doLoadNotPresent..OVERLAPS in past?${inPast} on ${onDate}`,e.size) //JSON.parse(JSON.stringify(e))
-          this.doNotify(`${onDate} with conflicts to fix!`, "warning",'bottom')  //${inPast ? 'past': 'future'}: 
-
-          this.fixSameStart(e)  //loadForDate
-          
-        } else {
-          this.showReloadBtn = false
-          this.disableSaveSchedule = true
-          this.doNotify(`Loaded schedule for ${inPast ? 'past': 'future'}:: ${onDate}`, "positive",'bottom')
-        }
-      } */
-
-      /*let OverlapCheckLoadToday = () => {
-        let evts = this.getEventsForDate(onDate)
-        //console.log("OverlapCheckLoadToday:evts", JSON.parse(JSON.stringify(evts))) //Object.keys(evts).length >> not an array but object...smh
-
-        if (!evts) {console.log(`ERROR no evts found for today:${onDate} ?!?`, evts); return}
-
-        let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))
-
-        //let arry = Object.entries(evts).map((key) => savedEvtFunc(key[0],key[1])) //works as well but using above.
-        
-        let toReload = this.addPropsEventsTo(onDate, arr) //evts
-
-        console.log(`OverlapCheckLoadToday ${onDate} loading:${toReload.length} into current:${this.scheduledEvents.length}`) //,JSON.parse(JSON.stringify(toReload)))
-
-        // check that no overlap !!
-        let euhOverlaps = this.overlapCheckEvtsAdd(toReload) //, onDate
-    
-        Object.keys(euhOverlaps).length > 0  ?
-        this.doNotify(`${onDate} with Some overlaps to fix!`, "warning",'bottom') :
-        this.doNotify(`Loaded schedule for ${onDate}`, "positive",'bottom')
-
-        return euhOverlaps //overlaps
-      } */
   
   loadForDate(onDate, hasSavedEvents, inPast){
     // reset maps first...
@@ -3396,6 +3318,8 @@ computed: {
           return
         }
 
+        this.doNotify(`Loaded schedule for ${onDate}`, "positive",'bottom')
+
         this.evtStartedOrPassed(parseDate(new Date()))
         this.disableSaveSchedule = true
         this.showReloadBtn = false
@@ -3413,7 +3337,7 @@ computed: {
 
           this.fixSameStart(sameStart)  //loadForDate
             
-        } else {            
+        } else {         
           this.showReloadBtn = false
           this.disableSaveSchedule = true
           this.doNotify(`Loaded schedule for ${inPast ? 'past': 'future'}:: ${onDate}`, "positive",'bottom')
@@ -3445,6 +3369,7 @@ computed: {
   reset() { //reset variable for next use 
     this.draggedItem = null
     this.targetDrop = null
+    this.touchedItem = null 
     //
     this.chosenScore = null
     this.chosenPrio = null
@@ -3926,7 +3851,7 @@ computed: {
           this.endTimesSet.add(now.time)
 
           //bon here is better? in case removed
-          this.disabledScoreEvts[evtID] = false  //bon updating score ...umm seems to fuck it up though?...toSee
+          this.isDisabledScoreEdit[evtID] = false  //bon updating score ...umm seems to fuck it up though?...toSee
     
           this.doSaveSchedule() //onEndNow //yeah just gonna save automatically esti!
           this.disableSaveSchedule = true
@@ -3958,33 +3883,35 @@ computed: {
       return
     }
   },
-  onSaveScore(newVal, id,note=''){
+  onSaveScore(newScore, id,note=''){
 
-    let ev = this.dailyScheduled.get(id)
+    let ev = this.dailyScheduled.get(id) //JSON.parse(JSON.stringify(f)))
     if (ev){
-      //let f = this.getLocalEvt(id)
-      //console.log(`oooh onSaveScore from ${ev.score} to ${newVal}`, id,JSON.parse(JSON.stringify(f)))
-
-      //also add check to do second value is higher than first...for later score calculations!
+     
       //--should keep historical score change for goal?!? to see progres....toSee**tbd
-      let dif = this.parseScore(newVal)
+      let dif = this.parseScore(newScore)
       if (dif < -1) {
-        this.doNotify("Score Error: higher# on lower#")
+        if (dif == -89) {
+          console.log(`onSaveScore parsing error`,dif,newScore)
+          this.doNotify("Score Parsing Error... YOU FOO! ")
+        } else{
+          this.doNotify("Score Error: higher# on lower#")
+        }
         return
       }
       
-      this.doSaveEvtProp(id, null, newVal)   //this.store.saveSubProp(id, null, newVal)
+      this.doSaveEvtProp(id, null, newScore)   //this.store.saveSubProp(id, null, newVal)
 
       let h = this.getScheduledEvent(id) //send changes down to child component...
       let oldy = null
       if (h){
         oldy = h.score //to keep track below
-        h.score = newVal
+        h.score = newScore
       }else{console.log('onSaveScore ERROR not found',h, id) }  //very baaad!
        
       if(note !==''){
-        console.log(`onSaveScore ${id}from ${oldy} to ${newVal} with note>>`,note)
-        ev.score = oldy ? oldy : newVal  //todo...fix buuug!
+        console.log(`onSaveScore::note ${id}from ${oldy} to ${newScore} with note>>`,note)
+        ev.score = oldy ? oldy : newScore  //todo...fix buuug!
         ev.notes = note
         this.doSaveSchedule() //onSaveScore
       }
@@ -4528,6 +4455,11 @@ computed: {
     
     //conflicts checks for today only
     if (isTod && flag !='filter'){ //this.isViewingToday()
+      if (toRet.length < 1) {
+        this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
+        return 
+      }
+
       toRet = this.addPropsEventsTo(this.currentDate, toRet)
       //console.log(`findSamePrio::addPropsEventsTo for ${flag}`,JSON.parse(JSON.stringify(toRet)),JSON.parse(JSON.stringify(this.scheduledEvents)))
 
@@ -4656,7 +4588,11 @@ computed: {
     //console.log(`reloadEvtsWithScore>'${flag}' >=${this.chosenScore}`, this.currentDate,this.scheduledEvents.length)  //isTod, e,
 
     if(isTod && flag !='filter' ){//check conflicts only for today..
-      //console.log(`scheduleByScore...checking TODAY!`)
+      if (e.length < 1) {
+        this.doNotify(`Empty for Score >= ${this.chosenScore} :(`, "warning",'bottom')
+        return 
+      }
+
       e = this.addPropsEventsTo(this.currentDate, e)
 
       e = this.removeNoTimes(e,"scheduleByScore")
@@ -4759,25 +4695,26 @@ computed: {
     this.loadForDate(data.start, this.hasEventsForDate,this.isViewingPast())
   },
   onDragStart(e, item) {
-    //console.log("onDragStart",item)
-      if(this.isViewingPast()){
-        this.doNotify("Editing past is no no!")
-        e.preventDefault() 
-        return
-      }
-      
-      //keep track of moved
-      this.draggedItem = item
+    if(this.isViewingPast()){
+      this.doNotify("Editing past is no no!")
+      e.preventDefault()        
+      return
+    }
+    //keep track of moved
+    this.draggedItem = item
   },
   onDragEnter (e, type, scope) {
-    //console.log('insideDragEnter',type) // e,type,scope
+    //console.log('insideDragEnter',type,this.mobile,this.isDisabledScoreEdit[this.draggedItem.id]) // e,type,scope
     if(type === 'goal-item'){
       //console.log('onDragEnter..goal-item',e, scope) // scope is undefined here hence saving it below
       e.preventDefault()
     } else {
-      //console.log('onDragEnter...calendar', e, scope) //e,type,scope
       //ABSO necessary to save this as it's the last position before potential overlap with goal-item!
       //but not precise enough
+
+      //let target = document.elementFromPoint(e.clientX, e.clientY)
+      //console.log('onDragEnter...calendar', target) //e,type,scope
+
       this.targetDrop = scope
       e.preventDefault()
     }
@@ -4794,158 +4731,9 @@ computed: {
     return false
   },
   onDragEnd (e) {
-    console.log('onDragEnd',e) //check datatransfer for 'none' effect where no drop made
-    /*e.currentTarget.style.opacity = '1.0'
-    if (curChildEl) {
-      curChildEl.classList.remove('drag-over-item')
-    }
-    if (curColEl) {
-      curColEl.classList.remove('drag-over')
-    }*/
+    //console.log('onDragEnd',e) //check datatransfer for 'none' effect where no drop made
+
     //console.log('onDragEnd', this.startTimesSet,this.endTimesSet)
-  },
-  onTouchEvent(e, type,item){ //for touchstart, touchmove, touchend
-
-      const getTimey = (ariaLabel) => {
-        let str = ariaLabel.split(' ')
-        let tr = str[str.length-2] //+ ' '+ str[str.length-1]
-        let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-        
-        if(str[str.length-1] == 'PM'){ //for adding 12hrs to account when time is in PM 
-          //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-          if (s.hour == 12){//EXCEPT for noon!
-            //console.log("getTimeyyyyy:",s)
-            return s
-          }
-          
-          return addToDate(parsed(this.currentDate), { hour: 12, minute: parseTime(tr)})
-        }
-
-        return s //addToDate(parsed(this.currentDate), { minute: parseTime(tr) }) //s
-      }
-
-    if(e.type == "touchstart"){
-      if(this.isViewingPast()){
-        this.doNotify("Editing past is no no!")
-        e.preventDefault() 
-        return
-      }
-
-      this.draggedItem = item
-      //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-      //console.log("onTouchyStart:"+type,this.draggedItem,e) //.currentTarget,e?.currentTarget?.tagName,target,target?.classList)
-      e.preventDefault()
-      return true
-    }
-
-    if(e.type == "touchmove"){ //fires a lot!
-      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-
-      //could simulate drag with updating the elt moving...toSee***
-
-      if(target.ariaLabel){ //needed when still in calendar's interval
-        let s = getTimey(target.ariaLabel)
-        //console.log("onTouchyMoveeey:",this.draggedItem, s ) //e?.currentTarget?.tagName
-        this.targetDrop = s
-      }//else{
-        //console.log("onTouchyMove:ERROR?",e, target,target.classList) //no arialLabel...prolly when over another event! || or same one but early stages of dragging
-      //}
-
-      e.preventDefault()
-      return 
-    }
-
-    if(e.type == "touchend"){
-      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-      //console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel) 
-      if(target.ariaLabel){
-        let s = getTimey(target.ariaLabel)
-       // console.log("onTouchyEnd:"+type,target,target.classList,target.ariaLabel,s) 
-        this.targetDrop = s
-        this.doDroppy()
-      } else{
-        console.log("onTouchyEnd:ERROR?OVERLAP?",e, target,target.classList) //currentTarget
-        if(target.classList.contains("title")){
-          console.log("onTouchyEnd--has title!",this.targetDrop)
-          this.doDroppy()  //just drop on top to see
-        }
-      }
-      e.preventDefault()
-      e.stopPropagation() //needed?@?  
-    }
-    
-  },
-  doDroppy(){ //some duplication with onDrop() --toFIX**
-    console.log("doDroppy:",this.targetDrop, this.draggedItem)
-    
-    if(this.targetDrop && this.draggedItem){
-      let isClose = this.tooClose(this.targetDrop, this.draggedItem.duration)
-      if(isClose){
-        console.log("onDrop::tooClose to>>",isClose) //could happen when dropping next to scheduled...
-        if(isClose === true){
-          this.doNotify("Dropping event TOO close to midnight!")
-          this.reset() //onDrop
-          return
-        }
-      }
-
-    let anyOverlap =  this.hasOverlappingEvent(this.draggedItem.id, this.targetDrop, this.draggedItem.duration)
-    
-    let euhOverlaps={}
-
-    let sizey = anyOverlap.length
-    if(sizey > 0) {
-      let i = 0
-      do {
-        if(anyOverlap[i].inConflict == anyOverlap[i].target){
-          console.log("EUUUH...self overlap?!?", anyOverlap[i]) 
-          break //continue? nope wouldnt move!
-        }
-        console.log("doDroppy...OVERLAP handlin::size="+sizey, anyOverlap[i].direction) //anyOverlap[i], //object
-       
-        //anyOverlap[i].direction == "surrounding" ? this.fixyOverlaps(anyOverlap, true) : this.recurChangeTime(anyOverlap[i].inConflict, draggy, targetTimey, true)
-        //check for 'surrounding' and handle overlap... otherwise should just push the evt(instead of giving options to resolve/choose!) using recurChangeTime()
-        //meh better to use fixyOverlaps as cancelling is clearer!
-
-          let toH = anyOverlap[i]
-          if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]}
-
-
-          if(i > 0){// where it's better to use the obj.id as the evt being added!--See fixMultiConflicts()
-            //keep in mind the obj.id is target
-            
-            console.log(i+" WOAH WOAH,doDroppy.. multiple overlaps with same target!",anyOverlap[i].target)//>could have multiple default that are overlapping yes!
-            //ummm this where using inConflict is wrong as evt CAN overlap with two others....
-            if (toH.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",toH.inConflict); delete euhOverlaps[toH.inConflict] }
-            if (anyOverlap[i-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",anyOverlap[i-1].inConflict); delete euhOverlaps[anyOverlap[i-1].inConflict] }
-
-            if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
-            
-            euhOverlaps[toH.target].unshift(anyOverlap[i-1]) //also add previous as makes sense..
-            euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
-          } 
-       
-      } while (++i < sizey)
-
-      console.log("doDroppy...OVERLAP with fixOverlap",euhOverlaps)
-      this.fixyOverlaps(euhOverlaps, true,'onDrop')  //end of loop for all conflicts!!!
-
-    } else {
-      //so no overlapp, just change dragged event time--ask User
-      this.changeEvtTime(this.draggedItem.id, this.targetDrop, false) //onDrop
-      console.log(`doDroppy with No overlap complete (${this.draggedItem.id}) to ${this.targetDrop.time}`)  //worked,
-    }
-
-      this.disableSaveSchedule = false
-      this.showReloadBtn = this.hasEventsForDate
-      this.showClearBtn = true 
-
-      this.reset() //
-
-    } else {
-      console.log("doDroppy null ERROR?", this.targetDrop,this.draggedItem )
-      return
-    }
   },
   onDrop(e, type, scope) { //other drag functions above need for this to fire >>especially 'onDragOver' above
     //console.log("onDrop", e, type, scope)//JSON.stringify(item)
@@ -5035,14 +4823,377 @@ computed: {
 
     this.reset() //onDrop
   },
-  handleHold({ evt, ...newInfo }){ //for testing drag in mobile!
-    console.log("handleHold", evt, newInfo)
-    let target = document.elementFromPoint(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY)
-    console.log("handleHoldy",target)
-    //could then invoke onDblClickEvent(e, event) AFTER figuring out which event....toSee**
+  /*handleTouchStart(elt,item){ //sigh*
+    this.draggedItem = item
+
+    if(elt.parentNode.classList.contains("my-event")){
+        console.log("handleTouchStart >>my-event-drag",elt,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])
+        elt.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
+        this.touchedItem = elt //keep track of it!
+    } else {
+      console.log("handleTouchStart:WOOOAH error?",elt,elt.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
+      //could happen if it's inner elt...
+      this.touchedItem = false //just to make sure that inner elt...toReview**
+    }
+
+    //could maybe save the elt as well to see if gonna move OR touch-hold
+    //this.touchedItem = elt....toUSE**
+
+    //elt.preventDefault() //need to continue for touch-hold!!!
+
+    return true //true?
+  },*/
+  onTouchStart(e, item){ //touchStart only!!
+
+    //if(this.isViewingPast()){ //check should be for move/end only
+    //  this.doNotify("Editing past is no no!")
+    //  e.preventDefault()
+    //  e.stopPropagation()
+    //  return
+    //}
+
+    //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+    if(e.type == "touchstart"){ //fires once!
+      
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+      //return this.handleTouchStart(target,item) //oldie but moved here....
+
+      this.draggedItem = item
+
+      if(target.parentNode.classList.contains("my-event")){
+          console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.isDisabledScoreEdit[item.id]) //target,,this.mobileEnableScore[item.id]
+          target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
+          this.touchedItem = target //keep track of it!
+      } else {
+        console.log("onTouchStart:WOOOAH inner touch?",target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
+        //could happen if it's inner elt...so go up
+        target = target.parentNode
+        if(target.parentNode.classList.contains("my-event")){
+          console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.isDisabledScoreEdit[item.id]) //target,,this.mobileEnableScore[item.id]
+          target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
+          this.touchedItem = target //keep track of it!
+        }else{
+          this.touchedItem = false //flag for later...toReview**
+          console.log("onTouchStart:ERROR ERROR",target, target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
+
+        }
+      }
+
+      //save the elt as well to see if gonna move OR touch-hold via this.touchedItem 
+     
+
+      e.preventDefault() 
+      //need to continue for touch-hold!...OR NOT? seems better for drag/drop smh
+
+      return true //true?
+      
+    }
+    
+    console.log("onTouchStart::ERROR...UNKNOWN",e) //shouldnt happen as rest handled via handleTouchEvt()
+
+    if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
+      //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+      return this.onTouchEvt(e, item) //item redudant as should be this.draggedItem
+    }
+
+    if(e.type == "touchend"){
+
+      //console.log("ontouchend",item == this.draggedItem) //should be same
+
+      return this.onTouchEvt(e, item) //item redudant as already this.draggedItem
+
+    }
+    
   },
-  handleSwipe({ evt, ...newInfo }){ //for testing swip in mobile!
-    console.log("handleSwipe", evt, newInfo)
+  onTouchEvt(e, item){ //touchmove and touchend ...scope is null!!
+
+      const getTimey = (ariaLabel) => {
+        let str = ariaLabel.split(' ')
+        let tr = str[str.length-2] //+ ' '+ str[str.length-1]
+        let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+        
+        if(str[str.length-1] == 'PM'){ //for adding 12hrs to account when time is in PM 
+          //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+          if (s.hour == 12){//EXCEPT for noon!
+            //console.log("getTimeyyyyy:",s)
+            return s
+          }
+          
+          return addToDate(parsed(this.currentDate), { hour: 12, minute: parseTime(tr)})
+        }
+
+        return s //addToDate(parsed(this.currentDate), { minute: parseTime(tr) }) //s
+      }
+
+    if(this.isViewingPast()){
+      this.doNotify("Editing past is no no!")
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+
+    //if (!item){
+    //  console.log("handleTouchEvt NULL Item >> "+e.type,this.draggedItem)
+    //  item = this.draggedItem
+    //}
+
+    if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
+
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+      //if (this.allowDialog[item.id]){ //bof no point for this methink...
+      //  console.log("handleTouchMove-STOP:",this.mobileEnableScore[item.id],this.isDisabledScoreEdit[item.id]) //still Nope smh...e?.mouseDownmouseDown doesnt exists...
+        //e.stopPropagation() //TOTEST*** that removing doesnt work in keeping touch-hold 
+        
+      //  e.preventDefault() //need it? wouldnt it also affect touch-hold? >>yep!
+      //  return
+      //}
+
+      if(target.ariaLabel){ //when moving into calendar's interval
+        let s = getTimey(target.ariaLabel)
+        if (this.targetDrop){ //-should skip when in same timestamp
+          let changedBy = diffTimestamp(this.targetDrop,s) 
+          let isSame = JSON.stringify(this.targetDrop) === JSON.stringify(s)
+ 
+          if (isSame && changedBy == 0){ //--too much comparison? toReview
+            //console.log("INTERVAL SAME...",isSame,s.time == this.targetDrop?.time, changedBy)
+            return
+          }
+          //console.log("INTERVAL changed!!",isSame,s.time,this.targetDrop?.time,changedBy)
+        }
+
+        //let currPosY = e.clientY  //undefined
+        //let currPosX = e.clientX  //undefined
+
+        //prolly have to add .top using e.changedTouches[0].clientX ?
+        let style = target.style
+        let touchedS = this.touchedItem.style
+         
+        // set the element's new position:
+        //target.style.top = (elmnt.offsetTop - pos2) + "px";
+        //target.style.left = (elmnt.offsetLeft - pos1) + "px";
+
+        //then add border via below? --toSee
+        //target.classList.add("touchy-interval")
+        
+        //also stop scrolling? 
+        ////>>seems fixed by readding preventDefault in touchStart() toMonitor***
+        
+        console.log("onTouchEvt >> NEW interval:",e.changedTouches[0].clientX,style,touchedS)// 
+
+        this.targetDrop = s
+
+        e.preventDefault() //seems to complain...
+        return
+
+      } else{
+        //console.log("onTouchyMove:ERROR?",e, target,target.classList) //no arialLabel...prolly when over another event! || or same one but early stages of dragging
+
+        if(target.classList.contains("title") && target.parentNode.classList.contains("my-event")){  //prolly no need to do this--if saved before! toTEst***
+          //target.classList.add("touchy") //this seem to work!
+          if(!target.parentNode.classList.contains("my-event-drag")) {
+            target.parentNode.classList.add("my-event-drag")
+            console.log("onTouchEvt::move >>ADDED AGAIN?!?")
+          }
+          //else{console.log("handleTouchMove:gooootIT",target.parentNode)}
+           
+          //console.log("ontouchmove:TITLE",target, e,target.parentNode) //this.targetDrop == empty as expected!
+        }else{
+          console.log("onTouchEvt::move >> ERROR?",target,this.touchedItem)//e,target.parentNode,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
+          //e.stopPropagation() //? >>def gotta NOT invoke this
+        }
+      }
+      //e.preventDefault()
+      return
+    }
+
+    if(e.type == "touchend"){  
+      //same stuff as handHold to check isViewingPast()...toReview**
+
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+      if(this.mobile){
+        console.log("onTouchEvtEnd::ISMOBILE",target,this.touchedItem) //this.allowDialog[item.id]
+      }
+
+      if(this.touchedItem){
+        if(target.parentNode.classList.contains("my-event-drag")){ //on top of same Evt....
+          console.log("onTouchEvtEnd: >>my-event-drag",target,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])
+          target.parentNode.classList.remove("my-event-drag")
+        }else{
+          let savedHas = this.touchedItem.parentNode.classList.contains("my-event-drag")
+          if(savedHas){//then remove it still
+            this.touchedItem.parentNode.classList.remove("my-event-drag")
+          }else{
+            console.log("onTouchEvtEnd:: EUH target NO my-event-drag?",savedHas, target,target.parentNode )
+          }
+        }
+      }else{
+        console.log("onTouchEvtEnd.....EUUH nothing?",this.touchedItem, target) //could happen?!?
+      }
+      
+      if(target.ariaLabel){
+        let s = getTimey(target.ariaLabel)
+        console.log("onTouchEvtEnd:", this.targetDrop.time, s.time)//,target,target.parentNode) //target.classList,target.ariaLabel,s
+
+        if(target.classList.contains("touchy-interval")){ //should see this with changes...
+          console.log("onTouchEvtEnd::ERROR?.....REMOVING touchy-interval")
+          target.classList.remove("touchy-interval")
+        }//else{ console.log("onTouchEvtEnd.....EUUH touchy-interval !?!",target.classList)}
+
+        this.targetDrop = s
+        this.doDroppy()
+      } else{
+        console.log("onTouchEvtEnd:ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
+        if(target.classList.contains("title")){
+          console.log("onTouchEvtEnd--has title!",this.targetDrop)
+          this.doDroppy()  //just drop on top to see--ToReview**
+        }
+      }
+      e.preventDefault()
+      e.stopPropagation() //needed?@? 
+
+      return
+    }
+
+    console.log("onTouchEvt::UNKNOWN",e) //shouldnt happen!!
+    
+  },
+  doDroppy(){ //some duplication with onDrop() --toFIX**
+    console.log("doDroppy:",this.targetDrop, this.draggedItem)
+    
+    if(this.targetDrop && this.draggedItem){
+      let isClose = this.tooClose(this.targetDrop, this.draggedItem.duration)
+      if(isClose){
+        console.log("onDrop::tooClose to>>",isClose) //could happen when dropping next to scheduled...
+        if(isClose === true){
+          this.doNotify("Dropping event TOO close to midnight!")
+          this.reset() //onDrop
+          return
+        }
+      }
+
+    let anyOverlap =  this.hasOverlappingEvent(this.draggedItem.id, this.targetDrop, this.draggedItem.duration)
+    
+    let euhOverlaps={}
+
+    let sizey = anyOverlap.length
+
+    if(sizey > 0) {
+      let i = 0
+      do {
+        if(anyOverlap[i].inConflict == anyOverlap[i].target){
+          console.log("EUUUH...self overlap?!?", anyOverlap[i]) 
+          break //continue? nope wouldnt move!
+        }
+        console.log("doDroppy...OVERLAP handlin::size="+sizey, anyOverlap[i].direction) //anyOverlap[i], //object
+       
+        //anyOverlap[i].direction == "surrounding" ? this.fixyOverlaps(anyOverlap, true) : this.recurChangeTime(anyOverlap[i].inConflict, draggy, targetTimey, true)
+        //check for 'surrounding' and handle overlap... otherwise should just push the evt(instead of giving options to resolve/choose!) using recurChangeTime()
+        //meh better to use fixyOverlaps as cancelling is clearer!
+
+          let toH = anyOverlap[i]
+          if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]}
+
+
+          if(i > 0){// where it's better to use the obj.id as the evt being added!--See fixMultiConflicts()
+            //keep in mind the obj.id is target
+            
+            console.log(i+" WOAH WOAH,doDroppy.. multiple overlaps with same target!",anyOverlap[i].target)//>could have multiple default that are overlapping yes!
+            //ummm this where using inConflict is wrong as evt CAN overlap with two others....
+            if (toH.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",toH.inConflict); delete euhOverlaps[toH.inConflict] }
+            if (anyOverlap[i-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",anyOverlap[i-1].inConflict); delete euhOverlaps[anyOverlap[i-1].inConflict] }
+
+            if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
+            
+            euhOverlaps[toH.target].unshift(anyOverlap[i-1]) //also add previous as makes sense..
+            euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
+          } 
+       
+      } while (++i < sizey)
+
+      console.log("doDroppy...OVERLAP with fixOverlap",euhOverlaps)
+      this.fixyOverlaps(euhOverlaps, true,'onDrop')  //end of loop for all conflicts!!!
+
+    } else {
+      //so no overlapp, just change dragged event time--ask User
+      this.changeEvtTime(this.draggedItem.id, this.targetDrop, false) //onDrop
+      console.log(`doDroppy with No overlap complete (${this.draggedItem.id}) to ${this.targetDrop.time}`)  //worked,
+    }
+
+      this.disableSaveSchedule = false
+      this.showReloadBtn = this.hasEventsForDate
+      this.showClearBtn = true 
+
+      this.reset() //doDroppy
+
+    } else {
+      console.log("doDroppy null ERROR?", this.targetDrop,this.draggedItem )
+      return
+    }
+  },
+  /*doMobileEnableScore(id){
+    //console.log("doMobileEnableScore", id)
+    let s = this.mobileEnableScore[id] && this.isDisabledScoreEdit[id]
+    console.log("doMobileEnableScore", id,this.mobileEnableScore[id] ,this.isDisabledScoreEdit[id], s)
+    return s //this.mobileEnableScore[id] && this.isDisabledScoreEdit[id] //doesnt update but gets invoked...smh
+  },*/
+  handleHold({ evt, ...newInfo }, item){ //mobile onScore edit...
+     
+    //could then invoke onDblClickEvent(e, event) AFTER figuring out which event..
+
+     //so q.dialog to confirm with user between remove || edit!!
+    
+    //this.isDisabledScoreEdit[item.id] = true //oldie that toggle is wrong >> !this.isDisabledScoreEdit[item.id]
+     
+    if(!this.mobile){
+      console.log("handleHold>>NOT MOBILE",evt)
+      //with below active, doesnt complete drop!
+      //evt.preventDefault()
+      //evt.stopPropagation()
+      return
+    }
+
+    console.log("handleHold>>", this.isViewingPast(), this.isDisabledScoreEdit[item.id],this.draggedItem,this.touchedItem)
+    
+    //IF past >>only edit
+    
+    //present >>if done > onScoreEditDialog ELSE invoke onDblClickEvent()
+
+    let target = document.elementFromPoint(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY)
+
+    let oldy = this.allowDialog[item.id]
+
+    this.allowDialog[item.id] = this.mobileEnableScore[item.id]  //TOCHECK if set in past***
+
+
+    //newInfo.touch == true for mobile
+    //console.log("handleHold>>", this.isDisabledScoreEdit[item.id],oldy, this.mobileEnableScore[item.id],this.allowDialog[item.id])
+      
+    // remove the 'my-event-drag' class as not a drag!!
+      if(target.classList.contains("title") && target.parentNode.classList.contains("my-event-drag")){
+        console.log("handleHold...REMOVING my-event-drag")
+        target.parentNode.classList.remove("my-event-drag")
+      }else{
+        console.log("handleHold--ERROR? no class>> ",evt,target, target.parentNode)
+      }
+
+      //window.location.reload() //so inelegant and resets everything SMDH
+
+      //evt.type that is !=touchstart would mean small move||end  before this fired...should do something? toSee 
+
+      //stopAndPrevent(evt) //for testing
+
+      //umm to allow for dialog to show maybe? >>nope negatively affect touch/drag
+      //evt.preventDefault()
+      //evt.stopPropagation()
+
+      //return true //true?
+      
+  },
     /*
     handleSwipe ({ evt, ...info }) {
       if (this.dragging === false) {
@@ -5061,7 +5212,7 @@ computed: {
       stopAndPrevent(evt) //from import { stop, prevent, stopAndPrevent } from 'quasar/src/utils/event'
     },
     */
-  },
+
   //problematic to activate this when evt has score enabled smh... workaround with onScoreBtn
   onDblClickEvent(e, event) {  
      //console.log("double click eh...", e, event)
@@ -5081,7 +5232,13 @@ computed: {
       return
     }
 
-    this.removeEvtInSchedule(event)
+    //setTimeout(() => {
+    //  this.removeEvtInSchedule(event)
+    //}, 0)
+
+    this.removeEvtInSchedule(event) 
+    
+    e.preventDefault() //to disable popupEdit...dont work smh event with using setTimeout above
   },
   onClickDate (data) {
     console.log('onClickDate', data)
@@ -5226,6 +5383,16 @@ computed: {
   },
 }
 })
+/* //for touch drag&drop and show dragged item...toReview as my-event class aint returned
+  .my-event::after
+    content: ''
+    background-color: #ccc
+    position: absolute
+    left: 0
+    width: 4px
+    height: 100%
+    cursor: ew-resize
+*/
 </script>
 <style lang="sass" scoped>
 .my-event
@@ -5236,7 +5403,8 @@ computed: {
   text-overflow: ellipsis
   overflow: hidden
   cursor: pointer
-.title
+
+.heady
   position: relative
   display: flex
   justify-content: center
@@ -5272,6 +5440,8 @@ computed: {
   width: 100%
   height: 40px
   border: none
+  text-align: center
+  justify-content: center
   border-radius: 0
   background-color: white
   margin: 10px 0
@@ -5292,4 +5462,32 @@ computed: {
 .liney
   white-space: pre-wrap
   word-break: break-all
+
+
+.my-event-drag
+  outline: 1px dashed #213
+  opacity: 0.7
+  cursor:move
+
+.touchy
+  border: 5px dashed #213
+  &:selection
+    border: 10px dashed #713
+    opacity: 0.3
+
+.touchy-item
+  background-color: #2196F3
+  color: #ADFF2F
+  &:selection
+    border: 10px dashed #713
+    opacity: 0.3
+
+.touchy-interval
+  background-color: #2196F3
+  outline: 5px dashed #008000
+  &:selection
+    border: 10px dotted rgba(0,500,200,.8)
+  &:hover
+    border: 5px dashed #008000
+
 </style>

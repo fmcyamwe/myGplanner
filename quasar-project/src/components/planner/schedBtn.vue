@@ -16,7 +16,7 @@
         align="evenly"
         elevated
         dense
-        nowrap
+        no-wrap
         @click="onClicked"
         no-caps
         >

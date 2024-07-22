@@ -1,12 +1,13 @@
 <template>
   <q-page padding>
     <div class="subcontent">
-      <q-splitter
+      <!--<q-splitter
       v-model="splitterModel"
       :limits="[50, 100]"
       style="height: 600px"
-    > <!--limits here mean that :before slot doesnt get less than 50%-->
-    <template v-slot:before>
+    > //limits here mean that :before slot doesnt get less than 50%-->
+
+    <!--<template v-slot:before> -->
       <div class="q-pa-md">
         <navigation-bar
           @today="onToday"
@@ -125,46 +126,50 @@
           </q-card>
         </div>
       </div>
-    </template>
+    <!--</template>
 
     <template v-slot:separator>
       <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
     </template>
 
-    <template v-slot:after>
-      <div class="q-pa-md">
-        <div v-if="treeGoals.length > 0" class="q-pa-md bg-grey-12" style="max-width: 400px">
-          <div class="row justify-center"> Goals & Goal Events </div>
-          <q-separator />
-          <!--<q-space/> have to be inside qComponent-->
-          <br>
-          <q-tree
-            :nodes="treeGoals"
-            node-key="label"
-            v-model:expanded="expanded"
-            no-connectors
-            dense
-            accordion
-            >
+    <template v-slot:after> -->
+      <q-toggle v-model="showTree" label="Tree Legend" color="teal" class="q-pa-md" /> <!--align="center"-->
+
+      <q-slide-transition>
+        <div v-if="showTree" class="q-pa-md">
+          <div v-if="treeGoals.length > 0" class="q-pa-md bg-grey-12" style="max-width: 400px">
+            <div class="row justify-center"> Goals & Goal Events </div>
+            <q-separator />
+            <!--<q-space/> have to be inside qComponent-->
+            <br>
+            <q-tree
+              :nodes="treeGoals"
+              node-key="label"
+              v-model:expanded="expanded"
+              no-connectors
+              dense
+              accordion
+              >
       
-            <!--class="row items-center" :style="titleStyles(prop.node)"-->
-            <template v-slot:default-header="prop">
+              <!--class="row items-center" :style="titleStyles(prop.node)"-->
+              <template v-slot:default-header="prop">
                 <div :class="classyColor(prop.node)">
                   <q-icon v-if="!prop.node.isChildren" :name="prop.node.icon || prop.expanded ? 'expand_less' : 'expand_more'" size="28px" class="q-mr-sm" />
                   <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
                 </div>
               </template>
-            <template v-slot:default-body="prop">
+              <template v-slot:default-body="prop">
                 <div v-if="prop.node.isChildren">
                   <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
                 </div>
                 <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
               </template>
             </q-tree>
+          </div>
         </div>
-      </div>
-    </template>
-    </q-splitter>
+      </q-slide-transition>
+    <!--</template>
+    </q-splitter> -->
   </div>
 </q-page>
 </template>
@@ -174,7 +179,7 @@ import {
   today,
   isBetweenDates,
   parsed,
-  padNumber,
+  //padNumber,
   getMonthNames
 } from '@quasar/quasar-ui-qcalendar/src/QCalendarTask.js'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
@@ -206,8 +211,8 @@ export default defineComponent({
       $q : useQuasar(), //umm $?
       treeGoals:[],
       expanded:[], //to hold expanding parentGoals...
-
-      splitterModel: ref(70) // start at 70%
+      showTree:false,
+      //splitterModel: ref(70) // start at 70% redundant
     }
   },
   computed: {

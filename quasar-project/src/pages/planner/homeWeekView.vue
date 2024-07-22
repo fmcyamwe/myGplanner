@@ -1,12 +1,12 @@
 <template>
     <q-page> <!-- class="flex flex-center"-->
-      <q-splitter
+      <!--<q-splitter
       v-model="splitterModel"
       :limits="[50, 100]"
       style="height: 600px"
-    > <!--limits here mean that :before slot doesnt get less than 50%-->
+    >  //limits here mean that :before slot doesnt get less than 50%-->
 
-    <template v-slot:before>
+    <!--<template v-slot:before> -->
       <div class="q-pa-md">
         <navigation-bar
             @today="onToday"
@@ -92,57 +92,19 @@
                 </q-calendar>
             </div>
         </div>
-        <!--<br>
-        <div class="row justify-center items-center">
-            <q-btn
-               class="q-ma-sm"
-               color="white"
-               text-color="blue"
-               unelevated
-               to="/summary"
-               label="Summary"
-               no-caps
-            />
-            <q-btn
-               class="q-ma-sm"
-               color="white"
-               text-color="blue"
-               unelevated
-               to="/dayCalendar"
-               label="Daily Calendar"
-               no-caps
-            />
-          
-            <q-btn
-               class="q-ma-sm"
-               color="white"
-               text-color="blue"
-               unelevated
-               to="/viewGoals"
-               label="Goals"
-               no-caps
-            />
-
-            //<q-btn
-            class="q-ma-sm q-mr-lg"
-            color="white"
-            text-color="red"
-            unelevated
-            to="/draggy"
-            label="Draggy"
-            no-caps
-            /> 
-        </div> -->
       </div>
-    </template>
+    <!--</template>-->
 
-    <template v-slot:separator>
+    <!--<template v-slot:separator>
       <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
-    </template>
+    </template> -->
 
-    <template v-slot:after>
-      <div class="q-pa-md">
-          <div v-if="treeGoals.length > 0" class="q-pa-md bg-grey-12" style="max-width: 400px">
+      <q-toggle v-model="showTree" label="Tree Legend" color="teal" class="q-pa-md" /> <!--align="center"-->
+
+      <q-slide-transition>
+        <div v-if="showTree" class="q-pa-md"> <!--style="width: 1000px" with q-fab OR use q-scroll-area? -->
+
+          <div v-if="treeGoals.length > 0" class="q-pa-md bg-grey-12" style="max-width: 400px"> <!-- class="row justify-center" -->
             <div class="row justify-center"> Goals & Goal Events </div>
             <q-separator />
             <!--<q-space/> have to be inside qComponent-->
@@ -171,9 +133,35 @@
                 </template>
               </q-tree>
           </div>
-      </div>
-    </template>
-    </q-splitter>
+
+          <div v-else class="column justify-center items-center">
+            <q-card>
+              1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
+            </q-card>
+            <q-separator />
+            <q-card>
+              2. Go to Schedule to see a daily schedule. Drag scheduled events to new timeslots or click in calendar to add an event.
+            </q-card>
+            <q-separator />
+            <q-card>
+              3. Reload a saved daily schedule or defaults or choose minimal score events to schedule. Fix any scheduling conflicts.
+            </q-card>
+            <q-separator />
+            <q-card>
+              4. Save the daily schedule (dont forget to update their score as needed!)
+            </q-card>
+            <q-separator />
+            <q-card>
+              5. Check out the summary of all goals here!
+            </q-card>
+          </div>
+
+        </div>
+
+      </q-slide-transition>
+
+    <!--</template>
+    </q-splitter> -->
   </q-page>
 </template>
 <script>
@@ -185,7 +173,7 @@ import {
   parseTimestamp,
   isBetweenDates,
   parsed,
-  parseDate,
+  //parseDate,
   parseTime
 } from '@quasar/quasar-ui-qcalendar/src/index.js'
 import NavigationBar from '../../components/NavigationBar.vue'
@@ -221,7 +209,8 @@ export default defineComponent({
       mostEvts:5, //huh just to set the interval-height for proper spacing..default or things are squished badly when empty
       treeGoals:ref([]), //umm ref does anything?!?
       expanded:ref([]), //to hold expanding parentGoals...
-      splitterModel: ref(70) // start at 70%
+      showTree:ref(false)
+      //splitterModel: ref(70) // start at 70% >>redundant
     }
   },
   beforeMount() {

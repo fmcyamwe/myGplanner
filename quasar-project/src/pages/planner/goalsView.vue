@@ -1,20 +1,29 @@
 <template>
 <main class="page page--table q-pa-md" > <!--no need for </q-page> ? toSee-->
-<q-pull-to-refresh @refresh="refresh">
-    <q-splitter
-    v-model="splitterModel"
-    :limits="[30, 100]"
-    >
-        <template v-slot:before >
-           <div style="max-width: 400px">
-                <q-form @submit="onSubmit" class="q-gutter-md form" >
+    <q-pull-to-refresh @refresh="refresh">
+        <div class="q-gutter-md" style="max-width: 600px"> <!--style="max-width: 400px"  class="bg-grey-2 text-grey-7"-->
+            <q-tabs
+                v-model="tab"
+                dense
+                active-color="primary"
+                indicator-color="purple"
+                align="justify"
+            >
+                <q-tab name="GList" label="All Goals" />
+                <q-tab name="Goal" label="Add/Update" />
+                <q-tab name="Admin" label="Admin Stuff" :disable="!enableAdmin"/>
+            </q-tabs>
+
+              <q-tab-panels v-model="tab" animated > <!--class="bg-primary text-white"-->
+                <q-tab-panel name="Goal">
+                    <q-form @submit="onSubmit" class="q-gutter-md form" >
                         <div class="q-gutter-sm">
-                            <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
-                            <!--add space in here --todo***-->
-                            <q-radio v-model="goalType" @click="softReset" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
+                            <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
+                            
+                            <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
                         </div>
 
-                        <q-input class="q-ml-md"
+                        <q-input class="q-gutter-md"
                             filled
                             v-model="goalTitle"
                             label="A Goal"
@@ -24,13 +33,13 @@
                         />
 
                         <div v-if="showSubG" class="q-gutter-md">
-                            <q-select class="q-pl-md"
+                            <q-select
                             v-model="pGoal"
                             :options="mainGoals"
                             option-value="id"
                             option-label="title"
                             label="Parent Goal"
-                            popupContentClass="q-gutter-md"
+                            popup-content-class="q-px-md"
                             />
                         </div> 
 
@@ -40,12 +49,12 @@
                             label="Description/Details"
                         />
                         <div v-if="!showSubG" class="q-gutter-md">
-                            <q-select class="q-pl-md"
+                            <q-select
                             v-model="bgcolor"
                             :options="avColors"
                             :color="bgcolor"
                             label="Color"
-                            popupContentClass="q-gutter-md"
+                            popup-content-class="q-px-md"
                             />
                             <!--popupContentStyle="justify-content: center"
                             /> -->
@@ -69,8 +78,10 @@
                             label="Score" 
                             hint="format: #on#"
                             lazy-rules
-                            :rules="[ val => val && val.includes('on') && val.length > 3 || 'hint, hint!']"
-                            /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview -->
+                            :rules="[ val => val && val.match(/^\don\d$/g) && val.length > 3 || 'hint, hint!']"
+                            /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview 
+                                use function with regex match /^\don\d$/g instead? 
+                            -->
 
                             <br>
                             <q-select
@@ -141,7 +152,7 @@
                             </q-toggle>
                             <br>
 
-                            <q-toggle v-if="duration<30"
+                            <q-toggle v-if="duration < 30"
                             v-model="isAlternative"
                             label="As Alternative"
                             left-label
@@ -158,220 +169,236 @@
                         <q-btn :label="buttonLabel" type="submit" color="primary" class="q-ml-sm" align="between" />
                         <!--<q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />  label="Submit"-->
                         </div>
-                </q-form>
-            </div>
-        </template>
-            <!--<draggable v-model="mainGoals" draggable=".item" item-key="id">
-                <template #item="{element}">
-                    <div class="item">
-                    {{element.title}} - {{element.details}} - {{element.priority}} -> {{element.bgcolor}}
+                    </q-form>
+                </q-tab-panel>
+
+                <q-tab-panel name="GList">
+                    <q-list bordered>
+                        <q-item>
+                            <q-item-section>
+                            <q-item-label overline class="q-mx-lg q-px-md row justify-center" style="max-width:100%;font-weight: bolder;">Swipe to Edit or Delete Goal</q-item-label>
+                            </q-item-section>
+                        </q-item>
+                    
+                        <q-separator spaced />
+                    
+                        <transition-group name="dalist">
+                            <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
+                            v-model="expanded[goal.id]"
+                            :key="goal.id"
+                            :label="goal.title"
+                            :caption="goal.details"
+                            popup
+                            expandSeparator
+                            :header-class= "classyHeader(goal?.bgcolor)"
+                            clickable>
+                            <!--<template v-slot:header></template> -->
+                        
+                                <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
+                                    <!-- bon touchswipe seem to work except that doesnt show the sliding animation...toSee if should use***
+        
+                                    <q-card-section v-touch-swipe.mouse="(e) => onSwipeAction(e,subGoal.id, goal.id)"
+                                    class="custom-area cursor-pointer bg-primary text-white shadow-2 relative-position row flex-center">
+                                       // {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}  class="q-my-sm"  color="red"//
+                                       <div class="q-mx-sm"> {{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}})</div>
+                                       <div class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}} </div>
+                                    </q-card-section> -->
+        
+                                    <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
+                                        <template v-slot:left>
+                                        Edit
+                                        </template>
+                                        <template v-slot:right>
+                                        Delete
+                                        </template>
+        
+                                        <q-item>
+                                            <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
+                                            <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
+                                        </q-item>
+                                    </q-slide-item>
+                                    <q-separator :color="goal?.bgcolor?.toLocaleLowerCase()"/>
+                                </q-card>
+        
+                                <q-card v-if="!hasSubG(goal.id)">
+                                    <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
+                                    OR
+                                    <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
+                                </q-card>
+                            </q-expansion-item>
+                        </transition-group>
+                    </q-list>
+
+                    <br>
+                    
+                    <div v-if="Object.keys(allMGoals).length <= 0" class="column justify-center items-center">
+                        <q-card>
+                        1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        2. Go to Schedule to see a daily schedule. Drag scheduled events to new timeslots or click in calendar to add an event.
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        3. Reload a saved daily schedule or defaults or choose minimal score events to schedule. Fix any scheduling conflicts.
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        4. Save the daily schedule (dont forget to update their score as needed!)
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        5. Check out the summary of all goals here!
+                        </q-card>
                     </div>
-                </template>
-                <template #footer>
-                <button @click="addPeople">Add</button>
-                </template>
-            </draggable> -->
 
-            <!-- should use component template instead--todo**-->
-        <br>
+                    <div class="q-pa-lg" align="center">
+                        *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
+                    </div>
 
-        <template v-slot:separator>
-            <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
-        </template>
+                    <q-toggle v-model="enableAdmin" label="Enable Admin" color="teal" class="q-pa-sm" align="center"/>
+                </q-tab-panel>
 
-        <template v-slot:after>
-            <q-list bordered> <!--v-mutation="reload" but triggers too much...{howThis} update!! >>oldie that dont update >>mainGoals && getMainGoals()-->
-                <q-item>
-                    <q-item-section>
-                    <q-item-label overline class="q-mx-lg q-px-md row justify-center" style="max-width:100%;font-weight: bolder;">Swipe to Edit or Delete Goal</q-item-label>
-                    </q-item-section>
-                </q-item>
+                <q-tab-panel name="Admin">
+                    <q-slide-transition> <!--not sure still needed...ToRemove prolly-->
+                        <div v-if="enableAdmin">
+                            <div class="q-pa-md" v-if="showGoalsArea">
+                                <q-btn v-if="isImporting && mainGJson && mainGJson !='' && subGJson && subGJson !=''" label="Reset" push color="white" text-color="primary" @click="doPrint" class="q-px-md" /> <!-- oldie >> "() => { resetBoxes(); step = 1 }"-->
+                            
+                                <q-stepper
+                                    v-model="step"
+                                    header-nav
+                                    ref="stepper"
+                                    color="primary"
+                                    animated
+                                >
+                                    <q-step
+                                    :name="1"
+                                    title="Main Goals"
+                                    icon="settings"
+                                    :done="step > 1"
+                                    :header-nav="step > 1"
+                                    :error="step > 1 && mainGJson == void 0"
+                                    > <!-- :error="step > 1 " && mainGJson == null ... == void 0 -->
+                                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
+                                            <q-input
+                                            v-model="mainGJson"
+                                            filled
+                                            type="textarea"
+                                            autogrow
+                                            /> <!--autogrow? yup better-->
+                                        </div>
+                                        <div v-else> 
+                                            {{ mainGJson }}
+                                        </div>
+                                    <q-stepper-navigation>
+                                        <q-btn @click="() => { done1 = true; step = 2 }" noWrap align="around" color="primary" label="SubGoals->"/>
+                                    </q-stepper-navigation>
+                                    </q-step>
+                            
+                                    <q-step
+                                    :name="2"
+                                    title="SubGoals"
+                                    icon="create_new_folder"
+                                    :done="step > 2"
+                                    :header-nav="step > 2"
+                                    :error="step > 2 && subGJson == void 0"
+                                    >
+                                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
+                                            <q-input
+                                            v-model="subGJson"
+                                            filled
+                                            type="textarea"
+                                            autogrow
+                                            />
+                                        </div>
+                                        <div v-else> 
+                                            {{ subGJson }}
+                                        </div>
+                                    <q-stepper-navigation>
+                                        <q-btn @click="() => { done2 = true; step = 3 }" noWrap align="around" color="primary" label="AllScheduled->" />
+                                        <q-btn flat @click="step = 1" noWrap align="around" color="primary" label="Back" class="q-ml-sm" />
+                                    </q-stepper-navigation>
+                                    </q-step>
+                            
+                                    <q-step
+                                    :name="3"
+                                    title="All Dates"
+                                    caption="Optional"
+                                    icon="add_comment"
+                                    :header-nav="step > 3"
+                                    >
+                                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
+                                            <q-input
+                                            v-model="allJson"
+                                            filled
+                                            type="textarea"
+                                            autogrow
+                                            />
+                                        </div>
+                                        <div v-else> 
+                                            {{ allJson }}
+                                        </div>
+                                    <q-stepper-navigation>
+                                        <q-btn color="primary" @click="() => { done3 = true; doImport() }" :label="AdminLabel" noWrap align="around"/> <!-- oldie >> @click="done3 = true"-->
+                                        <q-btn flat @click="step = 2" noWrap align="around" color="primary" label="Back" class="q-ml-sm" />
+                                    </q-stepper-navigation>
+                                    </q-step>
+                                </q-stepper>
+                            </div>
+                            <div class="row justify-center q-pa-md">
+                                <q-btn
+                                class="q-mt-md"
+                                color="white"
+                                text-color="blue"
+                                elevated
+                                label="Print"
+                                no-caps
+                                align="around"
+                                @click="doPrint"
+                                />
+                                <q-space/>
+                                <q-btn
+                                class="q-mt-md"
+                                color="white"
+                                text-color="red"
+                                elevated
+                                align="around"
+                                no-wrap
+                                no-caps
+                                :label="resetLabel()"
+                                @click="doReset"
+                                /><!--"Reset GoalType"...weird that have to use parenthese() for label...-->
             
-                <q-separator spaced />
+                                <q-space/>
             
-                <transition-group name="dalist">
-                    <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
-                    v-model="expanded[goal.id]"
-                    :key="goal.id"
-                    :label="goal.title"
-                    :caption="goal.details"
-                    popup
-                    expandSeparator
-                    :header-class= "classyHeader(goal?.bgcolor)"
-                    clickable>
-                    <!--<template v-slot:header></template> -->
+                                <q-btn v-if="!isImporting"
+                                class="q-mt-md"
+                                color="white"
+                                text-color="red"
+                                elevated
+                                align="around"
+                                label="Import"
+                                no-caps
+                                @click="() => {showGoalsArea = true ; isImporting = true; step = 1}"
+                                /><!--huh above works! -->
+                            </div>
+                        </div>
+                    </q-slide-transition>
+                </q-tab-panel>
                 
-                        <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
-                            <!-- bon touchswipe seem to work except that doesnt show the sliding animation...toSee if should use***
-
-                            <q-card-section v-touch-swipe.mouse="(e) => onSwipeAction(e,subGoal.id, goal.id)"
-                            class="custom-area cursor-pointer bg-primary text-white shadow-2 relative-position row flex-center">
-                               // {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}  class="q-my-sm"  color="red"//
-                               <div class="q-mx-sm"> {{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}})</div>
-                               <div class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}} </div>
-                            </q-card-section> -->
-
-                            <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
-                                <template v-slot:left>
-                                Edit
-                                </template>
-                                <template v-slot:right>
-                                Delete
-                                </template>
-
-                                <q-item>
-                                    <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
-                                    <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
-                                </q-item>
-                            </q-slide-item>
-                            <q-separator :color="goal?.bgcolor?.toLocaleLowerCase()"/>
-                        </q-card>
-
-                        <q-card v-if="!hasSubG(goal.id)">
-                            <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
-                            OR
-                            <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
-                        </q-card>
-                    </q-expansion-item>
-            </transition-group>
-            </q-list>
-            <br>
-        
-        <q-checkbox dense v-model="Adminy" label="Admin Stuff" color="teal" class="q-pa-sm" />
-        
-        <div v-if="Adminy">
-            <div class="q-pa-md" v-if="showGoalsArea">
-                <q-btn v-if="isImporting && mainGJson && mainGJson !='' && subGJson && subGJson !=''" label="Reset" push color="white" text-color="primary" @click="doPrint" class="q-px-md" /> <!-- oldie >> "() => { resetBoxes(); step = 1 }"-->
-              
-                  <q-stepper
-                    v-model="step"
-                    header-nav
-                    ref="stepper"
-                    color="primary"
-                    animated
-                  >
-                    <q-step
-                      :name="1"
-                      title="Main Goals"
-                      icon="settings"
-                      :done="step > 1"
-                      :header-nav="step > 1"
-                      :error="step > 1 && mainGJson == void 0"
-                    > <!-- :error="step > 1 " && mainGJson == null ... == void 0 -->
-                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
-                            <q-input
-                            v-model="mainGJson"
-                            filled
-                            type="textarea"
-                            autogrow
-                            /> <!--autogrow? yup better-->
-                        </div>
-                        <div v-else> 
-                            {{ mainGJson }}
-                        </div>
-                     <q-stepper-navigation>
-                        <q-btn @click="() => { done1 = true; step = 2 }" noWrap align="around" color="primary" label="SubGoals->"/>
-                     </q-stepper-navigation>
-                    </q-step>
-              
-                    <q-step
-                      :name="2"
-                      title="SubGoals"
-                      icon="create_new_folder"
-                      :done="step > 2"
-                      :header-nav="step > 2"
-                      :error="step > 2 && subGJson == void 0"
-                    >
-                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
-                            <q-input
-                            v-model="subGJson"
-                            filled
-                            type="textarea"
-                            autogrow
-                            />
-                        </div>
-                        <div v-else> 
-                            {{ subGJson }}
-                        </div>
-                     <q-stepper-navigation>
-                        <q-btn @click="() => { done2 = true; step = 3 }" noWrap align="around" color="primary" label="AllScheduled->" />
-                        <q-btn flat @click="step = 1" noWrap align="around" color="primary" label="Back" class="q-ml-sm" />
-                     </q-stepper-navigation>
-                    </q-step>
-              
-                    <q-step
-                      :name="3"
-                      title="All Dates"
-                      caption="Optional"
-                      icon="add_comment"
-                      :header-nav="step > 3"
-                    >
-                        <div v-if="isImporting" class="q-pa-md"> <!--  style="max-width: 300px"-->
-                            <q-input
-                            v-model="allJson"
-                            filled
-                            type="textarea"
-                            autogrow
-                            />
-                        </div>
-                        <div v-else> 
-                            {{ allJson }}
-                        </div>
-                      <q-stepper-navigation>
-                        <q-btn color="primary" @click="() => { done3 = true; doImport() }" :label="AdminLabel" noWrap align="around"/> <!-- oldie >> @click="done3 = true"-->
-                        <q-btn flat @click="step = 2" noWrap align="around" color="primary" label="Back" class="q-ml-sm" />
-                      </q-stepper-navigation>
-                    </q-step>
-                  </q-stepper>
+              </q-tab-panels>
+   
             </div>
-            <div class="row justify-center q-pa-md">
-                <q-btn
-                class="q-mt-md"
-                color="white"
-                text-color="blue"
-                elevated
-                label="Print"
-                no-caps
-                align="around"
-                @click="doPrint"
-                />
-                <q-space/>
-                <q-btn
-                class="q-mt-md"
-                color="white"
-                text-color="red"
-                elevated
-                align="around"
-                no-wrap
-                label="Reset GoalType"
-                no-caps
-                @click="doReset"
-                />
-                <q-space/>
-                <q-btn v-if="!isImporting"
-                class="q-mt-md"
-                color="white"
-                text-color="red"
-                elevated
-                align="around"
-                label="Import"
-                no-caps
-                @click="() => {showGoalsArea = true ; isImporting = true; step = 1}"
-                /><!--huh above works! -->
-            </div>
-        </div>
-        <div v-else align="center">
-            *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
-        </div>
-        </template>
-    </q-splitter>
+        
     </q-pull-to-refresh>
     
 </main>
 </template>
 <script>
 //import draggable from 'vuedraggable'
-import { computed, ref, onMounted, onBeforeUnmount, watchEffect } from 'vue'  //nextTick
+import { computed, ref, onBeforeMount, onBeforeUnmount, watchEffect } from 'vue'  //nextTick, onMounted
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
 import { pGColors } from '../util/utiFunc'
@@ -383,8 +410,8 @@ export default {
     // },
     name: 'goalsPage',
     setup () {
-        const splitterModel = ref(40) //at 40%
-        const Adminy = ref(false)
+        //const splitterModel = ref(40) //at 40%
+        const enableAdmin = ref(false)
         const showGoalsArea = ref(false)
         const isImporting = ref(false)
         const step = ref(1)  //stepper import/export
@@ -417,9 +444,11 @@ export default {
 
         const buttonLabel = ref('Submit')
 
-        const treeGoals = ref([])
-        const expandedNodes = ref([]) //tree nodes expanded...
-        const selected = ref(null) //for edit testing...
+        //const treeGoals = ref([])
+        //const expandedNodes = ref([]) //tree nodes expanded...
+        //const selected = ref(null) //for edit testing...
+
+        const tab = ref('GList') //start with all Goals tab //Goal
         
         //const red = ref('arrow')
         //----
@@ -427,11 +456,8 @@ export default {
         const store = useGoalStore()
 
         //const timer = ref(null)
-        let timer 
+        let timer  //redundant...
         let updatingSubG = null //to keep track of goalID when editing
-
-        //const hRefs = computed(() => store.headerRefs) //tosee if works
-        //const headers = computed(() => store.getHeaders) //ditto as above
 
         const allMGoals = computed(() => mainGoals.value) //oldie store.getMainGoals >> doesnt updates
 
@@ -443,6 +469,7 @@ export default {
             // tracks A0 and A1
             //A2.value = A0.value + A1.value
             howThis.value = mainGoals.value  //does track changes but redundant with `allMGoals` above
+            
         })
 
         /*const subbyGoals = computed((id) => {
@@ -454,13 +481,33 @@ export default {
         //const addMainG = () => store.addMainGoal() // use action..also that ';' be problem? nope
         //const addSubG = () => store.addSubGoal()
 
-        onMounted(() => {
+        onBeforeMount(() => { //was onMounted
+            resetGsAndColors()
+
+            //constructTree() //redundant as not used...
+
+            //console.log(`the component is now mounted.`,currentColors, avColors.value)
+        })
+
+        onBeforeUnmount(() => {
+            clearTimeout(timer)  //or with .value? >>no need when seclaring with 'let' 
+        })
+
+        function resetLabel() {
+            return goalType.value === 'line' ? "Reset ALL" : `Reset ${goalType.value}`
+        }
+
+        //function constructTree(){
+        //    treeGoals.value = store.fetchGoalsTree()    
+        //}
+
+        function resetGsAndColors(){
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
             let currentColors = []
             if(mainGoals.value){
                 mainGoals.value.forEach(item => {
-                    expanded[item.id] = false
+                    expanded[item.id] = expanded[item.id] || false  //if was true already...toTest
 
                     currentColors.push(item.bgcolor)
                 })
@@ -468,14 +515,8 @@ export default {
             let c = pGColors()
             
             avColors.value = c.filter(item => !currentColors.find(o => o == item)) //filter out already taken colors...
-
-            treeGoals.value = store.fetchGoalsTree() //no need mais bon!
-            //console.log(`the component is now mounted.`,currentColors, avColors.value)
-        })
-
-        onBeforeUnmount(() => {
-            clearTimeout(timer)  //or with .value? >>no need when seclaring with 'let' 
-        })
+            
+        }
 
         function doPrint () {
             //JSON.stringify(store.goalList,null,1)  >>works!
@@ -503,12 +544,8 @@ export default {
             if (isImporting.value){
                 if(!subGJson.value || subGJson.value == '' || !mainGJson.value || mainGJson.value == ''){
                     console.log("ERROR::importing empty!")
-                    $q.notify({
-                        color: 'negative',
-                        position: 'top',
-                        message: 'Something is empty :(',
-                        icon: 'report_problem'
-                    })
+                    errorNotify(`Something is empty :(`)
+       
                     return
                 }
 
@@ -543,12 +580,7 @@ export default {
                     } else{
                         console.log("ERROR:: MainG dataError!",e)
                     }
-                    $q.notify({
-                        color: 'negative',
-                        position: 'top',
-                        message: 'Error with Parent goals :(...check logs',
-                        icon: 'report_problem'
-                    })
+                    errorNotify(`Error with Parent goals :(...check logs`)
                     
                     return
                 }
@@ -579,14 +611,11 @@ export default {
                         console.log("ERROR:: subG SyntaxError!",e)
                     } else{
                         console.log("ERROR:: subGoals dataError!",e)
-                       //q.notify 
+                       
                     }
-                    $q.notify({
-                        color: 'negative',
-                        position: 'top',
-                        message: 'Error with Sub goals :(...check logs',
-                        icon: 'report_problem'
-                    })
+
+                    errorNotify(`Error with Sub goals :(...check logs`)
+
 
                     return
                 }
@@ -600,12 +629,8 @@ export default {
                         if (e instanceof SyntaxError){
                             console.log("ERROR:: allS SyntaxError!",e)
                         }
-                        $q.notify({
-                            color: 'negative',
-                            position: 'top',
-                            message: 'Error parsing AllEvents...skipping!',
-                            icon: 'report_problem'
-                        })
+
+                        errorNotify(`Error parsing AllEvents...skipping!`)
                     }
                 }
 
@@ -640,26 +665,29 @@ export default {
                 $q.dialog({
                 title: 'Warning',
                 cancel: true,
-                message: `Reset all Parent Goals?`
+                message: `Reset all Parent Goals? remove subGoals as well!`
                 }).onOk(() => {
                     //store.removeMaingoal(id, false)
-                    store.resetMain() 
-                    //should Also remove the subgoals!!---todo**
+                    store.resetMain()
+                    store.resetSub()//should Also remove the subgoals!!---makes sense
+                    errorNotify(`Reset All Goals`,'top','thumb_up','positive')
                 }).onCancel(() => {
                     console.log('Cancelled!!')
-                    //expanded.value[id] = false
                 })
 
             } else if(goalType.value === 'sub') {
                 store.resetSub()
+                errorNotify(`Reset Sub Goals`,'top','thumb_up','positive')
             } else {
                 $q.dialog({
                 title: 'Warning',
                 cancel: true,
                 message: `Reset all goals?`
                 }).onOk(() => {
-                    console.log("Resetting all goals")
+                    //console.log("Resetting all goals")
                     store.resetAll()
+                    errorNotify(`Reset ALL`,'top','thumb_up','positive')
+                    //should also reload page ***TODO***
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                 })
@@ -674,12 +702,8 @@ export default {
                 editAction()
             } else { //adding new goal
                 if (goalTitle.value.trim() == ''){
-                    $q.notify({
-                        color: 'negative',
-                        position: 'top',
-                        message: 'Cannot have an empty goal!',
-                        icon: 'report_problem'
-                    })
+                    errorNotify(`Cannot have an empty goal!`)
+                    
                     return
                 }
 
@@ -690,14 +714,12 @@ export default {
                         let pId = pGoal.value
                         store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value,moods.value)
                         console.log("Subgoal Goal added for parent:",pId.title)
+
+                        expanded.value[pId.id] = true //to see in tab
                     }else{//subG have to have a parentG
-                        $q.notify({
-                            color: 'negative',
-                            position: 'top',
-                            message: 'A sub goal must have a parent goal',
-                            icon: 'report_problem'
-                        })
-                        softReset() //soft reset valid here?!? toSee
+                        errorNotify(`A sub goal must have a parent goal`)
+
+                        softReset() //soft reset...prolly?
                         return
                     }
                 }
@@ -737,7 +759,7 @@ export default {
             return map  
         }
 
-        function finalize(reset) {
+        function finalize(reset) {  //redundant--toRemove**
             timer = setTimeout(() => {
                 reset()
             }, 0)
@@ -769,7 +791,7 @@ export default {
 
         function onLeftEdit ({reset},subId, pID) {
 
-            //console.log(`Editing subgoal ${subId} from ${pID}...`)
+            //console.log(`Editing subgoal ${subId} from ${pID}...`,reset)
 
             let subby = subGoals.value.find(element => element.id == subId) //filter returns an array!! >>better to use find!
             let pGoally = mainGoals.value.find(element => element.id == pID)
@@ -791,20 +813,18 @@ export default {
                 isAlternative.value = subby.isAlternative
                 moods.value = subby.jeSuis //? moods : []  //to not add nulls...
 
+                tab.value = "Goal"  //nav to Goal tab
+
                 updatingSubG = subId  //keep track of this for submit
 
             }else {
-                $q.notify({
-                    color: 'negative',
-                    position: 'top',
-                    message: `ERROR during edit action for ${subId} and ${pID}...not found!`,
-                    icon: 'report_problem'
-                })
+                errorNotify(`ERROR during edit action for ${subId} and ${pID}...not found!`)
             
                 console.log(`ERROR could not find all info for ${subId} and ${pID}`)
             }
 
-            finalize(reset) //umm use this or below? prolly both really
+            //finalize(reset) //umm use this or below? >>error out after change to tabs
+
             expanded.value[pID] = true
         }
         
@@ -819,6 +839,8 @@ export default {
                 message: `Delete Parent Goal "${title}" ?`  //also check & remove past scheduled evts?!? tbd*** 
                 }).onOk(() => {
                     store.removeMaingoal(id, false)
+                    resetGsAndColors() //bof doesnt update still smh
+                    
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                     expanded.value[id] = false
@@ -843,12 +865,7 @@ export default {
                 
                     updatingSubG = id  //for submit...redundant though...
                 }else {
-                    $q.notify({
-                        color: 'negative',
-                        position: 'top',
-                        message: `ERROR during edit action for Goal: '${title}'...not found!`,
-                        icon: 'report_problem'
-                    })
+                    errorNotify(`ERROR during edit action for Goal: '${title}'...not found!`)
 
                     console.log(`ERROR No info for ${id} '${title}' to edit!!`)
                 }
@@ -862,12 +879,7 @@ export default {
             if(updatingSubG){
                 store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value,moods.value)
             } else{
-                $q.notify({
-                    color: 'negative',
-                    position: 'top',
-                    message: `ERROR: No subgoalId to edit found!`,
-                    icon: 'report_problem'
-                })
+                errorNotify(`ERROR: No subgoalId to edit found!`)
             }
         }
 
@@ -891,11 +903,11 @@ export default {
             //hardReset() //reset variables ...done at call site--toMonitor
         }
         
-        function refresh(done) {  //test to drag for refresh--toREview***
+        function refresh(done) {  //drag for refresh
             setTimeout(() => {
                 reload()
-            console.log('Refreshing...')
-            done()
+                console.log('Refreshing...')
+                done()
             }, 1000)
         }
 
@@ -904,10 +916,11 @@ export default {
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
 
-            treeGoals.value = store.fetchGoalsTree()
+            //treeGoals.value = store.fetchGoalsTree() //redundant
+            
             //window.location.reload() //so inelegant
 
-            console.log("reloadin...", subGoals.value,mainGoals.value,treeGoals.value)
+            //console.log("reloadin...", subGoals.value,mainGoals.value,treeGoals.value)
             
         }
 
@@ -930,9 +943,9 @@ export default {
         function hardReset(){
             goalTitle.value = ' ' //subvert the rule check with space tho and add an extra space in beginnin..toReview***
             priority.value = 3
-            //score.value = ''
+            score.value = ''
             time.value = ''
-            duration.value = 5
+            duration.value = 15
             //goalType.value = 'line' //huh makes it unselectable smh
             pGoal.value = null
             details.value = ''
@@ -945,13 +958,20 @@ export default {
 
             updatingSubG = null
 
+            resetGsAndColors()
+            //constructTree() //redundant
+
+            tab.value = "GList"  //nav to GList tab
+
             console.log("hardReset...")
         }
+
         //redundant--toRemove**
-        function classyColor(proppy){//bg-{color} or text-{color} in class
+        //function classyColor(proppy){//bg-{color} or text-{color} in class
             //if (proppy.label == this.selected){console.log("classyColor for selected..."); return 'text-white bg-red'} //works but not needed!
-            return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
-        }
+        //    return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
+        //}
+
         function classyHeader(att){
             if(att){
                 return 'text-white bg-'+att.toLocaleLowerCase()
@@ -974,9 +994,18 @@ export default {
 
         }
 
+        function errorNotify(mess,position='top',icon=null,color='negative'){
+            $q.notify({
+                color: color, //'negative',
+                position: position,
+                message: mess,
+                icon:  icon == null ? 'report_problem' : icon
+            })
+        }
+
         return {
-            splitterModel,
-            Adminy,step,mainGJson,subGJson,allJson, isImporting,AdminLabel,showGoalsArea,
+            //splitterModel,
+            enableAdmin,step,mainGJson,subGJson,allJson, isImporting,AdminLabel,showGoalsArea,
             showSubG,
             mainGoals,
             subGoals,
@@ -984,13 +1013,13 @@ export default {
             //daRefs:hRefs,
             expanded, //see if can trigger close >>does!
             buttonLabel,
-            expandedNodes,treeGoals,selected,moods,
+            tab,
+            moods, //expandedNodes,treeGoals,selected,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
-            hasSubG,
+            hasSubG,resetLabel,
             doPrint,doReset,doImport,resetBoxes,
             onSubmit,getSubGoals,onSwipeAction,
-            onRightDelete,onLeftEdit,softReset,onParentAction,refresh,
-            classyColor,classyHeader,niceyLabel //,euh
+            onRightDelete,onLeftEdit,softReset,onParentAction,refresh,classyHeader,niceyLabel //,euh,classyColor,
         }
     }
 }

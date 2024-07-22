@@ -23,14 +23,14 @@
     <q-btn-dropdown
     split
     dense
-    nowrap
-    align="evenly"
+    align="between"
     color=""
     elevated
     :disable-main-btn= "disableBtn"
     :label="optionLabel"
     @click="onClicked"
     no-caps
+    no-wrap
   >
   <!--
     see about adding border to options below via class..

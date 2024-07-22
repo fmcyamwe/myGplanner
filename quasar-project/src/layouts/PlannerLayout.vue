@@ -2,7 +2,7 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <q-toolbar>
-        <q-btn
+        <!--<q-btn
           flat
           dense
           round
@@ -10,9 +10,9 @@
           aria-label="Menu"
           class="q-gutter-md"
           @click="toggleLeftDrawer"
-        />
+        /> -->
 
-        <q-toolbar-title>
+        <q-toolbar-title class="g-planner">
           My G. Planner
         </q-toolbar-title>
 
@@ -27,28 +27,18 @@
             no-caps
         />
       </div>
-      </q-toolbar>
-    </q-header>
 
-   <q-drawer
-      v-model="leftDrawerOpen"
-      bordered
-    ><!--show-if-above >> default open on render...-->
-      <q-list>
-        <q-item-label
-          header
-        >
-          
-        </q-item-label> 
-
+      <div class="row justify-center">
         <EssentialLink
           v-for="link in essentialLinks"
           :key="link.title"
           v-bind="link"
-          @reset="clicky"
-        />
-      </q-list>
-    </q-drawer> 
+        /><!--@reset="clicky"-->
+      </div>
+      </q-toolbar>
+    </q-header>
+
+ 
 
     <q-page-container>
       <router-view />
@@ -93,26 +83,30 @@ export default defineComponent({
   },
 
   setup () {
-    const leftDrawerOpen = ref(false)
+    //const leftDrawerOpen = ref(false)
     
-    function clicky() { //to close drawer on navigation, otherwise it stays open on the new page!
-      //const $q = useQuasar()
-      //$q.localStorage.set('first', "i be first!")
-      //$q.sessionStorage.set('second', "umm second?")
-      
-      //let e = JSON.parse($q.localStorage.getItem("allGoals"))
-      
-      leftDrawerOpen.value = !leftDrawerOpen.value
-    }
+    //function clicky() { //to close drawer on navigation, otherwise it stays open on the new page!
+     
+    //  leftDrawerOpen.value = !leftDrawerOpen.value
+    //}
 
     return {
       essentialLinks: linksList,
-      clicky,
-      leftDrawerOpen,
-      toggleLeftDrawer () {
-        leftDrawerOpen.value = !leftDrawerOpen.value
-      }
+      //clicky,
+      //leftDrawerOpen,
+      //toggleLeftDrawer () {
+      //  leftDrawerOpen.value = !leftDrawerOpen.value
+      //}
     }
   }
 })
 </script>
+<style scoped lang="sass">
+.g-planner
+  padding: 0 1.5em 0 1.5em
+
+@media (max-width: 500px)
+  .g-planner::before
+    content: "G."
+    display:none
+</style>

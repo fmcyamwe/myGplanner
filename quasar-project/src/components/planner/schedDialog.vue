@@ -40,7 +40,6 @@
             <q-btn flat label="Existing" color="primary" @click="onChooseExisting"/>
           </q-card-actions>        
         </q-card>
-
     </q-dialog>
 </template>
 <script>

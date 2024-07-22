@@ -2,21 +2,21 @@
   <q-item
     clickable
     tag="a"
+    dense
     :to="link"
-    @click="$emit('reset')"
+    activeClass="g-link-active"
+    style="margin: 0 1em 0 1em;"
   >
-  <!--
-    @click="clicky()"
+    <!--without activeClass only the caption shows lool toReview
+    @click="$emit('reset')"
     target="_blank"  >> opens new tab
     :href="link"-->
-    <q-item-section
-      v-if="icon"
-      avatar
-    >
-      <q-icon :name="icon" />
+
+    <q-item-section v-if="icon" avatar>
+      <q-icon :name="icon" size="20px"/>
     </q-item-section>
 
-    <q-item-section>
+    <q-item-section class="g-link">
       <q-item-label>{{ title }}</q-item-label>
       <q-item-label caption>{{ caption }}</q-item-label>
     </q-item-section>
@@ -56,6 +56,19 @@ export default defineComponent({
     //  }
     //},
   },
-  emits: [ 'reset']
+  //emits: [ 'reset']
 })
 </script>
+<style scoped lang="sass">
+.g-link
+  background-color: transparent
+  margin-left: -30px
+
+.g-link-active
+  outline: 1px dashed gainsboro
+
+@media (max-width: 500px)
+  .g-link
+    display:none
+
+</style>
