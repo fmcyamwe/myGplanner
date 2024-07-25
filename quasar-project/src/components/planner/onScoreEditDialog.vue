@@ -92,7 +92,7 @@ import { defineComponent,ref } from 'vue'
         showy:{ //just to see if updates..
             get(){return this.show},
             set(value){
-                console.log(`showy getting set`,value, this.id)
+                //console.log(`showy getting set`,value, this.id)
                 this.show = value
             }
         },
@@ -115,7 +115,7 @@ import { defineComponent,ref } from 'vue'
         aNote:{
             get(){return this.note},
             set(value){
-                console.log(`setting aNote from: ${this.notes} to ${value}`) 
+                //console.log(`setting aNote from: ${this.notes} to ${value}`) 
                 this.note = value
             }
         },
