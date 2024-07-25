@@ -1,15 +1,15 @@
 <!--for showing end-Now button and updating the goal score when ending-->
 <template>
-    <div class="title q-calendar__ellipsis"><!--q-mr-xs q-mb-xs q-px-sm -->
+    <div class="title q-calendar__ellipsis"><!-- :class="ClassNStyle"  q-mr-xs q-mb-xs q-px-sm -->
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
         <div style="max-width: 25px; min-width: 25px;">
       -->
-      <div class="q-pl-md">
+      <div class="q-pl-sm">
         {{ ` ${title} (${score})`}}
       </div>
       <q-tooltip>{{ "("+id+") "+ details }}</q-tooltip>
 
-      <div :style="endNowBtnStyle">
+      <div :style="showBtnStyle"><!--class="col-xs-12 col-sm-6 col-md-4"-->
         <q-btn
         no-caps
         label="Add5"
@@ -19,9 +19,9 @@
         <q-btn
         no-caps
         label="Add10"
-        class="q-mx-md"
+        class="q-mx-md poppy"
         @click="wannaAdd(10)"
-        />
+        /><!--hide this when in mobile due to screen space-->
         <q-separator :vertical="true"/>
 
         <q-btn
@@ -30,9 +30,7 @@
         @click="wannaEnd"
         /> 
       </div>
-        <!--
-        :label="EndNow"-->
-
+        
         <q-popup-edit v-model="aScore" :disable="disabledScore" v-slot="scope" auto-save touch-position>
            <!--disabledScoreEvts[event.id] for disable && onSaveScore(e,id). 
           rmv this to see >> @save="(e)=>$emit('saveScore', e, id)" 
@@ -196,7 +194,7 @@ import { defineComponent,ref } from 'vue'
           this.note = value
         }
       },
-      userIconStyle () {
+      userIconStyle () { //redudant--toREmove**
         return {
           color: this.disabledScore === true ? 'red' : 'blue',
           cursor: 'pointer'
@@ -205,11 +203,17 @@ import { defineComponent,ref } from 'vue'
       //labelBtnStyle () { //for edit or end --not needed since using popup-edit?..or actually need it?~? FML....toTest***
       //  return (this.disabledScore === false && this.happeningNow === true) ? 'Edit' : 'EndNow'
       //},
-      endNowBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
+      ClassNStyle () { //doesnt update per row smh
+        let s = "title q-calendar__ellipsis"
+
+        //console.log('titleValue:', s,(this.disabledScore === false && this.happeningNow === true))
+        return (this.disabledScore === false && this.happeningNow === true) ? s+' mooh' : s
+      },
+      showBtnStyle () {  //for displaying the button and hide it when otherwise...not complicated?toReview
         return {
           display: (this.disabledScore === true && this.happeningNow === true) ? 'flex' : 'none', //oldie>>this.happeningNow === true ? 'block' : 'none'
           'text-align': 'center',
-          'margin-left': '32em',
+          'margin-left': '1em', //was 32em
           'height':'auto',   // auto //'margin': '0 auto',
           //'border':'3px solid red'
         }
@@ -301,6 +305,8 @@ import { defineComponent,ref } from 'vue'
 @media (max-width: 500px)
   .poppy
     display: none
+  .title
+    transform: scale(.75, .75)
 
 .my-card-mobile
   background-color: gainsboro

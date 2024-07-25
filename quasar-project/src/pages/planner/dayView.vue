@@ -352,8 +352,8 @@
                         @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
                         @dragover="(e) => onDragOver(e, 'goal-item', scope)"
                         @touchstart="(e) => onTouchStart(e, event)"
-                        @touchmove="(e) => handleTouchEvt(e,event)"
-                        @touchend="(e) => handleTouchEvt(e, event)"
+                        @touchmove="(e) => onTouchEvt(e,event)"
+                        @touchend="(e) => onTouchEvt(e, event)"
                         >
                         <!-- 
                           v-touch-hold:400:12:15.mouse="(e) => handleHold(e, event)" 
@@ -3826,7 +3826,7 @@ computed: {
         let o = this.getTimeNumber(endy) - this.getTimeNumber(starty)  //how this larger?!? should be duration
         let anotherDiff = this.getTimeNumber(now) - this.getTimeNumber(starty) //duration of event with change
 
-        console.log(`onEndNow::${evtID}`,starty.time,endy.time, anotherDiff) //evt
+        //console.log(`onEndNow::${evtID}`,starty.time,endy.time, anotherDiff,o) //evt
 
         const doReduce = () =>{
           console.log(`Great, ${evtID} REDUCING duration from ${o} to:`, anotherDiff)
@@ -4850,9 +4850,9 @@ computed: {
           target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
           this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
         }else{
-          this.touchedItem = false //flag for later...toReview**
-          console.log("onTouchStart:ERROR ERROR",target, target.parentNode,f, this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
-
+          this.touchedItem = false //flag for later in case clicked on endNow, addMin btns....
+          console.log("onTouchStart:ERROR...Btn?",target, target.parentNode) //this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
+          return //needed
         }
       }
 
@@ -4867,7 +4867,7 @@ computed: {
 
     return
   },
-  handleTouchEvt(e, item){ //touchmove and touchend ...scope is null!!
+  onTouchEvt(e, item){ //touchmove and touchend ...scope is null!!
 
       const getTimey = (ariaLabel) => {
         let str = ariaLabel.split(' ')
@@ -4898,12 +4898,12 @@ computed: {
         if (f.classList.contains("my-event-drag")) {
           f.classList.toggle("my-event-drag")
           //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
-        }else{console.log("handleTouchEvt::resetClass...AINT THERE!",f,t)}
+        }else{console.log("onTouchEvt::resetClass...AINT THERE!",f,t)}
         return
       }
 
     if (!this.draggedItem){ //should be populated** should return?!? tbd
-      console.log("handleTouchEvt NULL Item ?!? >> "+e.type,this.draggedItem,this.touchedItem)
+      console.log("onTouchEvt NULL Item ?!? >> "+e.type,this.draggedItem,this.touchedItem)
       item = this.draggedItem
     }
 
@@ -4936,19 +4936,32 @@ computed: {
         //let currPosX = e.clientX  //undefined
 
         //prolly have to add .top using e.changedTouches[0].clientX ?
-        let style = target.style
-        let touchedS = this.touchedItem.style
-         
-        // set the element's new position:
-        //target.style.top = (elmnt.offsetTop - pos2) + "px";
-        //target.style.left = (elmnt.offsetLeft - pos1) + "px";
+        //let style = target.style
+        //let touchedS = this.touchedItem.style
 
-        //then add border via below? --toSee
-        //target.classList.add("touchy-interval")
+         //let ST = style.top  //seems empty
+         //let SL = style.left
+         //let offy = style.offsetTop  //offsetLeft
+
+         //let rec = target.getBoundingClientRect() //.left
+         //let f = this.touchedItem.getBoundingClientRect() //.left
+         
+         //let tST = touchedS.top //also empty
+         //let tSL = touchedS.left
+         //let tOffy = touchedS.offsetTop
+
+         //set the element's new position:
+          //target.style.position = 'absolute' //places it at end...
+          //target.style.zIndex = 1000
+        
+          //target.style.top = (f.top + rec.top) + "px"
+          //target.style.left = (f.left + rec.left) + "px"
+
+          //target.classList.add("touchy-interval")  ////then add border --works but iffy calculations and adding stuff...bof it's good as is!!
         
         //also stop scrolling? >>seems fixed by readding preventDefault in touchStart()
         
-        console.log("handleTouchEvt::move >> NEW interval:",this.touchedItem,s)//,e.changedTouches[0].clientX,style,touchedS)// 
+        //console.log("onTouchEvt::move >> NEW interval:",this.touchedItem,target,f,rec)//,e.changedTouches[0].clientX,style,touchedS)// 
 
         this.targetDrop = s
 
@@ -4959,26 +4972,9 @@ computed: {
         let f = target.closest('.my-event')
         if (f && !f.classList.contains("my-event-drag")) {
             //target.parentNode.classList.add("my-event-drag")
-          console.log("handleTouchEvt::move >>TO ADD AGAIN?!?",f,target, this.touchedItem)
+          console.log("onTouchEvt::move >>TO ADD AGAIN?!?",f,target, this.touchedItem)
         }//else{console.log("handleTouchMove:gooootIT",f,target)}
      
-
-        /*//console.log("onTouchyMove:ERROR?",e, target,target.classList) 
-        if(target.classList.contains("title") && target.parentNode.classList.contains("my-event")){  //prolly no need to do this--if saved before! toTEst***
-          //target.classList.add("touchy") //this seem to work!
-          let f = target.closest('.my-event')
-          if(!target.parentNode.classList.contains("my-event-drag")) {
-            target.parentNode.classList.add("my-event-drag")
-            console.log("handleTouchEvt::move >>ADDED AGAIN?!?",f,target.parentNode)
-          }
-          //else{console.log("handleTouchMove:gooootIT",target.parentNode)}
-           
-          //console.log("ontouchmove:TITLE",target, e,target.parentNode) //this.targetDrop == empty as expected!
-        }else{
-          console.log("handleTouchEvt::move >> ERROR?",target,this.touchedItem)//e,target.parentNode,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
-          //e.stopPropagation() //? >>def should NOT invoke this
-        }
-        ///*/
       }
       //e.preventDefault()
       return
@@ -5005,31 +5001,32 @@ computed: {
 
       if(this.touchedItem){
         if(target.parentNode.classList.contains("my-event-drag")){ //on top of same Evt....
-          console.log("handleTouchEvt::END >>removing my-event-drag",this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])//target
+          console.log("onTouchEvt::END >>removing my-event-drag",this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])//target
           target.parentNode.classList.remove("my-event-drag")
         }else{
           let savedHas = this.touchedItem.parentNode.classList.contains("my-event-drag")
           if(savedHas){//then remove it still
             this.touchedItem.parentNode.classList.remove("my-event-drag")
           }else{
-            console.log("handleTouchEvt::END... target NO my-event-drag?",savedHas, target,target.parentNode )
+            console.log("onTouchEvt::END... target NO my-event-drag?",savedHas, target,target.parentNode )
           }
         }
       }else{
-        console.log("handleTouchEvt.....EUUH nothing?",this.touchedItem, target) //could happen?!?
+        console.log("onTouchEvt.....EUUH nothing?",this.touchedItem, target) //could happen for those AddMin btns...
+        return //continue default handling....
       }
       
       if(target.ariaLabel){
         let s = getTimey(target.ariaLabel)
-        console.log("handleTouchEvt::END", this.targetDrop, s)//,target,target.parentNode) //target.classList,target.ariaLabel,s
+        console.log("onTouchEvt::END", this.targetDrop, s)//,target,target.parentNode) //target.classList,target.ariaLabel,s
 
         this.targetDrop = s
         
         this.doDroppy("onTouch",this.targetDrop, this.draggedItem)
       } else {
-        console.log("handleTouchEvt::END>>ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
+        console.log("onTouchEvt::END>>ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
         if(target.classList.contains("title")){
-          console.log("handleTouchEvt::END--has title!",this.targetDrop)
+          console.log("onTouchEvt::END--has title!",this.targetDrop)
 
           this.doDroppy("onTouch",this.targetDrop, this.draggedItem)  //just drop on top to see--ToReview**
         }
@@ -5160,10 +5157,10 @@ computed: {
       target.parentNode.classList.remove("my-event-drag")
     }else{
       if (f && f.classList.contains("my-event-drag")){//just toggle it...
-        console.log("onTouchHold--WRONG target... ",evt,target, target.parentNode,f) //could be cause of that transform on elt
+        //console.log("onTouchHold--WRONG target... ",evt,target, target.parentNode,f) //could be cause of that transform on elt
         f.classList.toggle("my-event-drag") 
       }else{
-        console.log("onnTouchHold::class not found on Target!!",target)//could and need to use touchedItem
+        //console.log("onTouchHold::class not found on Target!!",target)//could and need to use touchedItem
         f = this.touchedItem.closest('.my-event') 
         if (f && f.classList.contains("my-event-drag")){
           f.classList.toggle("my-event-drag")
