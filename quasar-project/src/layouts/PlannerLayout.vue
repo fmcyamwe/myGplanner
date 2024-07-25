@@ -19,12 +19,13 @@
         <!--  class="q-mt-xl"-->
       <div class="text-white">
         <q-btn
-            class="q-mt-sm"
+            class="q-mt-sm home-view"
             text-color="gold"
             unelevated
             to="/"
-            label="Go Back"
+            label="<- Week"
             no-caps
+            no-wrap
         />
       </div>
 
@@ -47,7 +48,7 @@
 </template>
 
 <script>
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'  //ref
 //import { useQuasar } from 'quasar'
 import EssentialLink from 'components/EssentialLink.vue'
 
@@ -104,6 +105,13 @@ export default defineComponent({
 <style scoped lang="sass">
 .g-planner
   padding: 0 1.5em 0 1.5em
+
+.home-view
+  &:active,
+  &:visited,
+  &.q-btn--active
+    &:before
+      box-shadow: $button-shadow-active
 
 @media (max-width: 500px)
   .g-planner::before

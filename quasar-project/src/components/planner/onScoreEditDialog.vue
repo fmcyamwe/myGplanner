@@ -37,8 +37,6 @@
           <q-separator dark />
   
           <q-card-actions class="q-gutter-md q-mx-md inputBtn">
-            <!--<q-btn flat>Action 1</q-btn> -->
-            <!--<q-btn flat>Action 2</q-btn> -->
             <q-btn
             label="Save"
             flat dense color="positive" icon="check_circle"

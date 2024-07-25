@@ -31,7 +31,7 @@
     </div>
     
     <div>
-      duration
+      Duration
       <q-knob
       :min="15"
       :max="120"
@@ -47,6 +47,7 @@
       />
     </div>
   </div>
+  
   <div class="q-mx-md" style="text-align: center;">
     <q-btn flat align="center" label="Cancel" color="primary" @click="$emit('doCancel')"/>
     

@@ -2,7 +2,7 @@
 <template>
     <div class="title q-calendar__ellipsis"><!--q-mr-xs q-mb-xs q-px-sm -->
       <!--<div style="display: flex; align-items: center; justify-content: start; flex-wrap: nowrap;">
-        <div style="max-width: 25px; min-width: 25px;"></div> $emit('endNow', id)
+        <div style="max-width: 25px; min-width: 25px;">
       -->
       <div class="q-pl-md">
         {{ ` ${title} (${score})`}}
@@ -31,11 +31,7 @@
         /> 
       </div>
         <!--
-        :label="EndNow"
-        <div class="ellipsis">  :style="userStyle"  class="inputBtn"
-          {{ title }}
-          <q-tooltip>{{ details + ' at: '+ startTime }}</q-tooltip>
-        </div>-->
+        :label="EndNow"-->
 
         <q-popup-edit v-model="aScore" :disable="disabledScore" v-slot="scope" auto-save touch-position>
            <!--disabledScoreEvts[event.id] for disable && onSaveScore(e,id). 
@@ -43,20 +39,16 @@
           
           touch-position make dialog smaller...class="poppy" not needed prolly
 
-          **popup doesnt work in mobile!!! --could try q-popup-proxy but errors out with v-model...toTry later***
-          
           v-model="aScore"
           :validate="scoreValidation" 
-          @hide="scoreValidation">>TOADD if adding validate function
+          @hide="scoreValidation">> validate function doesnt work...validate on set()
           
            //counter and keyup.enter has to be scope.set or doesnt do anything nor trigger the saveScore() smh...
            
           auto-save >>needed to save when user clicks outside...mais bon.. better to have them click green btn for obviousness?!?tbd
         -->
-        <!--<q-popup-proxy :cover="false"> 
-          //toSee if works? >>nah for mobile and have to double-click on bigger screen...use v-model triggered in onBeforeShow() of q-popup-edit?!?
-          bof >> have to use media query esti!
-          <div> my-card -->
+
+        <!--class='my-card' -->
           <q-card class="bg-secondary text-white">
             <div class="title"> NoteyOnScore :: {{title}}</div>
 
@@ -93,8 +85,6 @@
             <q-separator dark />
     
             <q-card-actions class="q-gutter-md q-mx-md inputBtn">
-              <!--<q-btn flat>Action 1</q-btn> -->
-              <!--<q-btn flat>Action 2</q-btn> -->
               <q-btn
               label="Save"
               flat dense color="positive" icon="check_circle"
@@ -111,8 +101,6 @@
               />
             </q-card-actions>
           </q-card>
-        <!--</div>
-        </q-popup-proxy> -->
         </q-popup-edit>
 
     </div>

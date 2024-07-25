@@ -85,7 +85,7 @@
             <div class="row justify-center">
               <q-btn
               class="q-mt-md"
-              text-color="blue"
+              :text-color="saveScheduleDisabled ? 'grey' : 'blue' "
               elevated
               push
               align="evenly"
@@ -352,14 +352,12 @@
                         @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
                         @dragover="(e) => onDragOver(e, 'goal-item', scope)"
                         @touchstart="(e) => onTouchStart(e, event)"
-                        @touchmove="(e) => onTouchEvt(e,event)"
-                        @touchend="(e) => onTouchEvt(e, event)"
+                        @touchmove="(e) => handleTouchEvt(e,event)"
+                        @touchend="(e) => handleTouchEvt(e, event)"
                         >
                         <!-- 
                           v-touch-hold:400:12:15.mouse="(e) => handleHold(e, event)" 
                             on goaly-end or div above makes no diff!! but seem to log errors more in div
-
-                          handleTouchEvt(e,event) for better distinction...
                           
                           <div class="title q-calendar__ellipsis"> -->
                           <!--{{ event.title }}
@@ -380,10 +378,14 @@
                             @save-score="onSaveScore"
                             @add-mins="onAddMins"
                             @delete-now="removeEvtInSchedule(event)"
-                            v-touch-hold:400:12:15.mouse="(e) => handleHold(e, event)"
-                            />
+                            v-touch-hold:400:12:15.mouse="(e) => onTouchHold(e, event)"
+                            /><!--
+                              onclick="goalyClick(event)"
+                              ondblclick="goalyClick(event)"
+                              doesnt seem to work... even with @onclick
+                            -->
                             
-                          <!--TESTMOBILE...should reset allowDialog?toTest!-->
+                         
                           <scoreEditDialog v-if="allowDialog[event.id]"
                             :title="event.title"
                             :id="event.id"
@@ -1007,7 +1009,7 @@ computed: {
             //return
             this.allowDialog[evtID] = false
           }
-          this.mobileEnableScore[evtID] = true 
+          this.mobileEnableScore[evtID] = true
 
           this.isDisabledScoreEdit[evtID] = false //enable score edit
       }
@@ -4702,6 +4704,8 @@ computed: {
     }
     //keep track of moved
     this.draggedItem = item
+
+    //console.log('onDragStart..goal-item',e, this.draggedItem)
   },
   onDragEnter (e, type, scope) {
     //console.log('insideDragEnter',type,this.mobile,this.isDisabledScoreEdit[this.draggedItem.id]) // e,type,scope
@@ -4815,6 +4819,8 @@ computed: {
       //so no overlapp, just change dragged event time--ask User
       this.changeEvtTime(draggy.id, targetTimey, false) //onDrop
       console.log(`onDrop with No overlap complete (${draggy.id}) to ${targetTimey.time}`)  //worked,
+
+      //e.preventDefault() //needed to allow dialog click?
     }
 
     this.disableSaveSchedule = false
@@ -4823,66 +4829,36 @@ computed: {
 
     this.reset() //onDrop
   },
-  /*handleTouchStart(elt,item){ //sigh*
-    this.draggedItem = item
-
-    if(elt.parentNode.classList.contains("my-event")){
-        console.log("handleTouchStart >>my-event-drag",elt,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])
-        elt.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
-        this.touchedItem = elt //keep track of it!
-    } else {
-      console.log("handleTouchStart:WOOOAH error?",elt,elt.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
-      //could happen if it's inner elt...
-      this.touchedItem = false //just to make sure that inner elt...toReview**
-    }
-
-    //could maybe save the elt as well to see if gonna move OR touch-hold
-    //this.touchedItem = elt....toUSE**
-
-    //elt.preventDefault() //need to continue for touch-hold!!!
-
-    return true //true?
-  },*/
   onTouchStart(e, item){ //touchStart only!!
-
-    //if(this.isViewingPast()){ //check should be for move/end only
-    //  this.doNotify("Editing past is no no!")
-    //  e.preventDefault()
-    //  e.stopPropagation()
-    //  return
-    //}
-
-    //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
     if(e.type == "touchstart"){ //fires once!
       
+      this.draggedItem = item
+      
       let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
-      //return this.handleTouchStart(target,item) //oldie but moved here....
-
-      this.draggedItem = item
+      //let f = target.closest('.my-event')
 
       if(target.parentNode.classList.contains("my-event")){
-          console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.isDisabledScoreEdit[item.id]) //target,,this.mobileEnableScore[item.id]
+          console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.isDisabledScoreEdit[item.id],this.allowDialog[item.id]) //target,,this.mobileEnableScore[item.id]
           target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
-          this.touchedItem = target //keep track of it!
+          this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
+
       } else {
         console.log("onTouchStart:WOOOAH inner touch?",target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
         //could happen if it's inner elt...so go up
+        let f = target.closest('.my-event')
         target = target.parentNode
         if(target.parentNode.classList.contains("my-event")){
-          console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.isDisabledScoreEdit[item.id]) //target,,this.mobileEnableScore[item.id]
+          console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.isDisabledScoreEdit[item.id],f,target.parentNode) //target,,this.mobileEnableScore[item.id]
           target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
-          this.touchedItem = target //keep track of it!
+          this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
         }else{
           this.touchedItem = false //flag for later...toReview**
-          console.log("onTouchStart:ERROR ERROR",target, target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
+          console.log("onTouchStart:ERROR ERROR",target, target.parentNode,f, this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
 
         }
       }
-
-      //save the elt as well to see if gonna move OR touch-hold via this.touchedItem 
-     
 
       e.preventDefault() 
       //need to continue for touch-hold!...OR NOT? seems better for drag/drop smh
@@ -4893,22 +4869,9 @@ computed: {
     
     console.log("onTouchStart::ERROR...UNKNOWN",e) //shouldnt happen as rest handled via handleTouchEvt()
 
-    if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
-      //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-
-      return this.onTouchEvt(e, item) //item redudant as should be this.draggedItem
-    }
-
-    if(e.type == "touchend"){
-
-      //console.log("ontouchend",item == this.draggedItem) //should be same
-
-      return this.onTouchEvt(e, item) //item redudant as already this.draggedItem
-
-    }
-    
+    return
   },
-  onTouchEvt(e, item){ //touchmove and touchend ...scope is null!!
+  handleTouchEvt(e, item){ //touchmove and touchend ...scope is null!!
 
       const getTimey = (ariaLabel) => {
         let str = ariaLabel.split(' ')
@@ -4928,29 +4891,22 @@ computed: {
         return s //addToDate(parsed(this.currentDate), { minute: parseTime(tr) }) //s
       }
 
-    if(this.isViewingPast()){
+    if(this.isViewingPast()){ //present check only for move/end --
       this.doNotify("Editing past is no no!")
       e.preventDefault()
       e.stopPropagation()
       return
     }
 
-    //if (!item){
-    //  console.log("handleTouchEvt NULL Item >> "+e.type,this.draggedItem)
-    //  item = this.draggedItem
-    //}
+    if (!this.draggedItem){ //should be populated** should return?!? tbd
+      console.log("handleTouchEvt NULL Item ?!? >> "+e.type,this.draggedItem,this.touchedItem)
+      item = this.draggedItem
+    }
 
     if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
 
       let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
-      //if (this.allowDialog[item.id]){ //bof no point for this methink...
-      //  console.log("handleTouchMove-STOP:",this.mobileEnableScore[item.id],this.isDisabledScoreEdit[item.id]) //still Nope smh...e?.mouseDownmouseDown doesnt exists...
-        //e.stopPropagation() //TOTEST*** that removing doesnt work in keeping touch-hold 
-        
-      //  e.preventDefault() //need it? wouldnt it also affect touch-hold? >>yep!
-      //  return
-      //}
 
       if(target.ariaLabel){ //when moving into calendar's interval
         let s = getTimey(target.ariaLabel)
@@ -4982,28 +4938,29 @@ computed: {
         //also stop scrolling? 
         ////>>seems fixed by readding preventDefault in touchStart() toMonitor***
         
-        console.log("onTouchEvt >> NEW interval:",e.changedTouches[0].clientX,style,touchedS)// 
+        console.log("handleTouchEvt::move >> NEW interval:",this.touchedItem,s)//,e.changedTouches[0].clientX,style,touchedS)// 
 
         this.targetDrop = s
 
-        e.preventDefault() //seems to complain...
+        e.preventDefault()
         return
 
-      } else{
-        //console.log("onTouchyMove:ERROR?",e, target,target.classList) //no arialLabel...prolly when over another event! || or same one but early stages of dragging
+      } else { ////no arialLabel...prolly when over another event! || or same one but in early stages of dragging?
 
+        //console.log("onTouchyMove:ERROR?",e, target,target.classList) 
         if(target.classList.contains("title") && target.parentNode.classList.contains("my-event")){  //prolly no need to do this--if saved before! toTEst***
           //target.classList.add("touchy") //this seem to work!
+          let f = target.closest('.my-event')
           if(!target.parentNode.classList.contains("my-event-drag")) {
             target.parentNode.classList.add("my-event-drag")
-            console.log("onTouchEvt::move >>ADDED AGAIN?!?")
+            console.log("handleTouchEvt::move >>ADDED AGAIN?!?",f,target.parentNode)
           }
           //else{console.log("handleTouchMove:gooootIT",target.parentNode)}
            
           //console.log("ontouchmove:TITLE",target, e,target.parentNode) //this.targetDrop == empty as expected!
         }else{
-          console.log("onTouchEvt::move >> ERROR?",target,this.touchedItem)//e,target.parentNode,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
-          //e.stopPropagation() //? >>def gotta NOT invoke this
+          console.log("handleTouchEvt::move >> ERROR?",target,this.touchedItem)//e,target.parentNode,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
+          //e.stopPropagation() //? >>def should NOT invoke this
         }
       }
       //e.preventDefault()
@@ -5016,45 +4973,47 @@ computed: {
       let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
       if(this.mobile){
-        console.log("onTouchEvtEnd::ISMOBILE",target,this.touchedItem) //this.allowDialog[item.id]
+        console.log("handleTouchEvt::END--ISMOBILE",target,this.touchedItem) //this.allowDialog[item.id]
       }
 
       if(this.touchedItem){
         if(target.parentNode.classList.contains("my-event-drag")){ //on top of same Evt....
-          console.log("onTouchEvtEnd: >>my-event-drag",target,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])
+          console.log("handleTouchEvt::END >>removing my-event-drag",this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])//target
           target.parentNode.classList.remove("my-event-drag")
         }else{
           let savedHas = this.touchedItem.parentNode.classList.contains("my-event-drag")
           if(savedHas){//then remove it still
             this.touchedItem.parentNode.classList.remove("my-event-drag")
           }else{
-            console.log("onTouchEvtEnd:: EUH target NO my-event-drag?",savedHas, target,target.parentNode )
+            console.log("handleTouchEvt::END... target NO my-event-drag?",savedHas, target,target.parentNode )
           }
         }
       }else{
-        console.log("onTouchEvtEnd.....EUUH nothing?",this.touchedItem, target) //could happen?!?
+        console.log("handleTouchEvt.....EUUH nothing?",this.touchedItem, target) //could happen?!?
       }
       
       if(target.ariaLabel){
         let s = getTimey(target.ariaLabel)
-        console.log("onTouchEvtEnd:", this.targetDrop.time, s.time)//,target,target.parentNode) //target.classList,target.ariaLabel,s
+        console.log("handleTouchEvt::END", this.targetDrop.time, s.time)//,target,target.parentNode) //target.classList,target.ariaLabel,s
 
         if(target.classList.contains("touchy-interval")){ //should see this with changes...
-          console.log("onTouchEvtEnd::ERROR?.....REMOVING touchy-interval")
+          console.log("handleTouchEvt::END>>ERROR?.....REMOVING touchy-interval")
           target.classList.remove("touchy-interval")
         }//else{ console.log("onTouchEvtEnd.....EUUH touchy-interval !?!",target.classList)}
 
         this.targetDrop = s
         this.doDroppy()
-      } else{
-        console.log("onTouchEvtEnd:ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
+      } else {
+        console.log("handleTouchEvt::END>>ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.isDisabledScoreEdit[item.id],this.allowDialog[item.id])
         if(target.classList.contains("title")){
-          console.log("onTouchEvtEnd--has title!",this.targetDrop)
+          console.log("handleTouchEvt::END--has title!",this.targetDrop)
           this.doDroppy()  //just drop on top to see--ToReview**
         }
       }
-      e.preventDefault()
-      e.stopPropagation() //needed?@? 
+
+
+      //e.preventDefault()
+      //e.stopPropagation() //needed?@? think so or would trigger other events...prolly...toMonitor***
 
       return
     }
@@ -5135,51 +5094,54 @@ computed: {
       return
     }
   },
-  /*doMobileEnableScore(id){
-    //console.log("doMobileEnableScore", id)
-    let s = this.mobileEnableScore[id] && this.isDisabledScoreEdit[id]
-    console.log("doMobileEnableScore", id,this.mobileEnableScore[id] ,this.isDisabledScoreEdit[id], s)
-    return s //this.mobileEnableScore[id] && this.isDisabledScoreEdit[id] //doesnt update but gets invoked...smh
-  },*/
-  handleHold({ evt, ...newInfo }, item){ //mobile onScore edit...
+  onTouchHold({ evt, ...newInfo }, item){ //mobile onScore edit...
      
-    //could then invoke onDblClickEvent(e, event) AFTER figuring out which event..
+    //IF past >>only edit
+    
+    //in Present >>if done show onScoreEditDialog ELSE invoke onDblClickEvent()
 
      //so q.dialog to confirm with user between remove || edit!!
     
     //this.isDisabledScoreEdit[item.id] = true //oldie that toggle is wrong >> !this.isDisabledScoreEdit[item.id]
      
     if(!this.mobile){
-      console.log("handleHold>>NOT MOBILE",evt)
+      console.log("onTouchHold>>NOT MOBILE",evt.type,this.mobileEnableScore[item.id]) //mousedown usually...
       //with below active, doesnt complete drop!
       //evt.preventDefault()
       //evt.stopPropagation()
       return
     }
 
-    console.log("handleHold>>", this.isViewingPast(), this.isDisabledScoreEdit[item.id],this.draggedItem,this.touchedItem)
+    //console.log("onTouchHold>>INPAST: ", this.isViewingPast(), this.isDisabledScoreEdit[item.id],this.draggedItem,this.touchedItem)
     
-    //IF past >>only edit
-    
-    //present >>if done > onScoreEditDialog ELSE invoke onDblClickEvent()
 
     let target = document.elementFromPoint(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY)
 
     let oldy = this.allowDialog[item.id]
 
-    this.allowDialog[item.id] = this.mobileEnableScore[item.id]  //TOCHECK if set in past***
+    this.allowDialog[item.id] = this.mobileEnableScore[item.id]
 
+    if(this.isViewingPast()){ //bon in past allowDialog as mobileEnableScore[item.id] never get set?!? why false--toReview**
+      console.log("onTouchHold>> INPAST: ", this.isDisabledScoreEdit[item.id],oldy, this.mobileEnableScore[item.id])
+      this.allowDialog[item.id] = !this.isDisabledScoreEdit[item.id] //toTest** toggling isDisabledScoreEdit   //true
+    }else{
+      console.log("onTouchHold>> INPRESENT: ", this.isDisabledScoreEdit[item.id],oldy, this.mobileEnableScore[item.id],this.allowDialog[item.id])
+    }
 
     //newInfo.touch == true for mobile
-    //console.log("handleHold>>", this.isDisabledScoreEdit[item.id],oldy, this.mobileEnableScore[item.id],this.allowDialog[item.id])
-      
-    // remove the 'my-event-drag' class as not a drag!!
-      if(target.classList.contains("title") && target.parentNode.classList.contains("my-event-drag")){
-        console.log("handleHold...REMOVING my-event-drag")
-        target.parentNode.classList.remove("my-event-drag")
-      }else{
-        console.log("handleHold--ERROR? no class>> ",evt,target, target.parentNode)
-      }
+    
+    let f = target.closest('.my-event')
+    
+    if(target.classList.contains("title") && target.parentNode.classList.contains("my-event-drag")){ 
+      console.log("onTouchHold...REMOVING my-event-drag",f)//,f,target.parentNode)// remove the 'my-event-drag' class as not a drag!!
+      //target.parentNode.classList.remove("my-event-drag")
+      f.classList.toggle("my-event-drag") 
+    }else{
+      if (f.classList.contains("my-event-drag")){//just toggle it...
+        console.log("onTouchHold--WRONG target... ",evt,target, target.parentNode,f) //could be cause of that transform on elt
+        f.classList.toggle("my-event-drag") 
+      }else{console.log("ERROR...onTouchHold--class not found!!!")} //shouldnt happen!! toTest**
+    }
 
       //window.location.reload() //so inelegant and resets everything SMDH
 
@@ -5192,7 +5154,18 @@ computed: {
       //evt.stopPropagation()
 
       //return true //true?
+
+      if(this.isDisabledScoreEdit[item.id] && !this.mobileEnableScore[item.id]){  //remove evt..
+        //f.classList.toggle("my-event-drag") //bof just do it here..toReview as toggle re-add the class
+        this.onDblClickEvent(evt,item)
+      }
       
+  },
+  goalyClick(evt){
+    console.log("goalyClik", evt)
+    //let s = this.mobileEnableScore[id] && this.isDisabledScoreEdit[id]
+    //console.log("doMobileEnableScore", id,this.mobileEnableScore[id] ,this.isDisabledScoreEdit[id], s)
+    return //s //this.mobileEnableScore[id] && this.isDisabledScoreEdit[id] //doesnt update but gets invoked...smh
   },
     /*
     handleSwipe ({ evt, ...info }) {
@@ -5383,16 +5356,6 @@ computed: {
   },
 }
 })
-/* //for touch drag&drop and show dragged item...toReview as my-event class aint returned
-  .my-event::after
-    content: ''
-    background-color: #ccc
-    position: absolute
-    left: 0
-    width: 4px
-    height: 100%
-    cursor: ew-resize
-*/
 </script>
 <style lang="sass" scoped>
 .my-event
@@ -5468,6 +5431,8 @@ computed: {
   outline: 1px dashed #213
   opacity: 0.7
   cursor:move
+  transform: rotateY(45deg) translateZ(1em)
+  transition: transform 100ms linear
 
 .touchy
   border: 5px dashed #213

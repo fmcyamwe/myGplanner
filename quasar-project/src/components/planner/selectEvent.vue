@@ -1,10 +1,11 @@
 <template>
-    <div class="q-pa-md row items-start">
-        <q-card> <!--style="padding: 2px 2px;"-->
+    <div class="q-pa-md">
+        <q-card> <!-- row items-start... style="padding: 2px 2px;"-->
             <q-card-section>
                 <div class="text-h3">Select event</div>
             </q-card-section>
             <q-separator />
+            
             <div class="q-mx-md event-select">
               <q-select
               v-model="toAdd" 
@@ -21,7 +22,9 @@
               use-input
               hide-selected
               fill-input
-              input-debounce="0">
+              input-debounce="0"
+              behavior="menu"><!--behavior?: "default" | "menu" | "dialog" | undefined; >> menu on desktop and dialog on mobiles 
+                have to force it as menu so that options dont jump on top of page...smh toMonitor-->
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
@@ -29,7 +32,8 @@
                     </q-item-section>
                   </q-item>
                 </template>
-                <!--<template v-if="toAdd" v-slot:prepend>
+                <!--behavior?: "default" | "menu" | "dialog" | undefined; >> menu on desktop and dialog on mobiles
+                  <template v-if="toAdd" v-slot:prepend>
                   <q-icon name="cancel" @click.stop.prevent="toAdd = null" class="cursor-pointer" />
                 </template> bon too ugly and append goes way too far...-->
               </q-select>
