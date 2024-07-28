@@ -48,7 +48,7 @@ module.exports = configure(function (/* ctx */) {
       // 'line-awesome',
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
-      'roboto-font', // optional, you are not bound to it
+      //'roboto-font', // optional, you are not bound to it-...needed?!?(maybe mobile?) toRemove and see!--specially for loading times! 
       'material-icons', // optional, you are not bound to it
     ],
 

@@ -165,7 +165,7 @@
   </q-page>
 </template>
 <script>
-import { defineComponent, ref} from 'vue'  //computed, onBeforeMount
+import { defineAsyncComponent, ref} from 'vue'  //computed, onBeforeMount  defineComponent
 import {
   QCalendar,
   today,
@@ -173,10 +173,10 @@ import {
   parseTimestamp,
   isBetweenDates,
   parsed,
-  //parseDate,
+  diffTimestamp,
   parseTime
 } from '@quasar/quasar-ui-qcalendar/src/index.js'
-import NavigationBar from '../../components/NavigationBar.vue'
+//import NavigationBar from '../../components/NavigationBar.vue'
 import { applyClasses, applyStyles } from '../util/utiFunc'
 import { useGoalStore } from 'stores/goalStorage'
 //import { useQuasar } from 'quasar'
@@ -192,11 +192,12 @@ function getCurrentDay (day) {
 }
 */
 
-export default defineComponent({
+//export default defineComponent({ 
+export default {
   name: 'weekCalendar',
   components:{
-    NavigationBar,
-    QCalendar
+    NavigationBar: defineAsyncComponent(() => import('../../components/NavigationBar.vue')), //loadOnDemand
+    QCalendar //: defineAsyncComponent(() => import('@quasar/quasar-ui-qcalendar/src/index.js')), //craps out when loading on demand as above
   },
   data () {
     //const draggedItem = ref(null)
@@ -262,6 +263,8 @@ export default defineComponent({
         if (!map[ event.date ]) {
           map[ event.date ] = []
         }
+
+        event.sortTime = addToDate(parsed(event.date), { minute: parseTime(event.time) }) //sheesh too much?
 
         map[ event.date ].push(event)
 
@@ -341,8 +344,15 @@ export default defineComponent({
     constructTree(){
       this.treeGoals = this.store.fetchGoalsTree()
     },
-    getEvents (dt) {
-      // get all events for the specified date
+    getEvents (dt) {// get all events for the specified date
+
+      let sorty = (a, b) => {//sort by earlier timestamp!--too much?
+        let timeDiff = diffTimestamp(a.sortTime,b.sortTime) 
+        if (timeDiff > 0) return -1
+        if (timeDiff == 0) return 0 
+        if (timeDiff < 0) return 1
+      }
+      
       const events = this.eventsMap[ dt ] || []
 
       //console.log(`getEvents ${dt}`,events.length)
@@ -370,7 +380,7 @@ export default defineComponent({
         //console.log(`getEvents hiiigh ${dt}`,events.length)
         this.mostEvts = events.length
       }
-      return events
+      return events.sort(sorty)
     },
     badgeClasses (event, type) {
         return applyClasses(event, type)
@@ -418,7 +428,7 @@ export default defineComponent({
       console.log('onChange', data)
     }
   }
-})
+}//)
 
 </script>
 <style lang="sass" scoped>

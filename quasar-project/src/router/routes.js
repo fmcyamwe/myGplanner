@@ -1,12 +1,13 @@
-import PlannerLayout from 'layouts/PlannerLayout.vue'
-import weekCalendar from 'pages/planner/homeWeekView.vue'
-import summaryCalendar from 'pages/planner/summaryView.vue'
-import dayCalendar from 'pages/planner/dayView.vue'
-import goalsPage from 'pages/planner/goalsView.vue'
+//import PlannerLayout from 'layouts/PlannerLayout.vue'
+//import weekCalendar from 'pages/planner/homeWeekView.vue'
+//import summaryCalendar from 'pages/planner/summaryView.vue'
+//import dayCalendar from 'pages/planner/dayView.vue'
+//import goalsPage from 'pages/planner/goalsView.vue'
+
 //import aDragga from 'components/aDragga.vue'
 
 const routes = [
-  {
+  /*{ //oldie with declared static components..slow
     path : '/',
     component: PlannerLayout,
     children: [
@@ -16,6 +17,17 @@ const routes = [
       { path: 'goalsPage', component: goalsPage }
       //{ path: 'draggy', component: aDragga }
     ]
+  },*/
+  { //..loaded-on demand below for faster loading!
+    path: '/',
+    component: () => import('layouts/PlannerLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/planner/homeWeekView.vue') }, //weekCalendar
+      { path: 'summary', component: () => import('pages/planner/summaryView.vue') }, //summaryCalendar
+      { path: 'dayCalendar', component: () => import('pages/planner/dayView.vue') }, //dayCalendar
+      { path: 'goalsPage', component: () => import('pages/planner/goalsView.vue') } //goalsPage
+      //{ path: 'draggy', component: aDragga }
+    ]
   },
   // Always leave this as last one,
   // but you can also remove it
@@ -23,7 +35,6 @@ const routes = [
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue')
   }
-  
 ]
 
 export default routes

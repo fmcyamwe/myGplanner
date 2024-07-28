@@ -43,15 +43,17 @@
     </q-dialog>
 </template>
 <script>
-import { defineComponent, ref } from 'vue'
-import adHocEvent from '../../components/planner/adHocEvent.vue'
-import selectEvent from '../../components/planner/selectEvent.vue'
+import {ref, defineAsyncComponent } from 'vue'  //defineComponent,
+//import adHocEvent from '../../components/planner/adHocEvent.vue' 
+//import selectEvent from '../../components/planner/selectEvent.vue'
 
-export default defineComponent ({  //this be Options Vue notation
+//export default defineComponent ({  //this be Options Vue notation
+export default {
   name: 'schedDialog',
   components:{
-    adHocEvent,
-    selectEvent
+    //adHocEvent,
+    adHocEvent: defineAsyncComponent(() => import('../../components/planner/adHocEvent.vue')), //seems good for loading on demand!
+    selectEvent: defineAsyncComponent(() => import('../../components/planner/selectEvent.vue')),
   },
   props: {
     parentGoals: Array,
@@ -160,7 +162,7 @@ export default defineComponent ({  //this be Options Vue notation
 
     }
   }
-})
+} //)
 </script>
 <style lang="sass" scoped>
 .radio-select

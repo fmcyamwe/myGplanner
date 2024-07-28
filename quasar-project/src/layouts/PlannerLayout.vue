@@ -116,5 +116,6 @@ export default defineComponent({
 @media (max-width: 500px)
   .g-planner::before
     content: "G."
-    display:none
+  .g-planner 
+    display: none
 </style>

@@ -439,15 +439,15 @@ import {
 import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarDay.sass'
-import { defineComponent,ref } from 'vue'
-import NavigationBar from '../../components/NavigationBar.vue'
+import { defineAsyncComponent,ref } from 'vue' //defineComponent
+//import NavigationBar from '../../components/NavigationBar.vue'
 import { isMobile } from '../util/isMobile'
 import { applyClasses, applyStyles, pGColors } from '../util/utiFunc'
-import GoalyEnd from '../../components/planner/goalyEnd.vue'
-import schedBtn from '../../components/planner/schedBtn.vue'
-import dropDwnBtn from '../../components/planner/dropDwnBtn.vue'
-import schedDialog from '../../components/planner/schedDialog.vue'
-import scoreEditDialog from '../../components/planner/onScoreEditDialog.vue'
+//import GoalyEnd from '../../components/planner/goalyEnd.vue'
+//import schedBtn from '../../components/planner/schedBtn.vue'
+//import dropDwnBtn from '../../components/planner/dropDwnBtn.vue'
+//import schedDialog from '../../components/planner/schedDialog.vue'
+//import scoreEditDialog from '../../components/planner/onScoreEditDialog.vue'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'  //Platform
 //import { stop, prevent, stopAndPrevent } from 'quasar/src/utils/event'
@@ -459,18 +459,17 @@ return e.button === 0
 }
 
 
-export default defineComponent({
+//export default defineComponent({
+export default {
 name: 'dayCalendar',
 components: {
-  NavigationBar,
-  QCalendarDay,
-  //addGoalForm,
-  GoalyEnd,
-  //adHocEvent,
-  schedBtn,
-  dropDwnBtn,
-  schedDialog,
-  scoreEditDialog
+  NavigationBar: defineAsyncComponent(() => import('../../components/NavigationBar.vue')), 
+  QCalendarDay,//: defineAsyncComponent(() => import('@quasar/quasar-ui-qcalendar/src/index.js')), // with loadOnDemand, craps out...
+  GoalyEnd: defineAsyncComponent(() => import('../../components/planner/goalyEnd.vue')),
+  schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
+  dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
+  schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
+  scoreEditDialog: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
 },
 data () {
   const draggedItem = ref(null)  //toRename** >> selectedItem(whether touch/drag)
@@ -733,6 +732,15 @@ computed: {
     </div>
     */
   },
+  storedPG(){
+    if (this.parentGs == this.store.getMainGoals){ //triple equal sign for reference check..never goes here though smh..see with double equal sign>> neither
+      console.log("storedPG SAME!!!!")
+      return this.parentGs 
+    }
+
+    this.parentGs = this.store.getMainGoals
+    return this.parentGs
+  },
   parentGoalsMap(){ //at least now it's up to date esti!! runs too much tho?!?---umm seems bad to do all the work too for each invocation!--toReview**
     const map = new Map()
     //this.pGoals = this.storedCompPG
@@ -749,15 +757,6 @@ computed: {
       
     return map
     
-  },
-  storedPG(){
-    if (this.parentGs == this.store.getMainGoals){ //triple equal sign for reference check..never goes here though smh..see with double equal sign>> neither
-      console.log("storedPG SAME!!!!")
-      return this.parentGs 
-    }
-
-    this.parentGs = this.store.getMainGoals
-    return this.parentGs
   },
   constructTree(){
     this.treeGoals = this.store.fetchGoalsTree()
@@ -792,7 +791,8 @@ computed: {
     }
     return false
   },
-  getTimeyNumber(timey) { // for time of day(less calculation than above)
+  // for time of day(less calculation than above) --toUSE***
+  getTimeyNumber(timey) { 
     if (timey !== null) {
       return getTimeIdentifier(timey)
     }
@@ -817,12 +817,18 @@ computed: {
   },  
   // get all events for the specified date
   getDateEvents (dt) {
+    let sorty = (a, b) => {//sort by earlier timestamp!--too much?
+      let timeDiff = diffTimestamp(a.sortTime,b.sortTime) 
+      if (timeDiff > 0) return -1
+      if (timeDiff == 0) return 0 
+      if (timeDiff < 0) return 1
+    }
+
     const events = this.eventsMap[ dt ] || []
+    
     if (events.length === 1) {
       events[ 0 ].side = 'full'
-      
-    }
-    else if (events.length === 2) {
+    } else if (events.length === 2) {
       //console.log("getDateEvents...LENGTH is 2?",dt, events) //bof when actual scheduled is just two evts!--weird that it does this calculation...prolly when overlapping times? >> YEUP! very nice actually--prolly would need overlap check if more than 2 evts lool!
       // this example does no more than 2 events per day
       // check if the two events overlap and if so, select
@@ -841,8 +847,11 @@ computed: {
         events[ 1 ].side = 'full'
       }
     }
-    //console.log("daEvents...",events, dt)
-    return events
+    
+    //console.log("daEvents...",JSON.parse(JSON.stringify(events)), JSON.parse(JSON.stringify(ev))) //events
+  
+    return events.sort(sorty) //errors out with this.sorty
+    
   },
   hasDate (days) {
     return this.currentDate
@@ -1780,6 +1789,14 @@ computed: {
       }
     }
 
+    //for later sorting.... too much?!?
+    evt.sortTime = addToDate(parsed(evt.date), { minute: parseTime(evt.time) }) 
+
+    //let anotherDiff = this.getTimeNumber(now) - this.getTimeNumber(starty) //duration of event with change
+    //let another = diffTimestamp(compareTime,value.start)
+    
+    //console.log("updatedEvtDetails",JSON.parse(JSON.stringify(evt))) //,JSON.parse(JSON.stringify(obj)))
+
     return evt
   },
   addPropsEventsTo(aDate, events){
@@ -1809,6 +1826,7 @@ computed: {
           //oldie oldie >> toReload.push(obj)
           //oldie >> toReload.push(fromParent(obj)) //works but should be 'sav' as it's the proper overrided object with parentGoal, etc...below
           toReload.push(this.updatedEvtDetails(clone)) //sav //oldie >>fromParent(sav))
+
 
         } else{console.log(`ERROR in addPropsEventsTo...Evt:not present!`,obj) } //when has been deleted prolly--toMonitor**
     })
@@ -3262,7 +3280,7 @@ computed: {
     let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))
     //let arry = Object.entries(evts).map((key) => savedEvtFunc(key[0],key[1])) //works as well but using above.
         
-    let toReload = this.addPropsEventsTo(datey, arr) ////REDO*** to keep notes and atScore when present**
+    let toReload = this.addPropsEventsTo(datey, arr)
 
     console.log(`OverlapCheckLoadToday ${datey} loading:${toReload.length} into current:${this.scheduledEvents.length}`)
     // JSON.parse(JSON.stringify(arr)),JSON.parse(JSON.stringify(toReload)) ) //,JSON.parse(JSON.stringify(toReload)))
@@ -5374,7 +5392,7 @@ computed: {
     }
   },
 }
-})
+}//)
 </script>
 <style lang="sass" scoped>
 .my-event
@@ -5449,7 +5467,7 @@ computed: {
 .my-event-drag
   outline: 1px dashed #213
   opacity: 0.7
-  cursor:move
+  cursor: move
   transform: rotateY(45deg) translateZ(1em)
   transition: transform 100ms linear
 

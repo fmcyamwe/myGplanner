@@ -69,6 +69,6 @@ export default defineComponent({
 
 @media (max-width: 500px)
   .g-link
-    display:none
+    display: none
 
 </style>

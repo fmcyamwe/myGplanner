@@ -1,4 +1,4 @@
-import {computed, ref } from 'vue'
+import { computed } from 'vue'   //ref
 import { defineStore } from 'pinia'
 import { useQuasar } from 'quasar'  //event, 
 
@@ -7,8 +7,8 @@ import { useQuasar } from 'quasar'  //event,
 //computed() become 'getters'
 //function() become 'actions'
 export const useGoalStore = defineStore('allGoals', () => {
-    //for testing with ref and see--toREmove
-    const headerRefs = ref([  
+    
+    /*const headerRefs = ref([  
         { text: '', sortable: false },
         { text: '#', sortable: false },
         { text: 'TITLE', value: 'title', sortable: false },
@@ -23,11 +23,11 @@ export const useGoalStore = defineStore('allGoals', () => {
         { text: 'Goal', value: 'subGoal', sortable: false },
         { text: 'PRIORITY', value: 'priority', sortable: false},
         { text: 'DURATION', value: 'duration', sortable: false }
-      ]
+      ] */
     
     const $q = useQuasar() 
 
-    const getHeaders = computed(() => headers)  //or headerRefs
+    //const getHeaders = computed(() => headers)  //or headerRefs
     //const getGoals = computed(() => goalList)
 
     //this works? nope...should it be a function instead?
@@ -50,6 +50,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
         JSON.parse($q.localStorage.getItem("AllDates"))
     )
+
     const getBalance = computed(() => //toTEST** if access after change computed is ok to use*** or move to methods!
         JSON.parse($q.localStorage.getItem("Balancey"))
     )
@@ -62,10 +63,10 @@ export const useGoalStore = defineStore('allGoals', () => {
 
 
     //dummy dates for Task summary
-    const datesTest = ['2021-03-10', '2021-03-11','2021-03-08','2021-03-06','2021-03-05']
+    //const datesTest = ['2021-03-10', '2021-03-11','2021-03-08','2021-03-06','2021-03-05']
 
     //dummy logged duration Task summary 
-    const loggedTest = [0.5, 2.0, 3.5, 4.0, 4.5, 1.0]
+    //const loggedTest = [0.5, 2.0, 3.5, 4.0, 4.5, 1.0]
 
     function setBalance(amt){
         $q.localStorage.set('Balancey', JSON.stringify(amt))
@@ -152,17 +153,6 @@ export const useGoalStore = defineStore('allGoals', () => {
                  
         $q.localStorage.set('mainGoals', JSON.stringify(current))
     }
-
-    //function addSubyGoal(obj){ //same concern about overloading with addSubGoal() >>nope no overloading in JS smh...
-
-    //    console.log("euuh subGoal",obj)
-
-        //check for .id? to edit || add ....
-        //addSubGoal() //specially for parentGoal!!! >>meh 
-
-        //goalId, title,score,time, duration, canMove, inDefaults,isAlternative,moods
-        //return this.editSubGoal(obj.id,obj.title,obj.score,obj.time, obj.duration, obj.canMove, obj.inDefaults,obj.isAlternative,obj.jeSuis)
-    //}
 
     function addSubGoal(pGoal,title,score,time, duration, canMove,inDefaults,isAlternative,moods) {
         
@@ -453,10 +443,6 @@ export const useGoalStore = defineStore('allGoals', () => {
         return map  
     }
 
-    function getRandomIndex(sizey){
-        return Math.floor(Math.random() * sizey)
-    }
-
     function returnDuration(logged){
         let hours = logged / 60
         //const roundedNumber = Math.round(hours * Math.pow(10, 2)) / Math.pow(10, 2); //nope
@@ -466,27 +452,6 @@ export const useGoalStore = defineStore('allGoals', () => {
         //    console.log(`returnDuration`, fixed) //should .toPrecision(2) here prolly //.padStart(fixed.length + 1, '0')
         //}
         return parseFloat(fixed)  //the annoying string had to be parsed back into a number!!! 
-    }
-    
-    //local method to get all subgoals by parentID--weird that it borks at this.getSubGoals..?!?
-    //doesnt run even after removing the local var for getSubGoals....huh?!?
-    function getSubGoalsByParent(id) {
-        //let subs = this.getSubGoals
-        console.log(`getSubGoalsByParent`, this.getSubGoals)
-        let map = []
-        //let allSubGoals = this.getSubGoals
-        if(!this.getSubGoals) { //allSubGoals
-            //console.log("No subgoals")
-            return map
-        }
-        //map = subs.filter(x => x.parentGoal == parentID)
-
-        this.getSubGoals.forEach(event => {
-            if (event.parentGoal == id) {
-                map.push(event)
-            }
-        })
-        return map  
     }
 
     function fetchGoalsTree(){
@@ -667,6 +632,31 @@ export const useGoalStore = defineStore('allGoals', () => {
         //console.log("fetchAllTaskSummary",tasks)
 
         return tasks
+    }
+    
+    //local method to get all subgoals by parentID--weird that it borks at this.getSubGoals..?!?
+    //doesnt run even after removing the local var for getSubGoals....huh?!?
+    function getSubGoalsByParent(id) {
+        //let subs = this.getSubGoals
+        console.log(`getSubGoalsByParent`, this.getSubGoals)
+        let map = []
+        //let allSubGoals = this.getSubGoals
+        if(!this.getSubGoals) { //allSubGoals
+            //console.log("No subgoals")
+            return map
+        }
+        //map = subs.filter(x => x.parentGoal == parentID)
+
+        this.getSubGoals.forEach(event => {
+            if (event.parentGoal == id) {
+                map.push(event)
+            }
+        })
+        return map  
+    }
+
+    function getRandomIndex(sizey){ //redundant
+        return Math.floor(Math.random() * sizey)
     }
 
     return {
