@@ -520,7 +520,7 @@ data () {
 
     showTree: ref(false), //showing Legend Tree
     //pickEventDialog:ref(false), //showing pick event to schedule dialog ..no need
-    addEventDialog: ref(false),
+    addEventDialog: ref(false), //rename to showEvtDialog---
     
     isDisabledScoreEdit:ref({}),
     hasStarted:ref({}),  //just for happening now..should combine with isDisabledScoreEdit var above!
@@ -3335,7 +3335,7 @@ computed: {
         this.evtStartedOrPassed(parseDate(new Date()))
         this.disableSaveSchedule = true
         this.showReloadBtn = false
-        this.showClearBtn = hasSavedEvents
+        this.showClearBtn = ! hasSavedEvents
 
         //this.showDefaultBtn(hasSavedEvents,inPast)
         //return //needed if skip default reload btns below...but showshowDefaultBtnDefBtn() replacing...

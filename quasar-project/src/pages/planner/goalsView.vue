@@ -147,7 +147,7 @@
                                 <q-badge 
                                 color="orange" floating
                                 style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                ? <q-tooltip>Is scheduled by default</q-tooltip>
+                                ? <q-tooltip>Is Default--Needs to get done!</q-tooltip>
                                 </q-badge>
                             </q-toggle>
                             <br>
@@ -502,6 +502,12 @@ export default {
         //}
 
         function resetGsAndColors(){
+            let sorty = (a, b) => { 
+                if (a.id > b.id) return 1 //b.parentGoal
+                if (a.id == b.id) return 0
+                if (a.id < b.id) return -1
+            }
+
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
             let currentColors = []
@@ -516,6 +522,7 @@ export default {
             
             avColors.value = c.filter(item => !currentColors.find(o => o == item)) //filter out already taken colors...
             
+            mainGoals.value.sort(sorty) //sorty by earlier id!
         }
 
         function doPrint () {

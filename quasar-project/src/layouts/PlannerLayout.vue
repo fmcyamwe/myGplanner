@@ -118,4 +118,6 @@ export default defineComponent({
     content: "G."
   .g-planner 
     display: none
+  .home-view
+    padding: 0 2.5em 0 2.5em
 </style>
