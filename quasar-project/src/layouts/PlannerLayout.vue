@@ -73,6 +73,13 @@ const linksList = [
     icon: 'edit_note',
     link: '/goalsPage', //'https://quasar.dev'
     //clicky: clicky
+  },
+  {
+    title: 'Alt',
+    caption: 'Alty',
+    icon: 'event_upcoming',
+    link: '/testAlt', //'https://quasar.dev'
+    //clicky: clicky
   }
 ]
 

@@ -43,3 +43,32 @@ export function pGColors() {
   'pink',
   'red']
 }
+
+export function deepCopy(obj) { //deep copy object
+  if (obj === null || typeof obj !== "object") {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepCopy(item));
+  }
+
+  const copied = {};
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      copied[key] = deepCopy(obj[key]);
+    }
+  }
+
+  return copied;
+}
+
+export function whenFrmtTime(timey){
+  //let when = (timey) => {
+  if(!timey) return ''
+  
+  let o = timey.split(':')
+  return parseInt(o[0]) >= 12 ? timey+"PM" : timey+"AM" 
+    //}
+
+}

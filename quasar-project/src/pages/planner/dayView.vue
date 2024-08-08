@@ -848,12 +848,13 @@ computed: {
       }
     }
     
-    //console.log("daEvents...",JSON.parse(JSON.stringify(events)), JSON.parse(JSON.stringify(ev))) //events
+    //console.log("daEvents...",JSON.parse(JSON.stringify(events))) //, JSON.parse(JSON.stringify(ev))) //events
   
     return events.sort(sorty) //errors out with this.sorty
     
   },
-  hasDate (days) {
+  hasDate (days) { //umm why again?!? for current time line? toTest*** when removed!
+    
     return this.currentDate
       ? days.find(day => day.date === this.currentDate)
       : false
@@ -1877,7 +1878,7 @@ computed: {
         this.updateEvtInScheduleMaps(evID, timeyStart) //should also change in scheduledEvents?!? no need prolly...
         //if(!doAdd){ // update details..same as addPropsEventsTo() above >redundant
         evty.time = timeyStart.time
-        this.updatedEvtDetails(evty) //potensh to overwrite--toReview**
+        this.updatedEvtDetails(evty)
         //}
         //console.log("doUpdateEvt:: !NOT doAdd afterProps",JSON.parse(JSON.stringify(evt)))
       }
@@ -1923,7 +1924,7 @@ computed: {
       if (skipAsk) {
         doUpdateEvt(evt,doAdd) //bon just skip!
         //return
-      } else{
+      } else {
         if (oldy == timeyStart.time){//when time hasnt changed --just return...EXCEPT when adding! >>toSee** if shouldnt do it in all cases tho!!!--when skipAsk=false ?!?
           console.log(`SAME TIME (${evt.id})'${evt.title.trim()}'..ASKIN with doAdd? ${doAdd} for updateEvt...`,oldy,timeyStart.time)
           if(doAdd){doUpdateEvt(evt,doAdd)}
@@ -3277,6 +3278,8 @@ computed: {
         
     if (!evts) {console.log(`ERROR no evts found for today:${datey} ?!?`, evts); return}
 
+    console.log(`getEventsForDate on:${datey} ?!?`, evts)
+
     let arr = Object.keys(evts).map((key) => savedEvtFunc(key,evts[key]))
     //let arry = Object.entries(evts).map((key) => savedEvtFunc(key[0],key[1])) //works as well but using above.
         
@@ -3708,7 +3711,7 @@ computed: {
 
             console.log("onPickEvent::saveSchedule...useBalance",balance,neB)
             this.doNotify("oooh What is Owed PAID!gg! >>"+neB,"positive",'right')
-            this.store.setBalance(neB) 
+            this.store.setBalance(neB)
             this.doSaveSchedule()  //onPickEvent
             this.disableSaveSchedule = true
           }//else{console.log("onPickEvent::saveSchedule...not using balance or doSaveSchedule...i guess!")}
@@ -5114,7 +5117,7 @@ computed: {
       } while (++i < sizey)
 
       console.log("doDroppy...OVERLAP with fixOverlap",euhOverlaps)
-      this.fixyOverlaps(euhOverlaps, true,'onDrop')  //end of loop for all conflicts!!!
+      this.fixyOverlaps(euhOverlaps, true,from)//'onDrop')  //end of loop for all conflicts!!!
 
     } else {
       //so no overlapp, just change dragged event time--ask User

@@ -183,7 +183,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             //console.log("an subgoal item had the same id...using random", newID)
         }
 
-        current.unshift({
+        current.unshift({ //or push to add at end?
             id: newID,
             parentGoal:pGoal,
             title: title.trim(),
@@ -326,7 +326,9 @@ export const useGoalStore = defineStore('allGoals', () => {
     function getEventsForDate(aDate){
         //return JSON.parse($q.localStorage.getItem(`${aDate}`))
         let savedDates = this.getAllDates
-        if (savedDates) {return savedDates[`${aDate}`]}
+        if (savedDates) {  //doCopy ?
+            return savedDates[`${aDate}`]
+        }
     }
 
     function hasEventsForDate(aDate){ 

@@ -25,7 +25,8 @@ const routes = [
       { path: '', component: () => import('pages/planner/homeWeekView.vue') }, //weekCalendar
       { path: 'summary', component: () => import('pages/planner/summaryView.vue') }, //summaryCalendar
       { path: 'dayCalendar', component: () => import('pages/planner/dayView.vue') }, //dayCalendar
-      { path: 'goalsPage', component: () => import('pages/planner/goalsView.vue') } //goalsPage
+      { path: 'goalsPage', component: () => import('pages/planner/goalsView.vue') }, //goalsPage
+      { path: 'testAlt', component: () => import('pages/planner/altDayView.vue') } //refactor of goalsPage 
       //{ path: 'draggy', component: aDragga }
     ]
   },
