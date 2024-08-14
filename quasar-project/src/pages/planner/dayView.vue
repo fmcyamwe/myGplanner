@@ -1758,7 +1758,7 @@ computed: {
       }   
     }
 
-    //console.log("overlapCheckEvtsAdd",JSON.parse(JSON.stringify(euhOverlaps)))
+    console.log("overlapCheckEvtsAdd",JSON.parse(JSON.stringify(euhOverlaps)))
 
     return euhOverlaps
   },
@@ -3511,6 +3511,8 @@ computed: {
       return
     }
 
+    this.addEventDialog = false //close dialog
+
     let timeStart = parseTimestamp(this.possibleRange[0])
     //let tosee = parsed(this.possibleRange[0])
     let timeEnd = interval > 15 ? addToDate(timeStart, { minute: parseInt(interval)}) : addToDate(parseTimestamp(this.possibleRange[1]), { minute: 15}) 
@@ -3624,7 +3626,7 @@ computed: {
       this.doNotify("Error creating and adding this event :(", "negative")
     }
 
-    this.addEventDialog = false  //still have to close dialog
+    //this.addEventDialog = false  //still have to close dialog
     //this.reset()
   },
   tooClose(timey, duration){ //too close to other evt--within 10min OR near end of day and would go into next...

@@ -32,7 +32,7 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
     let _duration = data.duration;
     let _time = data.time;
     let _date = null; //used for date map...
-    let moods = null; // || = {} ?
+    let _moods = null; // || = {} ?
     let notes;
     let score;  //data.atScore ?
     return {
@@ -47,8 +47,8 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
       getPGoal:() => _pGoal,
       data: () => _data,
       setData: (newData) => _data = newData, //umm would this update properly as returning original data above? toTest***
-      setMoods: (aString) => moods = aString,
-      moods: () => usingMoods, //moods,
+      setMoods: (anArray) => _moods = anArray,
+      getMoods:usingMoods, //() => usingMoods, //moods,
       setNotes: (aNote) => notes = aNote,
       hasNote: hasNote,
       setDura: (d) => _duration = d,  //prolly redundant...toSee**
@@ -84,11 +84,11 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
       return data.time !== OrigGoal.time
     }
     function usingMoods() {
-      if ('byMood' in data) {
-        console.log("savedEvtFunc::usingMoods",data)
-        return data.byMood;
+      if ('byMood' in _data) {
+        //console.log("savedEvtFunc::usingMoods",_data)
+        _moods = _data.byMood
       }
-      return moods
+      return _moods
     }
 
     function parseScore() {
@@ -128,7 +128,7 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
       console.log("withProps",JSON.parse(JSON.stringify(clone)),clone.datey(),clone.date(),clone.title,clone.details)
       return clone
     }
-    
+
     function addProps(onDatey){
       
       if (!_pGoal) {console.log(`addProps:: ERROR no parentGoal`,this.data);return}

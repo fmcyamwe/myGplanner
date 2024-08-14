@@ -6,7 +6,7 @@
 
 import { useGoalStore } from 'stores/goalStorage'
 
-import { createEvent } from '../models/schedEvt.js'
+//import { createEvent } from '../models/schedEvt.js'
 
 import { deepCopy } from '../pages/util/utiFunc' //  '../util/utiFunc'
 
@@ -142,10 +142,13 @@ export function getMiscGoal() { //to check if there is any 'Misc' pGoal
    return _store.getGoalByTitle("Misc") 
 }
 
-export function storeNewBalance(dura) { //oldie >> addToBalance(evt)
+export function storeNewBalance(newB) {
+    _store.setBalance(newB)
+}
+export function addToBalance(dura) {
     let balance = currentBalance()
     let neB = balance - parseInt(dura) //gotta minus...
-    _store.setBalance(neB)
+    //_store.setBalance(neB)
     
     //return?
 }
@@ -160,7 +163,7 @@ export function addParentGoal(title, details, color, priority) {
 
 export function addSubGoal(pID, title,score,time, duration, canMove,inDefaults,isAlternative,moods) {
     //should send whole event?*** todo**
-    _store.addSubGoal(pID,title,score,time, duration,canMove,inDefaults,isAlternative,moods)  //isAlternative = duration<30
+    return _store.addSubGoal(pID,title,score,time, duration,canMove,inDefaults,isAlternative,moods)  //isAlternative = duration<30
 }
 
 /* //invoke doSaveEvtProp() directly!
