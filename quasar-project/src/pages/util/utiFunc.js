@@ -72,3 +72,13 @@ export function whenFrmtTime(timey){
     //}
 
 }
+
+export function parseScore(t){
+  const tokens = t.split(/on/) 
+  if (tokens.length != 2) {//should be at most two variables....
+    //console.log(`parseScore error? >>${t}`, tokens)  
+    return -89 //guardrails to distinguish with potensh error below*** could still fail with 'one' though smh..toReview***
+  }
+  //console.log(`parseScore for ${t}`, tokens)
+  return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!
+}
