@@ -60,7 +60,7 @@
 import { defineComponent,ref } from 'vue'
 
   export default defineComponent ({  //this be Options Vue notation
-    name: 'scoreEditDialog',
+    name: 'mobileNoteScoreUpdate',
     props: {
       title: String,
       id: Number,

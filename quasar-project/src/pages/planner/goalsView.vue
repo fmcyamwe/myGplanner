@@ -847,7 +847,8 @@ export default {
                 }).onOk(() => {
                     store.removeMaingoal(id, false)
                     resetGsAndColors() //bof doesnt update still smh
-                    
+                    //reload() //meh no update either
+                    expanded.value[id] = false //this does update!
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                     expanded.value[id] = false
@@ -871,6 +872,7 @@ export default {
                     priority.value = pGoally.priority
                 
                     updatingSubG = id  //for submit...redundant though...
+                    tab.value = "Goal" //nav
                 }else {
                     errorNotify(`ERROR during edit action for Goal: '${title}'...not found!`)
 

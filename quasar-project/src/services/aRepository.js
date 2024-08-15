@@ -51,7 +51,7 @@ export function parentGoalsMap() {
 
     if (_repositoryData.pGoalsMap == null){
         //console.log('Repo:: No pGoalsMap');
-    } else { return _repositoryData.pGoalsMap }
+    } //else { return _repositoryData.pGoalsMap }
 
     const map = new Map()
     let mG = allParentGoals() ////updates for new?
@@ -85,10 +85,7 @@ export function allSubGoals() {
     if (_repositoryData.subGoals == null){
         //console.log('Repo:: NO subGoals')
         //deepCopy(_repositoryData.subGoals) --huh no change
-        _repositoryData.subGoals = _store.getSubGoals 
-    } else {
-        //console.log('Repo:: WOO subGoals..return?',_repositoryData)
-        return _repositoryData.subGoals
+        _repositoryData.subGoals = _store.getSubGoals
     }
     //umm prolly doesnt updates for new?
     return _repositoryData.subGoals  
@@ -158,7 +155,7 @@ export function saveDailySchedule(date, evts) {
 }
 
 export function addParentGoal(title, details, color, priority) {
-    _store.addMainGoal(title, details, color, priority)
+    return _store.addMainGoal(title, details, color, priority)
 }
 
 export function addSubGoal(pID, title,score,time, duration, canMove,inDefaults,isAlternative,moods) {

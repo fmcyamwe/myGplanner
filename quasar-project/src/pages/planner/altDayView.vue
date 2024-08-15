@@ -326,15 +326,21 @@
                                       <!-- interfere with double click for removing when enabled..toSee if using component would help -->
                                       <!--auto-save needed but should find way to capture this as well as user could click outside popup without saving!-->
                                       
+                                      <!--
+                                      
+                                      "isDisabledScoreEdit[event.id]"
+
+                                      hasStarted[event.id]
+                                      -->
                                       <goaly-end
-                                        :disabledScore="isDisabledScoreEdit[event.id]"
+                                        :disabledScore="daSchedule.isDisabledScoreEdit[event.id]"
                                         :title="event.title"
                                         :id="event.id"
                                         :startTime="event.time"
                                         :score="event.score"
                                         :details="event.details"
                                         :notes="event.notes"
-                                        :happeningNow="hasStarted[event.id] ? hasStarted[event.id] : false"
+                                        :happeningNow="daSchedule.hasStarted[event.id] ? daSchedule.hasStarted[event.id] : false"
                                         @end-now="onEndNow"
                                         @save-score="onSaveScore"
                                         @add-mins="onAddMins"
@@ -346,15 +352,16 @@
                                           doesnt seem to work... even with @onclick
                                         -->
                                         
-                                     
-                                      <scoreEditDialog v-if="allowDialog[event.id]"
+                                     <!--"allowDialog[event.id]"
+                                     -->
+                                      <mobileNoteScore v-if="daSchedule.showMobileDialog[event.id]"
                                         :title="event.title"
                                         :id="event.id"
                                         :startTime="event.time"
                                         :score="event.score"
                                         :details="event.details"
                                         :notes="event.notes"
-                                        :show-dialog="allowDialog[event.id]"
+                                        :show-dialog="daSchedule.showMobileDialog[event.id]"
                                         @save-score="onSaveScore"
                                         @delete-now="removeEvtInSchedule(event)"
                                       />
@@ -416,7 +423,7 @@ components: {
   schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
   dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
   schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
-  scoreEditDialog: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
+  mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
 },
 data () {
     let possibleRange = null //for adhoc scheduling...keep track of selected time range
@@ -480,7 +487,7 @@ data () {
 beforeMount() {
     this.mobile = isMobile()
 
-    this.daSchedule = new daySchedule("ouiii",this.currentDate)
+    this.daSchedule = new daySchedule(this.currentDate,this.mobile)
 
     //console.log('beforeMount:',this.anotherSched.getData(),this.anotherSched.getAllPrio()) //,this.daSchedule.chosenPrioLabel()
 
@@ -1066,7 +1073,7 @@ methods:{
         let canDrop =  this.daSchedule.canDropEvent(targetDrop, draggedItem)
         //hasOverlappingEvent(draggedItem.id, targetDrop, draggedItem.duration)
        
-        console.log("doDroppy: "+from,canDrop,draggedItem)
+        //console.log("doDroppy: "+from,canDrop,draggedItem)
         if (canDrop.canContinue){ //&& canDrop.overlaps == null){
           let askUser = draggedItem?.inDefaults || !draggedItem?.canMove 
           //maybe check other flags?!? toTry later!!
@@ -1093,7 +1100,7 @@ methods:{
           }
         
         }else{//else handle .overlaps
-          console.log("doDroppy::can NOT Drop",canDrop)
+          console.log("doDroppy::can NOT Drop",JSON.parse(JSON.stringify(canDrop)))
           this.handleOverlaps(canDrop.overlaps,true,'onDrop')
         }
 
@@ -1131,44 +1138,6 @@ methods:{
         return 
       }
 
-
-
-        /*let saveSchedule = () => { //redundant--toRemove**
-          let inPast = this.daSchedule.isViewingPast()
-          if (inPast) {
-            console.log("onPickEvent...inPast auto saveSchedule",inPast)
-            this.daSchedule.saveDaySchedule()//doSaveSchedule() //onPickEvent
-            this.daSchedule.disableSaveSchedule = true
-            return
-          }
-
-          if(overlapSizey > 0){
-            console.log("onPickEvent::saveSchedule..overlaps: "+overlapSizey,'useBalance?'+useBalance)
-            if (useBalance){
-              let balance = this.currentBalance //balance should be negative...methink
-              let neB = balance + parseInt(addy?.duration) 
-
-              console.log("onPickEvent::saveSchedule...useBalance",balance,neB)
-              this.doNotify("oooh What is Owed PAID!gg! >>"+neB,"positive",'right')
-              this.store.setBalance(neB)
-              this.daSchedule.saveDaySchedule()//doSaveSchedule()  //onPickEvent
-              this.daSchedule.disableSaveSchedule = true
-            }//else{console.log("onPickEvent::saveSchedule...not using balance or doSaveSchedule...i guess!")}
-          }else {
-            console.log("onPickEvent::saveSchedule...no overlaps so no auto-save!!",overlapSizey,useBalance)
-            //balance already handled before when no overlaps!! 
-            this.daSchedule.disableSaveSchedule = false
-          }
-        }*/
-    
-      //let addy = null
-      //console.log("onPickEvent...I be picking...no need to getScheduledEvent?", JSON.parse(JSON.stringify(addE)), addy, skipAsk,useBalance)
-
-      //let overlapSizey = 0 //to know if had overlaps...for timeout
-
-      //if (!addy){
-
-        //addy = addE
         
         let doForce = this.daSchedule.isViewingPast() ? true : skipAsk //inPast >>just force!!
 
@@ -1257,96 +1226,6 @@ methods:{
 
       //then attemot to add to schedule
       if (subID) {
-        //this.resetGoalEvts(true) //update from storage....
-      
-        /*
-        let oOth = this.daSchedule.hasOverlappingEvent(subID, timeStart, timeEnd)
-      
-        if (oOth.length > 0) {
-          let euhOverlaps={}
-          for(let i = 0; i < oOth.length; i++){
-            let toH = oOth[i]
-            if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]} 
-              
-            if(i > 0){//for using fixMultiConflicts()
-              //keep in mind the obj.id is target
-              
-              console.log(i+" WOAH WOAH,onAddHocEvent.. multiple overlaps with same target!",oOth[i].target)//>could have multiple default that are overlapping yes!
-              //ummm this where using inConflict is wrong as evt CAN overlap with two others....
-              if (toH.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",toH.inConflict); delete euhOverlaps[toH.inConflict] }
-              if (oOth[i-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",oOth[i-1].inConflict); delete euhOverlaps[oOth[i-1].inConflict] }
-
-              if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
-                
-              euhOverlaps[toH.target].unshift(oOth[i-1]) //also add previous as makes sense..
-              euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
-            } 
-          }
-
-          console.log("onAddHocEvent:: OVERLAPS >>",JSON.parse(JSON.stringify(euhOverlaps)))
-          
-          //todo** handle overlaps or return euhOverlaps
-          //this.fixyOverlaps(euhOverlaps,null,'addNew') //adHocEvent
-
-          //>>using flag seem bad for now But when choosing scheduled, helps to rem evt---umm...toSee if still needed**
-          //oldie >> no need for flag? >>actually yes if handling overlaps after adding -- instead of checking first!
-        } else {
-          let toAdd = this.addPropsEventsTo(this.currentDate,[{ //this.currentDate,
-            id: subID,
-            time: timeStart.time,
-            title: goalTitle,
-            score: '2on5',
-            duration: duration,
-            canMove: parentGoal ? false : true  //when pGoal then assume it cannot move otherwise should by default...prolly 
-          }])
-          console.log(`onAddHocEvent, addEvtPropsIntoSchedule: ${subID} at ${timeStart.time}`) //,toAdd
-          
-          this.addEvtPropsIntoSchedule(toAdd[0])  //this.overlapCheckEvtsAdd(toAdd) //use this instead to fix any extra overlaps--redundant as would check overlap again...prolly
-
-        }
-
-        this.disableSaveSchedule = false
-        this.showReloadBtn = this.hasEventsForDate
-        this.showClearBtn = !(this.isViewingPast())  //shouldnt show in past!
-
-        */
-
-       //toTest that  getSubGoalByID() update and return newest!
-       /* let newey =  this.daSchedule.getSubGoalByID(subID)
-        if (!newey){
-          console.log(`onAddHocEvent, NOT UP 2 DATE?!!!? :(`, subID,newey) 
-          
-          //then try to populate with below--which would be bad!!
-          //newey = { //this.currentDate,
-          //  id: subID,
-          //  time: timeStart.time,
-          //  title: goalTitle,
-          //  score: '2on5',
-          //  duration: duration,
-          // canMove: parentGoal ? false : true  //when pGoal then assume it cannot move otherwise should by default...prolly 
-          //} 
-        } //else{}
-        let euhOverlaps = this.daSchedule.addGoalsToSchedule([newey])
-
-        let sizey = Object.keys(euhOverlaps).length
-        if(sizey > 0) {
-          console.log(`onAddHocEvent overlaps on:${this.currentDate}. overlaps =${sizey}`,euhOverlaps) 
-          
-          //TODO** see if no need to redo object for multiConflicts above with 'withID' flag
-          //this.fixyOverlaps(euhOverlaps,null,'byMood') //onAddHocEvent
-        }
-        
-        this.disableSaveSchedule = false
-        this.showReloadBtn = this.hasEventsForDate
-        this.showClearBtn = !this.isViewingPast()  //incase have other evts?!?
-
-        this.constructTree() //update to show newest
-
-        return euhOverlaps
-
-        //bon toReview if shouldnt save immediately but give choice to user to add some more!!---could pass in flag above to autoSave on dismiss(when inPast!!)--same here!!
-        //this.doSaveSchedule()
-        */
 
         let res = this.daSchedule.onAdHocEvent(subID)
         
@@ -1478,17 +1357,14 @@ methods:{
           
           //const properT = addToDate(parsed(this.currentDate), { minute: parseTime(toChange.time) }) //just to see >>meh
 
-          console.log(`from:${from}--forceAdd: ${toAdd.id})'${toAdd.title}' at ${toAdd.time}.
+          console.log(`handleOverlaps::forceAdd:${from} >>${toAdd.id})'${toAdd.title}' at ${toAdd.time}.
           \nChanging >>${toChange.id} from ${toChange.time} `,conf.targetStart.time)
           
           //console.log(conf, properT)
 
           if (conf.direction !== 'surrounding'){ //this in order to limit going in circles with overlapCheckEvtsAdd()...
-            console.log(`fixyOverlaps::forceAdd >> recurChangeTime...`)
-            
-            //this.recurChangeTime(toChange.id,toAdd,conf.targetStart, true, true)//properT //skipAsk user as should force!
-            
-            this.daSchedule.recurChangeTime(toChange.id,toAdd,conf.targetStart,true)
+            //let noAdd = from == 'onDrop'
+            this.daSchedule.recurChangeTime(toChange.id,toAdd,conf.targetStart,from != 'onDrop') //doAdd flag important for small time interval jump
           }else{
             console.log(`handleOverlaps::forceAdd: gonna overlapCheckEvtsAdd....`)
             
@@ -1498,7 +1374,7 @@ methods:{
             let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...toAdd,time:conf.targetStart.time}],true)
             let sizey = Object.keys(euhOverlaps).length
             if(sizey > 0) {
-              console.log(`from:${from}>handleOverlaps::forceAdd:: OVERLAPS again of size:${sizey} from > `+toAdd.title,JSON.parse(JSON.stringify(euhOverlaps)))
+              console.log(`handleOverlaps::forceAdd:: OVERLAPS again of size:${sizey} from >${from}>`+toAdd.title,JSON.parse(JSON.stringify(euhOverlaps)))
               
               //Note*** see with adding 'nah' that no more circles--should be less prolly with recurChangeTime()
               this.doNotify(`Extra Overlaps while adding '${toAdd.title.trim()}' `, "warning",'top')
@@ -1556,8 +1432,8 @@ methods:{
             }
 
             doRem(toAdd)  //remove is proper in other cases though?...prolly
-
             aNotif(`Keeping scheduled '${currScheduled.title.trim()}'`)
+            
             return 
           }
 
@@ -1575,6 +1451,8 @@ methods:{
             //this.scheduleMoodsLabel >>to force label update smh
           //  console.log(`fixyOverlaps::cancelChoice>>deleting Moody...`+toAdd.id,b,this.scheduleMoodsLabel) //,JSON.parse(JSON.stringify(Object.fromEntries(this.dailyScheduled.entries())))) 
           //}
+
+          this.daSchedule.toggleActionBtns(true,'view')
 
           aNotif(`Keeping scheduled '${currScheduled.title.trim()}'`)
         }
@@ -1688,7 +1566,7 @@ methods:{
       ///////////////////// START ///////////////////
 
       for (let key in overlaps) {
-        console.log("handleOverlaps..Handling",key) //,JSON.parse(JSON.stringify(overlaps[key])))
+        //console.log("handleOverlaps..Handling",key) //,JSON.parse(JSON.stringify(overlaps[key])))
         if (!overlaps[key] || !overlaps[key][0]){
           console.log("handleOverlaps...unknown key found",key) //could happen with fixMultiConflicts()--see below! 
           continue
@@ -1797,8 +1675,25 @@ methods:{
       }
     },
     onEndNow(id){
-      console.log('onEndNow',id)
-      this.daSchedule.endEvtNow(id) //todo**
+        const doRemove = () =>{
+          console.log(`onEndNow::removing and saving!`,id)
+          let evt = this.daSchedule.findSchedEvent(id)
+          this.daSchedule.removeScheduledEvt(evt)
+         
+          //this.doSaveSchedule() //onEndNow 
+          //yeah just gonna save automatically esti!
+          this.daSchedule.saveDaySchedule()
+        }
+      
+      let canEnd = this.daSchedule.canEndNow(id)
+
+      if (!canEnd){
+        console.log('onEndNow...error?',id,canEnd)
+      }else{
+        //prolly check that it's a number!!todo**
+        let c = this.daSchedule
+        this.confirmAction("Less than 10mins remove?\n Cancel to just EndNow","OK", doRemove, c.reduceEvtDuration(id,canEnd)) 
+      }
     },
     onSaveScore(newScore, id,note=''){
       //console.log('onSaveScore',newScore, id,note)
@@ -1817,7 +1712,18 @@ methods:{
     },
     onAddMins(id,mins){
         console.log('onAddMins',id,mins)
-        this.daSchedule.addMinsToEvt(id,mins) //todo**
+        let res = this.daSchedule.addMinsToEvt(id,mins)
+
+        if(!res.canContinue){ //&& !anyOverlap.overlaps
+          console.log("onAddMins::OVERLAPS?",res)
+          if(res.overlaps && Object.keys(res.overlaps).length > 0){
+            this.handleOverlaps(res.overlaps,null,'onAddMins')
+          }else{ //prolly nothing?--toTest***
+              //this.doNotify(`Error scheduleByScore :(`, "warning",'bottom')
+            this.doNotify(`Add mins ERROR:(`, "warning",'bottom')
+          }
+        }
+
     },
     removeEvtInSchedule(evt){
       let doSave = false //just for moods.../default no need to save...
@@ -1840,12 +1746,13 @@ methods:{
             return
           }
 
-          //todo***
           //this.disableSaveSchedule = false  //allow saving schedule
           //this.showReloadBtn = this.hasEventsForDate
+          this.daSchedule.toggleActionBtns(true,'view')
         }
-
-      if(this.daSchedule.isViewingPast()){ //inPast--choose alternative.. Not for small evts as just addBalance
+      
+      //inPast--choose alternative.. Not for small evts as just addBalance
+      if(this.daSchedule.isViewingPast()){
         if (evt.duration < 30){
           //console.log("removeEvtInSchedule...baah too smoll smoll",evt.title,evt.duration)
           this.doNotify("Removing from the past... Check BALANCE!") //oldie >> Removing from the past too smoll smoll is no no!
@@ -1883,7 +1790,7 @@ methods:{
       
     },
     chooseAlternatives(evt){
-      //todo**
+      this.daSchedule.chooseAlternatives(evt) //--todo**
     },
     onPrev(){
         this.$refs.calendar.prev()
@@ -1896,7 +1803,16 @@ methods:{
     },
     onChange(){
       //console.log('ALT::onChange', this.currentDate)
-      this.daSchedule.onChangeViewDate(this.currentDate)
+      let res =  this.daSchedule.onChangeViewDate(this.currentDate)
+      if(!res.canContinue){
+        if(res.overlaps && Object.keys(res.overlaps).length > 0){
+          this.handleOverlaps(res.overlaps,null,'view')
+        }else{
+          this.doNotify(`Loaded schedule for ${this.currentDate}`, "positive",'bottom')
+        }
+      }else{
+        this.doNotify(`Empty for currentDay :(`, "warning",'bottom')
+      }
     },
     onDragStart(e, item) {
       //console.log('onDragStart',e,item)
@@ -2038,9 +1954,26 @@ methods:{
         }
     },
     onDblClickEvent(e, event) {
-        console.log("onDblClickEvent", event)
+      //console.log("onDblClickEvent", event)
 
+      //below unlikely as score edit comes up when inPast!!
+     //...just in case!
+      if(this.isViewingPast()){
+        if (event.duration < 30){ //dont do this for small evts!
+          console.log("onDblClickEvent..baah too smoll smoll",event.title,event.duration)
+          this.doNotify("umm Removing from the past..Soo Check BALANCE!")
+          this.addToBalance(event)
+          //this.doRemove(event) //onDblClick
+          this.daSchedule.removeScheduledEvt(event)
+          return
+        }
+        this.chooseAlternatives(event)
         e.preventDefault()
+        return
+      }
+
+      this.removeEvtInSchedule(event) 
+      e.preventDefault() //to disable popupEdit...dont work smh event with using setTimeout above
     },
     onTouchStart(e, item){
         console.log('onTouchStart', e,item)

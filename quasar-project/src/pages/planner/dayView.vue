@@ -386,7 +386,7 @@
                             -->
                             
                          
-                          <scoreEditDialog v-if="allowDialog[event.id]"
+                          <mobileNoteScore v-if="allowDialog[event.id]"
                             :title="event.title"
                             :id="event.id"
                             :startTime="event.time"
@@ -469,7 +469,7 @@ components: {
   schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
   dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
   schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
-  scoreEditDialog: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
+  mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
 },
 data () {
   const draggedItem = ref(null)  //toRename** >> selectedItem(whether touch/drag)
