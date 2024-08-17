@@ -64,23 +64,20 @@ const linksList = [
     title: 'Day View',
     caption: 'Schedule',
     icon: 'self_improvement', //event_upcoming || //today
-    link: '/dayCalendar', //'https://quasar.dev'
-    //clicky: clicky
+    link: '/dayCalendar',
   },
   {
     title: 'Goals',
     caption: 'All Goals',
     icon: 'edit_note',
-    link: '/goalsPage', //'https://quasar.dev'
-    //clicky: clicky
-  },
-  {
-    title: 'Alt',
-    caption: 'Alty',
-    icon: 'event_upcoming',
-    link: '/testAlt', //'https://quasar.dev'
-    //clicky: clicky
+    link: '/goalsPage', 
   }
+  //{
+  //  title: 'Alt',
+  //  caption: 'Alty',
+  //  icon: 'event_upcoming',
+  //  link: '/testAlt', //'https://quasar.dev'
+  //}
 ]
 
 export default defineComponent({

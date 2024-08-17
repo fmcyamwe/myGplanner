@@ -51,9 +51,9 @@ export const useGoalStore = defineStore('allGoals', () => {
         JSON.parse($q.localStorage.getItem("AllDates"))
     )
 
-    const getBalance = computed(() => //toTEST** if access after change computed is ok to use*** or move to methods!
-        JSON.parse($q.localStorage.getItem("Balancey"))
-    )
+    //const getBalance = computed(() => //yup doesnt update!--using currentBalance() below--
+     //   JSON.parse($q.localStorage.getItem("Balancey"))
+    //)
 
     function doCopy(arr){  //copy >>this {...obj} is for objects
         if(arr) return [...arr]  //oldie that crap out when arr is null >> arr.length > 0
@@ -70,6 +70,10 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function setBalance(amt){
         $q.localStorage.set('Balancey', JSON.stringify(amt))
+    }
+
+    function currentBalance(){
+        return JSON.parse($q.localStorage.getItem("Balancey"))
     }
 
     function importGoals(pGoals, sGoals,allDates=null){ //umm wonder if can overload with below addMainGoal() ?!? >>nope no overloading in JS smh...
@@ -669,7 +673,8 @@ export const useGoalStore = defineStore('allGoals', () => {
         getSubGoals,
         //getSubGoalsByParent,
         getAllDates,
-        getBalance,
+        //getBalance,
+        currentBalance,
         setBalance,
         addMainGoal,
         addSubGoal,

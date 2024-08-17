@@ -709,7 +709,7 @@ computed: {
     return this.storedPG()  //this.store.getMainGoals
   },
   currentBalance(){
-    return this.store.getBalance // doesnt update after a setBalance with current balance estiii---toFix**
+    return this.store.currentBalance()
   },
   filterString(){ //sigh..did it just work better after placing at end of computed?!? >>dont work in methods section >> AT LEAST updates esti!!
     return this.filter.join()

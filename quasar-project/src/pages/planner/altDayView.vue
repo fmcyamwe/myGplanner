@@ -31,8 +31,8 @@
                                   @do-btn-action="onClearDay"
                                   />
                                 </div>
-                
-                                <div v-if="daSchedule.getProps().showLoadDefaults"><!--disable instead of hiding?!? meh -->
+                                <!--showDefaultBtn daSchedule.getProps().showLoadDefaults -->
+                                <div v-if="showDefaultBtn"><!--disable instead of hiding?!? meh -->
                                   <sched-btn
                                   :textLabel="defaultLabels"
                                   class="sched-btn"
@@ -352,18 +352,18 @@
                                           doesnt seem to work... even with @onclick
                                         -->
                                         
-                                     <!--"allowDialog[event.id]"
-                                     -->
-                                      <mobileNoteScore v-if="daSchedule.showMobileDialog[event.id]"
+                                    
+                                      <mobileNoteScore v-if="showEvtMobile(event.id)"
                                         :title="event.title"
                                         :id="event.id"
                                         :startTime="event.time"
                                         :score="event.score"
                                         :details="event.details"
                                         :notes="event.notes"
-                                        :show-dialog="daSchedule.showMobileDialog[event.id]"
+                                        :show-dialog="showEvtMobile(event.id)"
                                         @save-score="onSaveScore"
                                         @delete-now="removeEvtInSchedule(event)"
+                                        @euh-hidin="daSchedule.euhHidin(event.id)"
                                       />
                                   </div>
                                 </template>
@@ -372,17 +372,18 @@
                         </div>
                     </div> 
                     <br>
-                    <!--see about moving this outside of template--todo**-->
-                    <sched-dialog v-if="addEventDialog"
-                      :parentGoals="daSchedule.allPGoals()"
-                      :canBeScheduled="canbeScheduled"
-                      :balance="currentBalance"
-                      @add-ad-hoc-event="onAddHocEvent"
-                      @on-pick-event="onPickEvent"
-                      @euh-hidin="closingDialog"
-                    />             
+                    <!--sched-dialog was here-->             
                 </template>
             </q-splitter>
+            <!--no issue when here-->
+            <sched-dialog v-if="addEventDialog"
+            :parentGoals="daSchedule.allPGoals()"
+            :canBeScheduled="canbeScheduled"
+            :balance="currentBalance"
+            @add-ad-hoc-event="onAddHocEvent"
+            @on-pick-event="onPickEvent"
+            @euh-hidin="closingDialog"
+          />        
         </div>
     </q-page>
 </template>
@@ -396,7 +397,9 @@ import {
   getDayTimeIdentifier,
   parseTimestamp,
   diffTimestamp,
-  addToDate
+  addToDate,
+  parsed,
+  parseTime
 } from '@quasar/quasar-ui-qcalendar/src/index.js'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
@@ -453,24 +456,12 @@ data () {
 
         calendar: ref(null),
 
-        isDisabledScoreEdit:ref({}),
-        hasStarted:ref({}),  //just for happening now..should combine with isDisabledScoreEdit var above!
-        mobileEnableScore:ref({}), //reverse of isDisabledScoreEdit...mobile and should be dynamically set when touch-repeat....
-        allowDialog:ref({}),//non mais c'est fou lala! for showing mobile dialog still
+        //isDisabledScoreEdit:ref({}),
+        //hasStarted:ref({}),  //just for happening now..should combine with isDisabledScoreEdit var above!
+        //mobileEnableScore:ref({}), //reverse of isDisabledScoreEdit...mobile and should be dynamically set when touch-repeat....
+        //:ref({}),//non mais c'est fou lala! for showing mobile dialog still
 
         addEventDialog: ref(false), //rename to showEvtDialog---
-
-        /*showReloadBtn:ref(false),
-        showClearBtn:ref(false),
-        showLoadDefaults:ref(true),
-        showScoreBtn:ref(false),
-        showPrioBtn:ref(false),
-        showOneEachBtn:ref(false),
-
-        disablePrioBtn: ref(true),  //to temp disable when selecting a new value...
-        disableScoreBtn: ref(true),
-        chosenScore:ref(null),
-        chosenPrio:ref(null),*/
 
         currentDate: ref(today()), //toSee about moving in daySchedule class too ***
         scoreOptions:ref([1,2,3,4,5,6]), //no need for this in class prolly...
@@ -630,16 +621,22 @@ computed: {
         return false
     },
     eventsMap () {
-      
-      //let b = 
-      //const map = {}
-      return this.daSchedule.currentSchedEventsMap()//forEach(event => {
-
+      return this.daSchedule.currentSchedEventsMap()
       //console.log(`eventsMap multiple `,b)
       //return b
-    }
-},
+    },
+    showDefaultBtn(){
+      let e = this.daSchedule.unscheduledDefaults()
+      //console.log("showDefaultBtn...",e.length)
+      return e.length > 0
+    },
+ },
 methods:{
+    showEvtMobile(id){ //to req from daSchedule class and simplify 
+      //toTest** that updates or move to methods estiii
+      return this.daSchedule.showEvtNoteScoreMobile(id)
+    },
+    
     klikaj(e){ //test...toRemove
       console.log("klikaj...", this.currentDate, e)
     },
@@ -659,13 +656,15 @@ methods:{
       this.timeStartPos = this.$refs.calendar.timeStartPos(now.time, false)  
       //the above dont update in view >>cause was not in return!!
 
+      let timeSets = this.daSchedule.getCurrentSchedTimesSets()
 
-      //let hasEnd = (this.endTimesSet && this.endTimesSet.has(now.time))
-      //let hasStart = (this.startTimesSet && this.startTimesSet.has(now.time))
-      //if(hasEnd || hasStart){
-        //console.log("sameStart/END..FOUND", this.currentTime,hasEnd, hasStart)
-        //this.doEnableEndNowBtn(this.currentTime,hasEnd, hasStart)
-      //}
+      let hasEnd = (timeSets.endSet && timeSets.endSet.has(now.time))
+      let hasStart = (timeSets.startSet && timeSets.startSet.has(now.time))
+      if(hasEnd || hasStart){
+        console.log("sameStart/END..FOUND", this.currentTime,hasEnd, hasStart)
+        this.daSchedule.updateMinEndNowBtn(this.currentTime,hasEnd, hasStart)
+        if (hasStart){this.doNotify(`Event Starting :)`, "positive",'bottom')}
+      }
     },
     hasDate (days) { //umm why again?!? for current time line? toTest*** when removed!
         return this.currentDate
@@ -673,15 +672,47 @@ methods:{
         : false
     },
     getDateEvents (dt) {
-    
-      //const events = this.anotherSched.currentSchedEventsMap()[dt] || []
-      //const o = 
-      return this.daSchedule.getDateEvents(dt)  //|| []
-      // this.anotherSched.testEvts()
+
+      //oldie that didnt sort below
+      //return this.daSchedule.getDateEvents(dt)  //|| []
       
       //console.log("ALT::getDateEvents>>",dt, events,o)
 
       //return events //this.anotherSched.getDateEvents(dt)
+        let sorty = (a, b) => {//sort by earlier timestamp!--too much?
+          let timeDiff = diffTimestamp(a.sortTime,b.sortTime) 
+          if (timeDiff > 0) return -1
+          if (timeDiff == 0) return 0 
+          if (timeDiff < 0) return 1
+        }
+
+      const events = this.eventsMap[ dt ] || []
+      
+      if (events.length === 1) {
+        events[ 0 ].side = 'full'
+      } else if (events.length === 2) {
+        console.log("getDateEvents...LENGTH is 2?",dt, events) //bof when actual scheduled is just two evts!--weird that it does this calculation...prolly when overlapping times? >> YEUP! very nice actually--prolly would need overlap check if more than 2 evts lool!
+        // this example does no more than 2 events per day
+        // check if the two events overlap and if so, select
+        // left or right side alignment to prevent overlap
+        /*const startTime = addToDate(parsed(events[ 0 ].date), { minute: parseTime(events[ 0 ].time) })
+        const endTime = addToDate(startTime, { minute: events[ 0 ].duration })
+        const startTime2 = addToDate(parsed(events[ 1 ].date), { minute: parseTime(events[ 1 ].time) })
+        const endTime2 = addToDate(startTime2, { minute: events[ 1 ].duration })
+        if (isBetweenDates(startTime2, startTime, endTime, true) || isBetweenDates(endTime2, startTime, endTime, true)) {
+          console.log("getDateEvents...LENGTH==2..LEFT/RIGHT 'TWIX")  //,startTime, endTime,startTime2,endTime2
+          //when two evts next to each other with some overlapp...
+          events[ 0 ].side = 'left'
+          events[ 1 ].side = 'right'
+        } else {
+          events[ 0 ].side = 'full'
+          events[ 1 ].side = 'full'
+        }*/
+      }
+    
+    //console.log("daEvents...",JSON.parse(JSON.stringify(events))) //, JSON.parse(JSON.stringify(ev))) //events
+  
+    return events.sort(sorty) //errors out with this.sorty
     },
     constructTree(){
         this.treeGoals = this.daSchedule.fetchGoalsTree()
@@ -832,11 +863,10 @@ methods:{
       
       let doCancel = () => {
         console.log('Aborting', this.currentDate,this.scheduledEvents, hasEvents)
-        //this.showReloadBtn = !this.isViewingPast() || hasEvents 
-        //toDO and Test**
+        
       }
       let doOverwrite = () => {
-        console.log('Overwriting')
+        //console.log('Overwriting')
         //this.scheduledEvents = []
         //this.updateCurrentSchedule()
         //this.loadForDate(this.currentDate, hasEvents, this.isViewingPast())
@@ -844,7 +874,7 @@ methods:{
         this.reset() //reloadSaved
       }
       
-      if (this.daSchedule.getAllEvts().length > 0 && !this.daSchedule.isViewingPast()){
+      if (this.daSchedule.getAllEvts().length > 0 && !this.isViewingPast()){
         let mess = hasEvents ? "Reload? saved schedule of: "+this.currentDate : "Overwrite current Evts?"
         this.confirmAction(mess,"OK", doOverwrite, doCancel)
       } else {
@@ -857,7 +887,7 @@ methods:{
     },
     onClearDay(){
         console.log('onClearDay',this.daSchedule.hasEventsForDate())
-        if(this.daSchedule.isViewingPast()){
+        if(this.isViewingPast()){
           this.doNotify("Editing past is no no!") //should confirm instead?!?meh
           return
         }
@@ -906,9 +936,9 @@ methods:{
           }
       }
 
-      let e = this.daSchedule.unscheduledDefaults() //todo** use this length instead!!
+      let e = this.daSchedule.unscheduledDefaults()
 
-      if (this.daSchedule.getAllEvts().length > 0){ //
+      if (e.length > 0){ //
         //let e = this.daSchedule.unscheduledDefaults()
         console.log('unscheduledDefaults', e,e?.length) //e
         
@@ -985,8 +1015,9 @@ methods:{
       }
 
       //this.showDefaultBtn(this.isViewingPast()) 
+      this.daSchedule.toggleActionBtns(true,'byPrio')
       
-      //not allow reclick without changing prio again...todo>>use toggle() function***
+      //not allow reclick without changing prio again...
       this.daSchedule.disablePrioBtn = true 
      
     },
@@ -1042,6 +1073,7 @@ methods:{
       }
 
       //this.showDefaultBtn(this.isViewingPast())
+      this.daSchedule.toggleActionBtns(true,'byScore')
 
       //no reclick without changing score again...
       //todo>>use toggle() function*** OR during method invoke above**
@@ -1049,8 +1081,6 @@ methods:{
         
     },
     doSaveSchedule(){
-      console.log('doSaveSchedule')
-
       this.daSchedule.saveDaySchedule()
 
       this.doNotify(`Schedule saved for ${this.currentDate}`, "positive", "top")
@@ -1059,7 +1089,6 @@ methods:{
       //console.log("doDroppy: "+from,targetDrop, draggedItem)//.duration,draggedItem.time)
 
       if(targetDrop && draggedItem){
-        //todo** using schedule class!!
         let isClose = this.daSchedule.tooClose(targetDrop, draggedItem.duration)
         if(isClose){
           console.log("doDroppy::tooClose to>>",isClose) //could happen when dropping next to scheduled...
@@ -1122,7 +1151,6 @@ methods:{
     },
 
     closingDialog(){// close dialog
-      //use class---todo**
       this.addEventDialog = false
       //this.reset() //just in case...toSee if not too much...
     },
@@ -1169,23 +1197,18 @@ methods:{
         if(!res.canContinue){ //&& !anyOverlap.overlaps
           console.log("onPickEvent::OVERLAPS?",JSON.parse(JSON.stringify(res)))
           if(res.overlaps && Object.keys(res.overlaps).length > 0){
+            //todo** use doForce flag!!
             this.handleOverlaps(res.overlaps,null,'onPickEvt')
           }
           else{ //prolly nothing?--toTest***
             this.doNotify(`Error onPickEvt :(`, "warning",'bottom')
           }
         }else{
-          
-          //console.log("onPickEvent::NO OVERLAPS",res)
-      
+          if (useBalance){
+            console.log("onPickEvent::NO OVERLAPS",res,this.daSchedule.getCurrentBalance())
+            this.doNotify("oooh What is Owed PAID!gg!","positive",'center')
+          }
         }
-      
-      //tODO***
-      //setTimeout(saveSchedule, overlapSizey > 0 ? 5000 : 0); //should invoke after some time for overlaps to allow user choice...
-      
-      //this.showReloadBtn = this.hasEventsForDate  //when hasSaved evts as could potentially clear schedule!
-      //this.showClearBtn = !(this.isViewingPast()) //oldie >> true //prolly
-
     },
     onAddHocEvent(goalTitle, parentGoal, own, interval){
       //console.log('onAddHocEvent',goalTitle, parentGoal, own, interval)
@@ -1248,9 +1271,6 @@ methods:{
         console.log("BOO ERROR no subID:(",subID)
         this.doNotify("Error creating and adding this event :(", "negative")
       }
-
-      //this.addEventDialog = false  //still have to close dialog
-      //this.reset()
     },
     handleOverlaps(overlaps,override = null,from =''){
       console.log('handleOverlaps >>',JSON.parse(JSON.stringify(overlaps)),"from:"+from)
@@ -1279,7 +1299,7 @@ methods:{
           this.doNotify(mess, "positive",'top') //`Cancelling to keep "${title}"`
         }
 
-        const updateMoodLabel = (id) => { //redundant?...toRemove**
+        const updateMoodLabel = (id) => { //redundant...toRemove**
           this.daSchedule.deleteEvtMood(id)
 
           this.scheduleMoodsLabel //this.scheduleMoodsLabel >>to force label update smh
@@ -1295,17 +1315,8 @@ methods:{
 
           console.log(`handleOverlaps::doRem ${evt.id}:${evt.title}`,hasMood)
 
-          //if (this.usingMoods[evt.id]){ 
-          //  let b = this.usingMoods[evt.id] //meh
-          //  delete this.usingMoods[evt.id]   
-          //  console.log(`fixyOverlaps::doRem>>deleting Moody...`+evt.id,b,this.scheduleMoodsLabel)//to force label update smh //JSON.parse(JSON.stringify(Object.fromEntries(this.dailyScheduled.entries())))
-          //}
-
-          //this.doRemove(evt) //fixyOverlaps
           this.daSchedule.removeScheduledEvt(evt,hasMood)
-          //if(hasMood){ //redundant as well...gets updated! yee!!
-            //this.scheduleMoodsLabel //this.scheduleMoodsLabel >>to force label update smh
-          //}
+          
         }
 
         const removeReplace = (toRem,toAdd,aConf) => { 
@@ -1345,11 +1356,6 @@ methods:{
             return this.handleOverlaps(euhOverlaps,override,from+'nah') //handleOverlaps
           }
 
-          //let f = this.updateCurrentSchedule() //update startTimes--no overlaps check but redundant now as using overlapCheckEvtsAdd()
-          //if (f.size > 0){ // handle sameStart...shouldnt get here..prolly
-          //  console.log('handleOverlaps::removeReplace::SameStart?!?', f)
-          //  this.fixSameStart(f) //fixyOverlaps
-          //}
           return
         }
 
@@ -1367,9 +1373,6 @@ methods:{
             this.daSchedule.recurChangeTime(toChange.id,toAdd,conf.targetStart,from != 'onDrop') //doAdd flag important for small time interval jump
           }else{
             console.log(`handleOverlaps::forceAdd: gonna overlapCheckEvtsAdd....`)
-            
-            //toAdd = this.addPropsEventsTo(conf.targetStart.date,[{...toAdd,time:conf.targetStart.time}])
-            //let euhOverlaps = this.overlapCheckEvtsAdd(toAdd)
 
             let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...toAdd,time:conf.targetStart.time}],true)
             let sizey = Object.keys(euhOverlaps).length
@@ -1391,7 +1394,7 @@ methods:{
           //this.disableSaveSchedule = false
           //this.showDefaultBtn(this.isViewingPast())
 
-          this.daSchedule.toggleActionBtns(true,from)  //toSee showDefaultBtn() above needed*** 
+          this.daSchedule.toggleActionBtns(true,from)
         }
 
         let onOkChoice = (og,c, toAdd,currScheduled,aConf) => {
@@ -1406,7 +1409,7 @@ methods:{
             if(from.indexOf('byMood') > -1){
               console.log("handleOverlaps::onOkChoice::Moood!! updates? from: "+from,toAdd.title.trim())
               
-              //updateMoodLabel(toAdd.id) //still needed? toSee***
+              //updateMoodLabel(toAdd.id)
             }
 
             if(override){
@@ -1452,7 +1455,7 @@ methods:{
           //  console.log(`fixyOverlaps::cancelChoice>>deleting Moody...`+toAdd.id,b,this.scheduleMoodsLabel) //,JSON.parse(JSON.stringify(Object.fromEntries(this.dailyScheduled.entries())))) 
           //}
 
-          this.daSchedule.toggleActionBtns(true,'view')
+          this.daSchedule.toggleActionBtns(true,'view') //could be false..toReview**
 
           aNotif(`Keeping scheduled '${currScheduled.title.trim()}'`)
         }
@@ -1571,7 +1574,7 @@ methods:{
           console.log("handleOverlaps...unknown key found",key) //could happen with fixMultiConflicts()--see below! 
           continue
         }
-         //proper reset by iteration means declaring Opts here smh--would putting into lambda be better? toTry***
+         //proper reset by iteration means declaring Opts here --lambda be better? toTry***
         let defaultOpts = [
           //{ label: 'Choose by Priority', value: 'opt1', color: 'secondary' },
           //{ label: 'Choose by Score', value: 'opt2' },
@@ -1600,7 +1603,7 @@ methods:{
         if (toH.length > 1) {//for multiple overlapps with same events
           console.log(`handleOverlaps::WOAH WOAH...multiple overlaps!!`) //,JSON.parse(JSON.stringify(toH))
           //todo below**
-          if ("withID" in toHandle){
+          if ("withID" in toH){
             //this.fixMultiConflicts(toH,override,from)
           }else {
             //this.multiConflicts(toH,override,from)
@@ -1684,15 +1687,18 @@ methods:{
           //yeah just gonna save automatically esti!
           this.daSchedule.saveDaySchedule()
         }
+
+        const reduce =(dura) =>{
+          //console.log(`onEndNow::reducing!!!`,id,dura)
+          this.daSchedule.reduceEvtDuration(id,dura)
+        }
       
       let canEnd = this.daSchedule.canEndNow(id)
 
-      if (!canEnd){
-        console.log('onEndNow...error?',id,canEnd)
+      if (!canEnd){//error if not number...undefined is ok!
+        console.log('onEndNow...ERROR?',id,canEnd,Number.isInteger(canEnd))
       }else{
-        //prolly check that it's a number!!todo**
-        let c = this.daSchedule
-        this.confirmAction("Less than 10mins remove?\n Cancel to just EndNow","OK", doRemove, c.reduceEvtDuration(id,canEnd)) 
+        this.confirmAction("Less than 10mins remove?\n Cancel to just EndNow","OK", doRemove,function(){reduce(canEnd)} )  //reduce
       }
     },
     onSaveScore(newScore, id,note=''){
@@ -1735,12 +1741,6 @@ methods:{
           if (doSave){ //autoSave
             //this.doNotify("removeEvtInSchedule..autoSave for: "+evt.title)
             console.log("removeEvtInSchedule..autoSave for: "+evt.title)
-            
-            //todo below? or would clear?...prolly remove just in case***
-            //delete this.usingMoods[evt.id]
-
-            //this.doSaveSchedule() //removeEvtInSchedule
-            //this.disableSaveSchedule = true
 
             this.daSchedule.saveDaySchedule()
             return
@@ -1790,7 +1790,146 @@ methods:{
       
     },
     chooseAlternatives(evt){
-      this.daSchedule.chooseAlternatives(evt) //--todo**
+      let alts = this.daSchedule.getAltEvts()
+      let now = parseDate(new Date())
+
+      console.log('chooseAlternatives >>ALTS:',JSON.parse(JSON.stringify(alts)))
+
+      let evtTimey = evt.time //for scheduling later
+      let futureDatey = now.date
+
+        const mapToLabels = anEvt => {
+          let prt = this.daSchedule.parentGoalById(anEvt.parentGoal) //parentGoalsMap().get(anEvt.parentGoal)
+          return { label: `Of '${prt?.title.trim()}' "${anEvt.title.trim()}" (${anEvt.score}) for ${anEvt?.duration} mins`, value: anEvt.id }
+          //return { label: anEvt.title.trim() + " for " + anEvt.duration + 'min. With score '+ '('+ anEvt.score + ')' +' At '+ anEvt.time , value: anEvt.id } // color: 'secondary'
+        }
+
+        const filterOutScheduled = evts => {//should filter to remove scheduled
+          return evts.filter(x => !this.daSchedule.getAllEvts().find(item => item.id == x.id)) //this.actualEvts
+        }
+
+        const addInFutur = (eArr) => { // dialogs make it impo! to move into daySchedule class smh
+          let startDay = addToDate(parsed(futureDatey),{ day: 0 }) //think need options >> yup! //SHOULD be sometime in present or future
+          let altDay = addToDate(parsed(startDay.date), { day: 1 }) 
+          //console.log("addInFutur...",futureDatey,startDay,altDay)//JSON.parse(JSON.stringify(toAdd))
+          let EvtsOn = this.daSchedule.getEventsForDate(startDay.date) 
+          let toSave = {}
+          let toAddy = null  //bon hopefully no overwrite as should be one evt
+          if (!EvtsOn){
+            console.log("addInFutur EMPTY for >>...",startDay.date)//could be null!
+          } else {
+            toSave = EvtsOn 
+          }
+
+          eArr.forEach(i => {
+            //let 
+            toAddy = this.daSchedule.getSubGoalByID(i) //this.getLocalEvt(i) //use the `alts` too?!?
+            //console.log("addInFutur...",i,JSON.parse(JSON.stringify(toAddy)))
+
+            if(toSave[i]){//Not override if already present!!
+              console.log("addInFutur...ALREADY PRESENT",i,startDay.date,toAddy?.title.trim()) //JSON.parse(JSON.stringify(toAddy))
+              this.doNotify(`Alternative '${toAddy?.title.trim()}' already present on ${startDay.date}. Moving it to next day`,'warning')
+              let nexty = this.daSchedule.getEventsForDate(altDay.date)
+              if(nexty){
+                if (!nexty[i]){
+                  nexty[i] = {
+                    duration: toAddy?.duration,
+                    time: evtTimey
+                  }
+                } else{
+                  console.log("addInFutur...STILL PRESENT in next day:"+altDay.date,toAddy.title.trim()) //,JSON.parse(JSON.stringify(nexty))
+                  this.doNotify(`Booo! Alt '${toAddy?.title.trim()}' also present on ${altDay.date} :(( ...Check BALANCE!`)
+                  
+                  this.daSchedule.addToBalance(toAddy)
+                  return
+                }
+              } else {
+                console.log("addInFutur next day EMPTY for >>...",altDay.date)
+                nexty = {}
+                nexty[i] = {
+                  duration: toAddy.duration,
+                  time: evtTimey
+                }
+              }
+              //this.store.saveDailySchedule(altDay.date, nexty)
+              this.daSchedule.updateDaySchedule(altDay.date, nexty)
+              this.doNotify(`Saving ${toAddy.title} in ${altDay.date}`, "positive",'bottom')
+            } else { //just add it
+              toSave[i] = {
+                duration: toAddy.duration,
+                time: evtTimey
+              }
+            }
+          })
+
+          console.log("addInFutur>>>",startDay.date, JSON.parse(JSON.stringify(toSave)))
+
+          //this.doNotify(`Saving ${toAddy.title} in ${startDay.date}`, "positive",'bottom') //${JSON.stringify(toSave)}
+
+          this.daSchedule.updateDaySchedule(startDay.date, toSave)
+        }
+
+        const remReplace =(eID) => {
+          //this.doRemove(evt) //alts
+          this.daSchedule.removeScheduledEvt(evt)
+
+          let toAdd = alts.find(item => item.id == eID) //this.getLocalEvt(eID) //should use the `alts` var above..otherwise would be changing the scheduled time of evt.
+          console.log("remReplace...Add at:",evtTimey,toAdd.title, 'usually at:'+toAdd.time) //JSON.parse(JSON.stringify(toAdd))
+
+          let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...toAdd,time:evtTimey}],true)
+
+          let sizey = Object.keys(euhOverlaps).length
+          if(sizey > 0) {
+            console.log(`chooseAlternatives::removeReplace:: OVERLAPS again from ${toAdd.length} overlaps =${sizey}`,toAdd,euhOverlaps)
+
+            this.doNotify(`Extra Overlaps while adding ${toAdd[0].title.trim()}`, "warning",'top')
+            
+            return this.handleOverlaps(euhOverlaps,null,'alts') //chooseAlternatives
+          }
+
+          //let f = this.updateCurrentSchedule()
+          //console.log('chooseAlternatives::remReplace:SAMESTART',f)
+          //if (f.size > 0){
+          //    this.fixSameStart(f) //chooseAlternatives
+          //}
+          
+          //this.doSaveSchedule() //chooseAlternatives
+          this.daSchedule.saveDaySchedule()
+
+          this.doNotify(`Added Alt replacement '${toAdd?.title}' at ${evtTimey}`, "positive",'bottom') 
+          
+        }
+
+        const aProbNotif = (mess) => {
+          this.doNotify(mess) //, "positive",'bottom'
+        }
+      
+      alts = filterOutScheduled(alts)
+
+      if (alts.length == 0) {
+        aProbNotif("Removing not allowed! Alternatives already present!")
+        return
+      }
+
+      this.checkBoxDialog('Gotta pick alternatives',
+        'Select the first Evt to replace the removed and an Extra evt for later day (today)!',//mess,
+        alts.map(mapToLabels),
+        alts[0].id, //'', //have to at least include first Alternative...>> bof no need as check the length of model!
+        function(opt){ //onOk
+          console.log('chooseAlternatives::opt',opt) //JSON.parse(JSON.stringify(toKeep))
+          remReplace(opt.shift())
+          if (opt.length > 0){
+            addInFutur(opt)
+          } else { //get here when only had one alts to choose from...prolly 
+            console.log('chooseAlternatives::onOk...nothing to add?!?',alts.length,opt.length,alts.length - opt.length) //when diff=0 no need to show notif prolly 
+            aProbNotif("No Alternative scheduled later :(")
+          }
+        },
+        function(){//onCancel..
+          console.log('chooseAlternatives::onCancel') //nothing to do...
+        },
+        //onDismiss >>no need
+      )
     },
     onPrev(){
         this.$refs.calendar.prev()
@@ -1809,6 +1948,11 @@ methods:{
           this.handleOverlaps(res.overlaps,null,'view')
         }else{
           this.doNotify(`Loaded schedule for ${this.currentDate}`, "positive",'bottom')
+          
+          if(this.isViewingPast() || this.currentDate !== today()) { //adjustTime for past && futur 
+            //console.log("adjusting time for past/future", this.currentDate) //,this.scheduledEvents.length)
+            this.adjustCurrentTime()
+          }
         }
       }else{
         this.doNotify(`Empty for currentDay :(`, "warning",'bottom')
@@ -1846,15 +1990,17 @@ methods:{
       return true
     },
     onDragOver(e, type, scope){ //fires lot
-        //console.log('onDragOver')
-        e.preventDefault() //to allow drop
-
-        return true
+      //console.log('onDragOver')
+      e.preventDefault() //to allow drop
+      return true
     },
     onDragLeave(e, type, scope){
         return false  //what if true?!?
     },
     onDragEnd(e){//umm why thig again? //can use to do cleanup maybe?
+      //console.log('onDragEnd',e)
+      //e.preventDefault() //bof nope
+      //return true //meh
     },
     onDrop(e, type, scope){
       //console.log('onDrop',e, type, scope)
@@ -1880,7 +2026,7 @@ methods:{
 
       if (!targetTimey) {console.log("ERROR...no timestamp YO!!",e, type, scope, this.targetDrop); return}
       
-      this.doDroppy("onDrop",targetTimey, this.selectedItem)
+      this.doDroppy("onDrop",targetTimey, this.selectedItem) 
 
     },
     onClickTime(data){
@@ -1910,7 +2056,7 @@ methods:{
     },
     ///Mouse event handler for range selection
     onMouseDownTime ({ scope, event }) {
-        //console.log('onMouseDownTime', this.mobile,{ scope, event })
+        //console.log('onMouseDownTime', this.mobile)//,{ scope, event })
         if (isLeftClick(event)) {
         //console.log('onMouseDownTime and its a leftClick event')
         if (this.mobile === true
@@ -1949,9 +2095,9 @@ methods:{
     },
     onMouseMoveTime ({ scope, event }) { //fires lots! when not on top of an event!
     //console.log('onMouseMoveTime', { scope, event })
-        if (this.mobile !== true && this.mouseDown === true) {
+      if (this.mobile !== true && this.mouseDown === true) {
         this.otherTimestamp = scope.timestamp
-        }
+      }
     },
     onDblClickEvent(e, event) {
       //console.log("onDblClickEvent", event)
@@ -1962,7 +2108,7 @@ methods:{
         if (event.duration < 30){ //dont do this for small evts!
           console.log("onDblClickEvent..baah too smoll smoll",event.title,event.duration)
           this.doNotify("umm Removing from the past..Soo Check BALANCE!")
-          this.addToBalance(event)
+          this.daSchedule.addToBalance(event)
           //this.doRemove(event) //onDblClick
           this.daSchedule.removeScheduledEvt(event)
           return
@@ -1976,13 +2122,231 @@ methods:{
       e.preventDefault() //to disable popupEdit...dont work smh event with using setTimeout above
     },
     onTouchStart(e, item){
-        console.log('onTouchStart', e,item)
-    },
-    onTouchHold(e, item){
-        console.log('onTouchHold', e,item)
+      if(e.type == "touchstart"){ //fires once!
+      
+      //this.draggedItem = item
+      this.selectedItem = item
+      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+      //let f = target.closest('.my-event')
+
+      if(target.parentNode.classList.contains("my-event")){
+        console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id]) //target,,this.mobileEnableScore[item.id]
+        target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
+        this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
+      } else {
+        //console.log("onTouchStart:WOOOAH inner touch?",target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
+        //could happen if it's inner elt...so go up
+        let f = target.closest('.my-event')
+        target = target.parentNode
+        if(target.parentNode.classList.contains("my-event")){
+          console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
+          target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
+          this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
+        }else{
+          this.touchedItem = false //flag for later in case clicked on endNow, addMin btns....
+          //console.log("onTouchStart:ERROR...Btn?",target, target.parentNode) //this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
+          return //needed
+        }
+      }
+
+        e.preventDefault() 
+        //need to continue for touch-hold!...OR NOT? seems better for drag/drop smh
+
+        return true //true?
+      }
+    
+      console.log("onTouchStart::ERROR...UNKNOWN",e) //shouldnt happen as rest handled via handleTouchEvt()
+
+      return
     },
     onTouchEvt(e, item){
-        console.log('onTouchEvt', e,item)
+      //console.log('onTouchEvt', e,item)
+
+        const getTimey = (ariaLabel) => {
+          let str = ariaLabel.split(' ')
+          let tr = str[str.length-2] //12:30
+          let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+
+          if(str[str.length-1] == 'PM'){ //for adding 12hrs to account when time is in PM 
+            //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+            if (s.hour == 12){//EXCEPT for noon!
+              //console.log("getTimeyyyyy:",s)
+              return s
+            }
+            
+            return addToDate(parsed(this.currentDate), { hour: 12, minute: parseTime(tr)})
+          }else { 
+            if (s.hour == 12){////reset to 0 for midnight hour smh
+              //let r = addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) }) 
+              //console.log("getTimeyyyyy:",parseTime(tr),s,r)
+              return addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) })  //r
+            }
+          }
+
+          return s
+        }
+
+        let resetClass = (t) =>{
+          let f = t.closest('.my-event')
+          if (f.classList.contains("my-event-drag")) {
+            f.classList.toggle("my-event-drag")
+            //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
+          }else{console.log("onTouchEvt::resetClass...AINT THERE!",f,t)}
+          return
+        }
+
+      if (!this.selectedItem){ //should be populated** should return?!? tbd
+        console.log("onTouchEvt NULL Item ?!? >> "+e.type,this.selectedItem,this.touchedItem)
+        item = this.selectedItem
+      }
+
+      if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
+        if(this.isViewingPast()){ //present check only for move/end --
+          this.doNotify("Editing past is no no!")  //meh same as below for grouping!
+          //this.useGroupNotify("Editing past is no no!", null,'bottom',e.type)//for grouping>>'NoG' 
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+        let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+        if(target.ariaLabel){ //when moving into calendar's interval
+          let s = getTimey(target.ariaLabel)
+          if (this.targetDrop){ //-should skip when in same timestamp
+            let changedBy = diffTimestamp(this.targetDrop,s) 
+            let isSame = JSON.stringify(this.targetDrop) === JSON.stringify(s)
+  
+            if (isSame && changedBy == 0){ //--too much comparison? toReview
+              //console.log("INTERVAL SAME...",isSame,s.time == this.targetDrop?.time, changedBy)
+              return
+            }
+            //console.log("INTERVAL changed!!",isSame,s.time,this.targetDrop?.time,changedBy)
+          }
+          this.targetDrop = s
+
+          e.preventDefault()
+          return
+
+        } else { ////no arialLabel...prolly when over another event! || or same one but in early stages of dragging?
+          let f = target.closest('.my-event')
+          if (f && !f.classList.contains("my-event-drag")) {
+            //target.parentNode.classList.add("my-event-drag")
+            console.log("onTouchEvt::move >>TO ADD AGAIN?!?",f,target, this.touchedItem)
+          }//else{console.log("handleTouchMove:gooootIT",f,target)}
+      
+        }
+        //e.preventDefault()
+        return //true? tbd**
+      }
+      if(e.type == "touchend"){  
+        
+        let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+        //if(this.mobile){
+        //  console.log("handleTouchEvt::END--ISMOBILE",target,this.touchedItem) //this.allowDialog[item.id]
+        //}
+
+        if(this.isViewingPast()){ //present check only for move/end --
+          this.doNotify("Editing past is no no!")  //meh same as below for grouping!
+          //this.useGroupNotify("Editing past is no no!", null,'bottom',e.type)//for grouping>>'NoG' 
+
+          resetClass(this.touchedItem)  //still have to remove the drag class!
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+
+        if(this.touchedItem){
+          if(target.parentNode.classList.contains("my-event-drag")){ //on top of same Evt....
+            console.log("onTouchEvt::END >>removing my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"mobileEnableScore>> "+this.daSchedule.mobileEnableScore[item.id])//target
+            target.parentNode.classList.remove("my-event-drag")
+          }else{
+            let savedHas = this.touchedItem.parentNode.classList.contains("my-event-drag")
+            if(savedHas){//then remove it still
+              this.touchedItem.parentNode.classList.remove("my-event-drag")
+            }else{
+              console.log("onTouchEvt::END... target NO my-event-drag?",savedHas, target,target.parentNode )
+            }
+          }
+        }else{
+          //console.log("onTouchEvt.....EUUH nothing?",this.touchedItem, target) //could happen for those AddMin btns...
+          return //continue default handling....
+        }
+      
+        if(target.ariaLabel){
+          let s = getTimey(target.ariaLabel)
+          //console.log("onTouchEvt::END", this.targetDrop, s)//,target,target.parentNode) //target.classList,target.ariaLabel,s
+
+          this.targetDrop = s
+          
+          this.doDroppy("onTouch",this.targetDrop, this.selectedItem)
+        } else {
+          console.log("onTouchEvt::END>>ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.daSchedule.isDisabledScoreEdit[item.id])//,this.allowDialog[item.id])
+          if(target.classList.contains("title")){
+            console.log("onTouchEvt::END--has title!",this.targetDrop)
+
+            this.doDroppy("onTouch",this.targetDrop, this.selectedItem)  //just drop on top to see--ToReview**
+          }
+        }
+
+        e.preventDefault()
+        e.stopPropagation() //needed?@? think so or would trigger other events...prolly...toMonitor***
+
+        return
+      }
+      console.log("onTouchEvt::UNKNOWN",e) //shouldnt happen!!
+    },
+    onTouchHold({ evt, ...newInfo }, item){ //mobile onScore edit...
+      //console.log('onTouchHold', evt,newInfo,item)
+      
+      if(!this.mobile){
+        console.log("onTouchHold>>NOT MOBILE",evt.type,"mobileEnableScore>> "+this.daSchedule.mobileEnableScore[item.id]) //mousedown usually...
+        //with below active, doesnt complete drop!
+        //evt.preventDefault()
+        //evt.stopPropagation()
+        return //true?
+      }
+      let target = document.elementFromPoint(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY)
+
+      //let oldy = this.daSchedule.showMobileDialog[item.id]
+
+      //this.daSchedule.showMobileDialog[item.id] = this.daSchedule.mobileEnableScore[item.id]
+      
+      this.daSchedule.toggleEvtNoteScoreMobile(item.id)
+
+      /*if(this.isViewingPast()){ //bon in past allowDialog as mobileEnableScore[item.id] never get set?!? why false--toReview**
+        console.log("onTouchHold>> INPAST: toggle!", "isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"oldy:: "+oldy,"mobileEnableScore>> "+ this.daSchedule.mobileEnableScore[item.id])
+        
+        this.daSchedule.showMobileDialog[item.id] = !this.daSchedule.isDisabledScoreEdit[item.id] //toTest** toggling isDisabledScoreEdit   //true
+      }else{
+        console.log("onTouchHold>> INPRESENT: ","isDisabledScoreEdit>> "+ this.daSchedule.isDisabledScoreEdit[item.id],oldy, "mobileEnableScore>> "+this.daSchedule.mobileEnableScore[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id])
+      }*/
+
+      let f = target.closest('.my-event')
+    
+      if(target.classList.contains("title") && target.parentNode.classList.contains("my-event-drag")){ 
+        console.log("onTouchHold...REMOVING my-event-drag",f)//,f,target.parentNode)// remove the 'my-event-drag' class as not a drag!!
+        target.parentNode.classList.remove("my-event-drag")
+      }else{
+        if (f && f.classList.contains("my-event-drag")){//just toggle it...
+          //console.log("onTouchHold--WRONG target... ",evt,target, target.parentNode,f) //could be cause of that transform on elt
+          f.classList.toggle("my-event-drag") 
+        }else{
+          console.log("onTouchHold::class not found on Target!!",target,this.touchedItem)//could and need to use touchedItem
+          if (this.touchedItem){ //use when not set to false in touch-start
+            f = this.touchedItem.closest('.my-event') 
+            if (f && f.classList.contains("my-event-drag")){
+              f.classList.toggle("my-event-drag")
+            }else{ console.log("ERROR...onTouchHold--class not found on Target!!",target,this.touchedItem)}//shouldnt happen!! 
+          }
+        }
+      }
+
+      if(this.daSchedule.isDisabledScoreEdit[item.id] && !this.daSchedule.mobileEnableScore[item.id]){  //remove evt..
+        //f.classList.toggle("my-event-drag") //bof just do it here..toReview as toggle re-add the class
+        console.log("onTouchHold::dblClicking!",this.daSchedule.showEvtNoteScoreMobile(item.id))
+        this.onDblClickEvent(evt,item)
+      }
     },
     scrollToEvent (event) {
         this.$refs.calendar.scrollToTime(event.time, 350)
@@ -1996,17 +2360,7 @@ methods:{
         console.log(`scrollToTime::NO SCROLLY`,timey.time, JSON.parse(JSON.stringify(this.$refs)))
       }
     },
-    doNotify(messg, colorNotif = undefined, position = 'top'){
-      this.$q.notify({
-        color: colorNotif !== undefined ? colorNotif : 'negative',
-        position: position,
-        message: messg,
-        icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-        //group?: boolean | string | number;
-        //timeout?: number; // time to display (in milliseconds)>>default is 5000
-      })
-    },
-      //for Evts time change
+    //for Evts time change
     confirmTimeChange(title, mess, okbtn, altbtn, executeOk, executeCancel,executeDismiss=null){
       this.$q.dialog({
         title: title, //oldie >>'Default Time Change?' 
@@ -2075,7 +2429,37 @@ methods:{
           }
         })
     },
-    confirmAction(message, okbtn,executeOk, executeCancel, executeDismiss=null){ //should pass in cancel btn--todo**
+    checkBoxDialog(title, mess,labels,selectedM, onOk = null,onCancel = null,onDismiss=null){
+      //console.log('checkyBoxDialog::',labels.length)
+      let sizey = labels.length
+      let toValidate = sizey > 2 ? 2 : sizey  //so at min:2 for validate
+      this.$q.dialog({
+        title: title,
+        message: mess,
+        options: {
+          type: 'checkbox',
+          model: [],
+          isValid: model => model.length > 0 && (model.length == toValidate) , //also good >> model.includes(selectedM), //'opt2'
+          // inline: true
+          items: labels
+        },
+        cancel: true,
+        persistent: true
+      }).onOk(data => {
+          // console.log('>>>> OK, received', data)
+          onOk(data)
+      }).onCancel(() => {
+          if (onCancel) {
+            onCancel()
+          }
+      }).onDismiss(() => {
+          if(onDismiss){ //for cleanup and other actions
+            //console.log('checkyBoxDialog::onDismiss!! executin...')
+            onDismiss()
+        }
+      })
+    },
+    confirmAction(message, okbtn,executeOk, executeCancel, executeDismiss=null){ //should pass in cancel btn...maybe
       this.$q.dialog({
         title: 'Warning', //try to pass this in as well?!? tbd!
         cancel: true,
@@ -2096,19 +2480,30 @@ methods:{
           return
         }
       })
-  },
-  withDismissNotify(messg, colorNotif = undefined, position = 'top',timeout = null,dismiss = null){  //timeout=5000 //group=false
-    this.$q.notify({
-      color: colorNotif !== undefined ? colorNotif : 'negative',
-      position: position,
-      message: messg,
-      icon: colorNotif == undefined ? 'report_problem' : 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-      //group: group, //boolean | string | number;
-      timeout: timeout ?? 5000, // time to display (in milliseconds)>>default is 5000
-      closeBtn:"Okey",
-      onDismiss:dismiss, //no need for ()
-    })
-  },
+    },
+    doNotify(messg, colorNotif = undefined, position = 'top'){
+      this.$q.notify({
+        color: colorNotif !== undefined ? colorNotif : 'negative',
+        position: position,
+        message: messg,
+        icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+        //group?: boolean | string | number;
+        //timeout?: number; // time to display (in milliseconds)>>default is 5000
+      })
+    },
+    //prolly redundant--toSee** if used or remove
+    withDismissNotify(messg, colorNotif = undefined, position = 'top',timeout = null,dismiss = null){  //timeout=5000 //group=false
+      this.$q.notify({
+        color: colorNotif !== undefined ? colorNotif : 'negative',
+        position: position,
+        message: messg,
+        icon: colorNotif == undefined ? 'report_problem' : 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+        //group: group, //boolean | string | number;
+        timeout: timeout ?? 5000, // time to display (in milliseconds)>>default is 5000
+        closeBtn:"Okey",
+        onDismiss:dismiss, //no need for ()
+      })
+    },
 }
 }
 
@@ -2177,4 +2572,12 @@ methods:{
   background-color: white
   margin: 10px 0
   cursor: pointer
+  
+.my-event-drag
+  outline: 1px dashed #213
+  opacity: 0.7
+  cursor: move
+  transform: rotateY(45deg) translateZ(1em)
+  transition: transform 100ms linear
+
 </style>

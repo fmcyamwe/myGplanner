@@ -24,12 +24,8 @@ export default class daySchedule {
 
     */
 
-    //parseTime and other stuff here
-
     constructor(onDate,isMobile) 
     {
-      //this.data = data  //redundant..
-      //this._data = {min: min, max: max};
 
       this.showReloadBtn = false //:boolean ;//= false
       this.showClearBtn = false
@@ -48,13 +44,11 @@ export default class daySchedule {
       //this.dailyScheduled = new Map()
       //this.endTimesSet = new Set()
       //this.startTimesSet = new Set()
-  
-      //umm complain named same as above? toSee**
+
       this._dailyScheduled = new Map()  
       this._endTimesSet = new Set()
       this._startTimesSet = new Set()
   
-      //should use _dailyScheduled instead --todo**
       this.savedRawEvts = []
 
       this.actualEvts = []  //bon to use prolly...
@@ -86,6 +80,25 @@ export default class daySchedule {
       return this.actualEvts
     }
 
+    showEvtNoteScoreMobile(id){
+      //if (this.mobile){  //umm no need for this check methink
+        return this.mobileEnableScore[id] && this.showMobileDialog[id]
+      //}
+      //return false //prolly?...
+    }
+    toggleEvtNoteScoreMobile(id){ 
+      console.log('toggleEvtNoteScoreMobile >>',id)
+
+      if(this.isViewingPast() || this.isViewingToday()){ //isViewingToday
+        this.showMobileDialog[id] = true 
+        //umm prolly no need for id...could just be global flag? >>nah other past would also show!!
+      } 
+    }
+    euhHidin(id){ //to just toggle as above...should merge after test**
+      console.log('euhHidin >>',id)
+      this.showMobileDialog[id] = false
+    }
+
     getCurrentSchedTimesSets(){
       return {
         endSet:this._endTimesSet,
@@ -112,9 +125,6 @@ export default class daySchedule {
 
     isViewingToday() {
       return today() == this.currentDate
-    }
-    getData() { //redundant--toRemove**
-      return this.data
     }
 
     toggle() { //updates!!!!niiice!--toRemove || use **
@@ -170,7 +180,15 @@ export default class daySchedule {
       }
       return null
     }
-
+    getAltEvts(){
+      return Repo.storedAlternatives()
+    }
+    getEventsForDate(dt){ //smh just for alts!!
+      return Repo.getDataForDate(dt)
+    }
+    updateDaySchedule(dt,toSave){//also just for alts smh
+      Repo.saveDailySchedule(dt, toSave)
+    }
     parentGoalsMap(){
       return Repo.parentGoalsMap()  //deepCopy?
     }
@@ -195,7 +213,7 @@ export default class daySchedule {
       //console.log('hasEventsForDate >>',this.currentDate, h) //proper?
       return Repo.hasEventsForDate(this.currentDate) //h
     }
-    getDateEvents(dt){
+    getDateEvents(dt){ //redundant--toRemove
       let sorty = (a, b) => {//sort by earlier timestamp!--too much?
         //also have to have sortime in enrichScheduled >> updatedEvtDetails() --TODO**
         let timeDiff = diffTimestamp(a.sortTime,b.sortTime) 
@@ -234,10 +252,8 @@ export default class daySchedule {
       return events.sort(sorty)
     }
     currentSchedEventsMap(){ // convert the events into an object keyed by date
-      //return this._dailyScheduled
-    
+     
       const mappyA = {}
-
 
       //this._dailyScheduled
       this.actualEvts.forEach((evt) => { //(value, key, map) => {
@@ -324,10 +340,10 @@ export default class daySchedule {
         //}
         return {
           overlaps:hasOverlaps, 
-          canContinue:false,//toReview when empty!todo**
+          canContinue:false,//toReview if empty!
         }
       } else{
-        console.log('loadEvtsForDay--Nothing to load!!!',this.savedRawEvts)
+        //console.log('loadEvtsForDay--Nothing to load!!!',this.savedRawEvts)
         return {
           overlaps:null,
           canContinue:true
@@ -336,7 +352,7 @@ export default class daySchedule {
     }
     onChangeViewDate(toDate){ //same as loadForDate()
       let noChange = toDate == this.currentDate
-      console.log('onChangeViewDate >>',JSON.parse(JSON.stringify(this.currentDate)), toDate,noChange)
+      //console.log('onChangeViewDate >>',JSON.parse(JSON.stringify(this.currentDate)), toDate,noChange)
       this.currentDate = toDate
       this.enableActionBtns()
       
@@ -352,13 +368,15 @@ export default class daySchedule {
       this._startTimesSet = new Set()
 
       this.usingMoods = {}
+      this.chosenScore = null
+      this.chosenPrio = null
       //buttons too? prolly!
       // No SavedEvents
       this.showReloadBtn = false //prolly for clearing when viewing diff days?!? tbd
       this.showClearBtn = false
       this.disableSaveSchedule = true
     }
-    unscheduledDefaults(){ //huh could also do unscheduledByScore, unscheduledByPrio---todo***lift from scheduleBy... 
+    unscheduledDefaults(){
       //this.resetGoalEvts(true)
       let allG= this.getSubGoals()
       //this.allEvents.filter
@@ -400,7 +418,7 @@ export default class daySchedule {
         this.disableScoreBtn = false
       }
     }
-    scheduleByScore(flag){ //returns false || euhOverlaps  ::>todo= handle at call site, Actionbtns(clear,reload,...)
+    scheduleByScore(flag){ //returns false || euhOverlaps 
       //console.log('scheduleByScore', flag)
         const filterCurrent = () => {
           let toReload = []
@@ -449,8 +467,6 @@ export default class daySchedule {
         }
       }
 
-      //toRet = this.removeNoTimes(toRet,"scheduleByScore") //todo**
-
       //filter && overwrite replaces
       //add concats...
       let euhOverlaps = this.addGoalsToSchedule(toRet,this.isViewingToday())
@@ -475,9 +491,8 @@ export default class daySchedule {
       }
 
     }
-    scheduleSamePrio(flag){ //returns false || euhOverlaps  ::>todo= handle at call site, Actionbtns(clear,reload,...)
-      //console.log('scheduleSamePrio', flag,this.isViewingToday())
-        
+    scheduleSamePrio(flag){ //returns false || euhOverlaps
+      
         const filterCurrent =() => { //parentGoalsMap().get(
           return this.actualEvts.filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
         }
@@ -513,9 +528,7 @@ export default class daySchedule {
         }
         console.log(`scheduleSamePrio...${flag} to size: ${this.actualEvts.length} some evts = ${toRet.length}`, ) // JSON.parse(JSON.stringify(toRet))
       }
-      
-      //this.savedRawEvts = toRet //Repo.getDataForDate(this.currentDate)
-      
+     
       //add to schedule!
       if (toRet.length < 1) {
         console.log(`Empty for Priority == ${this.chosenPrio} :(`)
@@ -532,8 +545,6 @@ export default class daySchedule {
           canContinue:false,//for notify
         }
       }
-
-      //toRet = this.removeNoTimes(toRet,"scheduleSamePrio") //todo**
 
       //filter && overwrite replaces
       //add concats...
@@ -591,16 +602,12 @@ export default class daySchedule {
       return euhOverlaps
       
     }
-    scheduleOneEach(flag){//returns false || euhOverlaps  ::>todo= handle at call site, Actionbtns(clear,reload,...)
-      console.log('scheduleOneEach', flag)
-      //let allEvts = this.deepCopy(this.storedSubGoals)
-      //let allEvts = this.getSubGoals()
+    scheduleOneEach(flag){//returns false || euhOverlaps
+      //console.log('scheduleOneEach', flag)
 
-      //let notScheduled = this.unscheduled() // allEvts.filter(x => !this.scheduledEvents.find(item => item.id == x.id))
-      //console.log('scheduleOneEach..notScheduled!!',notScheduled)
-  
-        //const subGoalsOfParent =(id) => {
-        //  return allEvts.filter(evt => evt.parentGoal == id)
+        //const randomSelect =(from) =>{
+        //  let s = from.length
+        //  return Math.floor(Math.random() * s)
         //}
   
         const selectOneFromP = (useRandom) => {
@@ -646,12 +653,15 @@ export default class daySchedule {
           //console.log('scheduleOneEach...unscheduled!!',notScheduled)
           let toAddy = []
           this.parentGoalsMap().forEach((value, key, map) => {
-            let c = notScheduled.find(item => item.parentGoal == value.id)
-            if (c){
+            //let c = notScheduled.find(item => item.parentGoal == value.id)
+            let toChooseFrom = notScheduled.filter(item => item.parentGoal == value.id)
+            let s = toChooseFrom.length
+            if (s > 0){
+              let c = toChooseFrom[Math.floor(Math.random() * s)] //randomSelect(toChooseFrom)
               toAddy.push(c)
             } else{
               console.log('scheduleOneEach::No goal for parent!!',key, value?.title)
-              //TODO below***
+              //todo >return this to show user...maybe
               //this.useGroupNotify(`No SubGoals for Parent: '${value?.title}'`, value?.bgcolor,'bottom')//for grouping>>'NoG' //doNotify  //"warning"
             }
           })
@@ -664,12 +674,9 @@ export default class daySchedule {
       let toAdd=[]
       
       if(flag == 'add'){//go through each and add subG for parentG
-        toAdd = addy() //--toReview as always add same** 
-        //could use selectOneFromP() BUT borks at random access smh
+        toAdd = addy()
 
-        //console.log('scheduleOneEach...TOADD!!',toAdd)
-        //toAdd = this.addPropsEventsTo(this.currentDate, toAdd)  
-        //toAdd = this.removeNoTimes(toAdd,"scheduleOneEach")
+        console.log('scheduleOneEach...TOADD!!',toAdd)
 
       } else { //overwrite!
         //this.scheduledEvents = []
@@ -682,8 +689,6 @@ export default class daySchedule {
         
         //console.log('scheduleOneEach...ADD! for> '+flag,toAdd)
         
-        //toAdd = this.addPropsEventsTo(this.currentDate, toAdd)
-        //toAdd = this.removeNoTimes(toAdd,"scheduleOneEach")
       }
 
       //add to schedule!
@@ -708,7 +713,7 @@ export default class daySchedule {
         let added = this.addToSchedule(toAdd[i],this.isViewingToday(),false) //addEventInSchedule
         if(!added){
           console.log('scheduleOneEach..ERROR?!? not added',added,toAdd[i])
-          //could be present?--toSee***
+          //could be present?--unlikely when using unscheduled--toMonitor
         }else{
           if(Array.isArray(added)){ //overlap!!!
             console.log('scheduleOneEach.... overlap?!!!',JSON.parse(JSON.stringify(added)),toAdd[i])
@@ -719,16 +724,11 @@ export default class daySchedule {
         }
       }
 
-      //let euhOverlaps = this.addGoalsToSchedule(toAdd,this.isViewingToday())
-      
-      //if(isTod){
-        //let euhOverlaps = this.overlapCheckEvtsAdd(toAdd)
+     
         let sizey = Object.keys(euhOverlaps).length
         if(sizey > 0) {
           console.log(`scheduleOneEach:: Overlaps when adding ${toAdd.length}. overlaps =${sizey}`) //notScheduled.length
 
-          //this.massageOverlaps(euhOverlaps) //{handleOverlaps
-          //this.fixyOverlaps(euhOverlaps,null,'oneEach') //scheduleOneEach
           this.toggleActionBtns((toAdd.length > 0),'oneEach')
           return {
             overlaps:euhOverlaps, //umm this.massageOverlaps(anyOverlap)?
@@ -742,47 +742,8 @@ export default class daySchedule {
           canContinue:true,
         }
 
-      //} else { //no overlap check for future.
-        let f = flag == 'overwrite' //false isnt better? toSee**...
-        //let toReload = selectOneFromP(f) //oldie >> false
-
-        console.log('scheduleOneEach::scheduleAs..future!!'+flag,f, euhOverlaps)//toReload)
-        
-        //toReload = this.addPropsEventsTo(this.currentDate, toReload)
-        //toReload = removeNoTimes(toReload)
-
-        /*
-        if(f){ //overwrite....just schedule
-          this.scheduledEvents = toAdd
-        } else{
-          let euh = this.scheduledEvents.concat(toAdd)
-          this.scheduledEvents = euh
-        }
-
-        let sameStart = this.updateCurrentSchedule()
-        console.log('scheduleOneEach....sameStart='+sameStart.size)
-        if (sameStart.size > 0 && isTod){
-          this.fixSameStart(f) //scheduleOneEach
-        } */
-      //}
-
-      //todo below**
-      //this.isViewingPast() ? this.allowScoreEdit(true) : this.allowScoreEdit(false)
-      
-      //this.toggleActionBtns((toAdd.length < 0),'oneEach')
-
-      //this.disableSaveSchedule = toAdd.length < 0
-      //this.showReloadBtn = this.hasEventsForDate()
-      //this.showClearBtn = true
-      
-      return euhOverlaps
-      return {
-        overlaps:euhOverlaps,
-        canContinue:true,
-      }
-
     }
-    scheduleByMood(toAdd){ //returns euhOverlaps  ::>todo*** handle at call site, Actionbtns(clear,reload,...)
+    scheduleByMood(toAdd){
       let toReload = []
   
       for(let i = 0; i < toAdd.length; i++){
@@ -800,13 +761,7 @@ export default class daySchedule {
         }else { 
           //console.log(`scheduleByMood>>>no time eh >>`+ local?.title) //could be error?!? toMonitor**
           //this.doNotify(`Evts '${local?.title}' has no set time for scheduling, Manually Add them.`, "warning",'top')
-          
-          //this.withDismissNotify(`Evt '${local?.title}' has no set time for scheduling, Manually Add it!`, "warning",'top',null,
-          //function(){ //onDismiss....
-          //  console.log(`scheduleByMood>>>no time eh >> `+local?.title) //could be error?!? toMonitor**
-          //})
-
-          //return something to show notify above?--todo***
+         
         }
       }
 
@@ -829,8 +784,7 @@ export default class daySchedule {
       let sizey = Object.keys(euhOverlaps).length
       if(sizey > 0) {
         console.log(`scheduleByMood overlaps on:${this.currentDate} to ${toReload.length}. overlaps =${sizey}`) 
-        
-        //TODO**handle //this.fixyOverlaps(euhOverlaps,null,'byMood') //scheduleByMood
+
         return {
           overlaps:euhOverlaps, //OR this.massageOverlaps(euhOverlaps) ?
           canContinue:false,
@@ -843,20 +797,13 @@ export default class daySchedule {
       //this.showReloadBtn = toReload.length > 0 && this.hasEventsForDate()
       //this.showClearBtn = !this.isViewingPast()  //incase have other evts?!?
 
-      //return euhOverlaps
       return {
         overlaps:euhOverlaps,
-        canContinue:true,  //or canContinue?
+        canContinue:true,
       }
     }
-    scheduleDefaults(flag){ //returns euhOverlaps  ::>todo*** handle at call site, Actionbtns(clear,reload,...)
+    scheduleDefaults(flag){
 
-      
-      //this.deepCopy(this.store.fetchDefaults()) //resets reference >>does!
-      //let dEvts = this.unscheduledDefaults()
-      //console.log('unscheduledDefaults', flag,dEvts,Repo.getDefaultEvts()) //e?.length
-      
-      //let isTod = this.isViewingToday()
   
       let dEvts = null 
 
@@ -869,7 +816,6 @@ export default class daySchedule {
 
       //console.log('unscheduledDefaults',this.hasEventsForDate(),dEvts.length)
 
-      //do removeNoTimes()****
       this.showReloadBtn = this.hasEventsForDate()
       this.showClearBtn = !this.isViewingPast() && dEvts.length > 0
       
@@ -877,101 +823,22 @@ export default class daySchedule {
       let sizey = Object.keys(euhOverlaps).length
       if(sizey > 0) {
         console.log(`scheduleDefaults:: Overlaps on:${this.currentDate} for ${dEvts.length}...overlaps =${sizey}`) 
-          
-        //this.fixyOverlaps(euhOverlaps,null,'oneEach') //scheduleDefaults
-        //TODO**
-        //return euhOverlaps
+      
         return {
           overlaps:euhOverlaps, //Or this.massageOverlaps(euhOverlaps)
           canContinue:false,
-          //flags about ?.inDefaults || !evt?.canMove ? for timeChanged() || evt.durationChanged() ?!?
         }
       }
 
-      this.toggleActionBtns((dEvts.length > 0),'defaults') //sa
+      this.toggleActionBtns((dEvts.length > 0),'defaults') 
       //this.disableSaveSchedule = !(dEvts.length > 0) //false
 
       return {
         overlaps:null,
-        canContinue:true,
-        //flags about ?.inDefaults || !evt?.canMove ? for timeChanged() || evt.durationChanged() ?!?
+        canContinue:true
       }
 
-      ////inPast ? this.allowScoreEdit(true) : this.allowScoreEdit(false)
-      
-      // this.showDefaultBtn(inPast)
-
-      //this.disableSaveSchedule = dEvts.length < 0
-      //this.showReloadBtn = this.hasEventsForDate
-      //this.showClearBtn = true
-
-      
-      /*redundant oldie
-      if(isTod){ //Overlap check for today only...
-  
-        let toReload = this.addPropsEventsTo(this.currentDate, dEvts)
-    
-        if(flag == 'add'){  //here should use the e var instead --todo**
-          let orig = toReload.length
-          toReload = toReload.filter(x => x?.inDefaults && !this.scheduledEvents.find(item => item.id == x.id)) //filter out already scheduled no need for >> x?.time != '' as done below 
-          console.log(`scheduleDefaults..ADDIN from ${orig} to ${toReload.length}`) //toReload
-        } else { //overwrite flag to reset first!
-          this.scheduledEvents = []
-          this.updateCurrentSchedule()
-        }
-  
-        //toReload = this.removeNoTimes(toReload,"scheduleDefaults")
-  
-        console.log(`scheduleDefaults:${this.currentDate} with '${flag}'`,toReload.length,this.scheduledEvents.length) //JSON.parse(JSON.stringify(toReload))
-        
-        let euhOverlaps = this.overlapCheckEvtsAdd(toReload) //no need for date prolly  //this.currentDate
-  
-        let sizey = Object.keys(euhOverlaps).length
-        if(sizey > 0) {
-          console.log(`scheduleDefaults overlaps on:${this.currentDate} from ${dEvts.length} to ${toReload.length}. overlaps =${sizey}`),  
-          
-          this.fixyOverlaps(euhOverlaps,null,'byDefaults') //scheduleDefaults
-        }
-  
-        //let m = 
-        this.evtStartedOrPassed(parseDate(new Date())) //does return too fast...
-  
-        //console.log(`scheduleDefaults:Today scheduling DONE with overlaps:`+sizey,m)
-        this.showDefaultBtn(inPast) 
-        this.disableSaveSchedule = !(toReload.length > 0) //false
-        
-        return
-        
-      } else { //No Overlap check for past/future
-          let toReload = this.addPropsEventsTo(this.currentDate, dEvts)
-  
-          toReload = this.removeNoTimes(toReload,"scheduleDefaults")
-  
-          if(flag == 'add'){//still check for add flag in future...also should use the e var instead --todo**
-            let orig = toReload.length
-            toReload = toReload.filter(x => !this.scheduledEvents.find(item => item.id == x.id)) //filter out already scheduled
-            console.log(`scheduleDefaults..ADDIN to ${this.currentDate} of ${this.scheduledEvents.length} from ${orig} to `,toReload.length)
-            let f = this.scheduledEvents.concat(toReload)
-            this.scheduledEvents = f
-          }else{
-            this.scheduledEvents = toReload
-          }
-        
-        let sameStart = this.updateCurrentSchedule()
-        if (sameStart.size > 0){
-          console.log('scheduleDefaults..sameStart='+sameStart.size)
-          //this.fixSameStart(sameStart) //could solve conflicts but should let them be fixed on reload...weird but makes sense in case schedule not saved anyway!
-        }
-  
-        inPast ? this.disableScoreEdit(true) : this.disableScoreEdit(false)
-      }
-      
-  
-      this.showDefaultBtn(inPast)
-      
-      */
-  
-      this.disableSaveSchedule = !(dEvts.length > 0) //false
+      //this.disableSaveSchedule = !(dEvts.length > 0) //false
       //this.reset() //nah in case have other settings like onScore/Prio.
   
     }
@@ -1082,36 +949,7 @@ export default class daySchedule {
         if(anyOverlap.length > 0) {
           
           console.log(`onPickEvent::overlaps!!!`,JSON.parse(JSON.stringify(anyOverlap)))
-          //let i = 0
-          //do {
-              //this.recurChangeTime(anyOverlap[i].inConflict,addy, this.targetDrop.timestamp,doForce, true) //anyOverlap[i].direction=='haut', 
-          //} while (++i < sizey)
 
-          /*let euhOverlaps={}
-
-          for(let i = 0; i < anyOverlap.length; i++){
-            let toH = anyOverlap[i]
-            if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]} 
-            // >>shouldnt have more than one?!? toTest or see below**
-            if(i > 0){//for using fixMultiConflicts()
-              //keep in mind the obj.id is target
-              
-              console.log(i+" WOAH WOAH,onPickEvent.. multiple overlaps with same target?",anyOverlap[i].target)//>could have multiple default that are overlapping yes!
-              //ummm this where using inConflict is wrong as evt CAN overlap with two others....
-              if (toH.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",toH.inConflict); delete euhOverlaps[toH.inConflict] }
-              if (anyOverlap[i-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",anyOverlap[i-1].inConflict); delete euhOverlaps[anyOverlap[i-1].inConflict] }
-
-              if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
-                
-              euhOverlaps[toH.target].unshift(anyOverlap[i-1]) //also add previous as makes sense..
-              euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
-            } 
-          }
-          
-          console.log(`onPickEvent::OVERLAPS of size: ${anyOverlap.length} and force:${doForce}`,JSON.parse(JSON.stringify(euhOverlaps))) 
-          
-          //this.fixyOverlaps(euhOverlaps,null,"onPickEvt") //onPickEvt
-          */
           return {
             overlaps: this.massageOverlaps(anyOverlap), //euhOverlaps,
             canContinue:false,  //or proper rename >> canContinue(with action like drop or pick?)
@@ -1122,7 +960,7 @@ export default class daySchedule {
 
           //only balance without overlaps for now--
           if (useBalance){
-            let balance = this.getCurrentBalance() //currentBalance //balance should be negative...methink
+            let balance = this.getCurrentBalance() //currentBalance 
             let neB = balance + parseInt(addE?.duration) 
 
             console.log("onPickEvent...useBalance",balance,neB)
@@ -1136,7 +974,7 @@ export default class daySchedule {
           let anyO = this.addGoalsToSchedule([{...addE,time:timey.time}],false)
           
           //this.toggleActionBtns(true,'onPickEvt')
-          this.isViewingPast() ? this.saveDaySchedule() : this.toggleActionBtns(true,'onPickEvt')
+          this.isViewingPast()|| useBalance ? this.saveDaySchedule() : this.toggleActionBtns(true,'onPickEvt')
 
           return {
             overlaps:anyO, //should be empty ////null,
@@ -1150,7 +988,6 @@ export default class daySchedule {
         return {
           overlaps:null,
           canContinue:false,
-          //errorMessage? toSee***
         }
       }
 
@@ -1193,7 +1030,7 @@ export default class daySchedule {
         //tEvt.time >> original Evt time but the targetTimestamp.time >> WHEN it should be scheduled at
   
         let overlappedEvtNew = null
-        if (dragTimeInterval >= 0 ) { //>=0 ?!? yup // also this add of extra 10 prolly lead to more overlap! should remove for too many evts!!--todo**
+        if (dragTimeInterval >= 0 ) { //>=0 ?!? yup // also this add of extra 10 prolly lead to more overlap! should remove for too many evts!!--toReview
           overlappedEvtNew= addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) 
           let alternative = addToDate(targetTimestamp, { minute: parseInt(overlappedEvt.for) + 10 })//overlappedEvt.for might be too much...
           console.log(`recurChangeTime::${overlappedEvtID}...FORWARD ${dName} for ${dragTimeInterval} due to evt:${tEvt.id} at ${targetTimestamp.time} 
@@ -1478,7 +1315,7 @@ export default class daySchedule {
       let euhOverlaps = {}
 
       toAdd.forEach((obj) => {
-        console.log(`addGoalToSchedule...obj`,obj)
+        //console.log(`addGoalToSchedule...obj`,obj)
 
         let added = this.addToSchedule(obj,checkOverlap,false) //false to use proppy() as it's goal
         if(!added){
@@ -1495,10 +1332,6 @@ export default class daySchedule {
       })
 
       return euhOverlaps
-    }
-    chooseAlternatives(evt){
-      //todo**
-      console.log("chooseAlternatives..TODO",evt)
     }
     addToSchedule(evt,checkOverlap,useProp=false){//useProp flag to use schedEvtWithProps()
       if (! this._dailyScheduled.has(evt.id)){
@@ -1583,7 +1416,6 @@ export default class daySchedule {
         this._dailyScheduled.forEach( (value, key, map) => {
           toSave[key] = {  //minimalistic
             //id: key,
-            //date: value.on, //redundant
             time: value.start.time,
             duration: value.duration, //.for,
             //originalAt: value.originalAt,
@@ -1600,7 +1432,6 @@ export default class daySchedule {
             console.log("saveDaySchedule",key, value?.notes, value?.score) //toSave[key].atScore,
             toSave[key].atScore = value?.score  // toSave[key].atScore || value?.score ?!?
             toSave[key].notes = value?.notes
-            ////umm overwrite old atScore..prolly? tbd**
           }
         })
       }
@@ -1613,6 +1444,24 @@ export default class daySchedule {
        this.showReloadBtn = false
        this.showClearBtn = toSave != null && !this.isViewingPast()
 
+    }
+    //to enable/disable endButton...
+    updateMinEndNowBtn(timey,hasEnd, hasStart){ 
+
+      for (let [entry, val] of this._dailyScheduled) {
+        let toComp = hasEnd ? val.end.time : val.start.time  //bon should work..prolly both flags are mutually exclusive?
+        //let euhStart = hasStart ? val.start.time : timey  //just in case but redundant.
+        if (toComp == timey){
+          //console.log(`doEnableEndNowBtn found hasStart:${hasStart}`, entry,JSON.parse(JSON.stringify(this.isDisabledScoreEdit[entry])) ) //val
+          this.hasStarted[entry] = !hasEnd 
+          this.isDisabledScoreEdit[entry] = !hasEnd //enable/disable score edit--toTEST...should use hasEnd?!? or hasStart?!?
+          if(this.mobile){
+            console.log(`updateMinEndNowBtn..MOBILE::good?>>${hasStart}::${hasEnd}`,timey)
+            this.showMobileDialog[entry] = !hasEnd //umm toTest if toggle too*** //false
+          }
+        }
+        //ELSE for hasStart to SHOW enableBtn--TODO? OR just test above?** 
+      }
     }
     reduceEvtDuration(evtID,duration){
       let evt =  this.findEvent(evtID) //this.getSubGoalByID(evtID)
@@ -1634,13 +1483,55 @@ export default class daySchedule {
       this._endTimesSet.add(now.time)
 
       let e = this.findSchedEvent(evtID)
-      e.duration = duration  //toTest**
+      e.duration = duration //gotta set new duration
           
-      //just save schedule
-      this.saveDaySchedule() //endNow
+      //this.enableNoteScoreEdit(draggedItem.id,newStart,endTime)
+      this.updateEvtMinsEndNowBtns(evtID, starty,now) //toTest**
 
-      //saveSchedule btn? toSee**
-      return true  //true? doesnt go too fast?
+      //just save schedule
+      this.saveDaySchedule()
+
+      return //undefined for not triggering confirm dialog
+    }
+    //after endNow btn...kinda convoluted..toReview**
+    // maybe use same logic as in enableNoteScoreEdit()--could just use it instead too!!!
+    updateEvtMinsEndNowBtns(evtID, startTime,endTime){
+
+      const now = parseDate(new Date())
+
+      let compareTime = addToDate(now,{ minute: 0})
+      let tTime = this.getTimeNumber(compareTime)
+
+      let eStart = this.getTimeNumber(startTime)
+      let eEnd = this.getTimeNumber(endTime)
+
+      if (eStart !== false && eEnd !== false){
+
+        let isTwix = (tTime >= eStart && tTime < eEnd) 
+        //let hasEnded = eEnd >= tTime //&& tEnd <= eEnd) //umm what if it's just at the line though? >>gets included...so removing '=' for endTime..prolly others too but ToReview!!
+        
+        let hasEnded = tTime >= eEnd
+
+        //let diffyEnd = diffTimestamp(eEnd, tTime) 
+        //test to see if accurate! 
+        //>> (diffyEnd > 0) >> so evt has NOT ended
+        ////negative means it has ended...
+        if (isTwix || hasEnded) {
+          //console.log(`Evt:${evtID} > ongoing:${isTwix} or ended:${hasEnded}`) //, diffyEnd > 0, compareTime 
+        }else{
+          //console.log(`Evt:${evtID} Not started> ongoing:${isTwix} or ended:${hasEnded}`) 
+        }
+
+        if (isTwix){
+            //console.log(`Evt:${evtID} >STARTED?`,isTwix)
+            this.hasStarted[evtID] = true  
+        }
+        if(hasEnded){
+          this.disableEvtScoreEdit(evtID, hasEnded) //should disableScore prolly
+        }
+      }else{
+        console.log(`ERROR?!:${evtID} has no start/end?.`) //shouldnt happen?--toMonitor**
+      }
     }
     canEndNow(evtID){
       let evt =  this.findEvent(evtID)
@@ -1657,15 +1548,14 @@ export default class daySchedule {
         return false
       }
 
-      let o = this.getTimeNumber(endy) - this.getTimeNumber(starty)  //how this larger?!? should be duration
+      let o = this.getTimeNumber(endy) - this.getTimeNumber(starty)
       let anotherDiff = this.getTimeNumber(now) - this.getTimeNumber(starty) //duration of event with change
 
-      if (anotherDiff < 10){ //less than 10 min since evt start
-        console.log(`huh,canEndNow:: ${evtID} duration from ${o} to:`, anotherDiff)
-        return anotherDiff //ummm...
+      console.log(`canEndNow:: ${evtID} duration from ${o} to:`, anotherDiff)
+      if (anotherDiff < 10){ //less than 10 min since evt start--ask to remove
+        return anotherDiff
       }
-      
-      //just reduce
+
       return this.reduceEvtDuration(evtID,anotherDiff)
 
     }
@@ -1685,9 +1575,10 @@ export default class daySchedule {
           h.score = newScore
         }else{console.log('onSaveScore ERROR not found',h, id) }  //very baaad!
         
-        if(note !==''){ //should check that notes havent changed too---todo**
-          console.log(`updateNoteScore::note ${id}from ${oldy} to ${newScore} with note>>`,note)
+        if(note !==''){ //should check that notes havent changed too?--meh
+          //console.log(`updateNoteScore::note ${id}from ${oldy} to ${newScore} with note>>`,note)
           ev.notes = note
+          h.notes = note //to update inner child
           this.saveDaySchedule()
         }
 
@@ -1698,7 +1589,6 @@ export default class daySchedule {
     addMinsToEvt(evtID,mins){
       let evt =  this.findEvent(evtID)
 
-      //console.log('addMinsToEvt...TODO',id,mins,evt)
       if (!evt){
         console.log(`ERROR addMinsToEvt EVT not found!!!`, evtID)
         return
@@ -1713,48 +1603,17 @@ export default class daySchedule {
   
         let anyOverlap =  this.hasOverlappingEvent(evtID, evt.start, newEndy) //newDura
         if (anyOverlap.length > 0){
-          console.log(`addMinsToEvt::huh some OVERLAPS`,anyOverlap) //toTest**
+          console.log(`addMinsToEvt::huh some OVERLAPS`,anyOverlap)
           return {
             overlaps:this.massageOverlaps(anyOverlap),//anyOverlap,//gotta turn into object
             canContinue:false,
           }
-
-          /*let euhOverlaps={}
-  
-          for(let i = 0; i < anyOverlap.length; i++){
-            let toH = anyOverlap[i]
-            if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]} 
-           
-            if(i > 0){//for using fixMultiConflicts()--unlinkely to happen here...toMonitor**
-              //keep in mind the obj.id is target
-              
-              console.log(i+" WOAH WOAH,onAddMins..ERROR?!? multiple overlaps with same target?",anyOverlap[i].target)//>could have multiple default that are overlapping yes!
-              //ummm this where using inConflict is wrong as evt CAN overlap with two others....
-              if (toH.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",toH.inConflict); delete euhOverlaps[toH.inConflict] }
-              if (anyOverlap[i-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",anyOverlap[i-1].inConflict); delete euhOverlaps[anyOverlap[i-1].inConflict] }
-  
-              if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
-                
-              euhOverlaps[toH.target].unshift(anyOverlap[i-1]) //also add previous as makes sense..
-              euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
-            } 
-          }
-  
-          console.log("onAddMins:: OVERLAPS >>",JSON.parse(JSON.stringify(euhOverlaps)))
-          this.fixyOverlaps(euhOverlaps,null,'addMins') //addMins
-          */
         } else {
           
           console.log(`Great, ${evtID} Ending at:${newEndy.time}`)
           let e = this.findSchedEvent(evtID)
-          e.duration = newDura  //toTest**
+          e.duration = newDura 
           
-          //for(let i = 0; i < this.scheduledEvents.length; i++) { //use filter here instead prolly--toImprove
-          //  let obj = this.scheduledEvents[i]
-          //  if (obj.id === evtID){
-          //    obj.duration = newDura
-          //  }
-          //}
           this._dailyScheduled.set(evtID, {...evt,duration:newDura,for:newDura, end:newEndy}) //for prop updated too just in case.....
           
           if(!this._endTimesSet.delete(endy.time)){ //make sure as should not happen--toTest**
@@ -1823,19 +1682,21 @@ export default class daySchedule {
       }
     }
     addToBalance(evt){ //add to minus balance the duration of evt
-      let balance = this.getCurrentBalance
+      let balance = this.getCurrentBalance()
       let neB = balance - parseInt(evt?.duration) //gotta minus...
       
       Repo.storeNewBalance(neB)
     }
-    disableAllScoreEdit(flag){
+    disableAllScoreEdit(flag){ //redundant...toRemove prolly
       //this._dailyScheduled.forEach((value, key, map)=> {
       this._dailyScheduled.forEach( (value, key, map) => {
           this.isDisabledScoreEdit[key] = flag 
       })
     }
     disableEvtScoreEdit(evtID, flag){
-      this.isDisabledScoreEdit[evtID] = flag
+      this.isDisabledScoreEdit[evtID] = !flag
+
+      this.mobileEnableScore[evtID] = flag  //normally inverse--toTest**
     }
     enableNoteScoreEdit(evtID, startTime,endTime){
       //this.isViewingPast() ? this.disableEvtScoreEdit(evtID,false) : this.disableEvtScoreEdit(evtID,true)
@@ -1866,109 +1727,6 @@ export default class daySchedule {
       }
       ////////enableEndNowBtn //////
       isBetweenDates(now, startTime, endTime, true) ? this.hasStarted[evtID] = true : this.hasStarted[evtID] = false
-      
-      
-      ///////  evtStartedOrPassed ////--redundant--ToRemove***
-      let eStart = this.getTimeNumber(startTime)
-      let eEnd = this.getTimeNumber(endTime)
-
-      if (eStart !== false && eEnd !== false){
-
-        let isTwix = (tTime >= eStart && tTime < eEnd) 
-        //let hasEnded = eEnd >= tTime //&& tEnd <= eEnd) //umm what if it's just at the line though? >>gets included...so removing '=' for endTime..prolly others too but ToReview!!
-        
-        let hasEnded = tTime >= eEnd
-
-        //let diffyEnd = diffTimestamp(eEnd, tTime) 
-        //test to see if accurate! 
-        //>> (diffyEnd > 0) >> so evt has NOT ended
-        ////negative means it has ended...
-        if (isTwix || hasEnded) {
-          //console.log(`Evt:${evtID} > ongoing:${isTwix} or ended:${hasEnded}`) //, diffyEnd > 0, compareTime 
-        }else{
-          //console.log(`Evt:${evtID} Not started> ongoing:${isTwix} or ended:${hasEnded}`) 
-        }
-
-        if (isTwix){//showEndBtn---redundant with above--toRemove***
-            //console.log(`Evt:${evtID} >STARTED?`,isTwix)
-            this.hasStarted[evtID] = true  
-        }
-        //if(hasEnded){
-          //this.disableEvtScoreEdit(key, hasEnded) //should disableScore prolly
-        //}
-      }else{
-        console.log(`ERROR?!:${evtID} has no start/end?.`) //shouldnt happen?--toMonitor**
-      }
-
-    }
-    //canEditScore()//when past || today(when evtStartedOrPassed)
-    //enable score edit for already completed events by comparing with currentTime
-    //enables the editing of score after event has passed.
-    canEnableEditScore(evtID, endTime){ //, useNow = null
-        //const now = useNow ? useNow : parsed(this.currentDate) //have to use currentDate for sho! //oldie >>parseDate(new Date())
-        const now = parseDate(new Date()) //oldie >> didnt give currentTime >> parsed(this.currentDate)
-        let diffy = diffTimestamp(now,endTime) //endTimes < now would be that evt hasnt ended!
-      
-        //console.log(`canEnableEditScore`,now,evtID,endTime)
-        if(diffy > 0){ //so evt has NOT ended
-            this.isDisabledScoreEdit[evtID] = true   //disable scoreEdit
-  
-            this.mobileEnableScore[evtID] = false 
-        }else { //negative so evt has ended
-            this.hasStarted[evtID] = false  //umm bon hide when button when past as well
-  
-            if(this.mobile){
-              //console.log(`canEnableEditScore`,evtID,diffy,this.mobile) //should inverse this for mobile
-             // this.mobileEnableScore[evtID] = true //true //--can edit score... should be false? or named proper?
-              //return
-              this.showMobileDialog[evtID] = false
-            }
-            this.mobileEnableScore[evtID] = true
-  
-            this.isDisabledScoreEdit[evtID] = false //enable score edit
-        }
-  
-       // console.log(`canEnableEditScore for ${evtID}`,now,endTime,diffy, this.isDisabledScoreEdit[evtID])
-    }
-    evtStartedOrPassed(currentTime){
-      const mappy = []
-     
-      let compareTime = addToDate(currentTime,{ minute: 0})
-      let tTime = this.getTimeNumber(compareTime)
-     
-      this._dailyScheduled.forEach((value, key, map)=> {
-        let eStart = this.getTimeNumber(value.start)
-        let eEnd = this.getTimeNumber(value.end)
-  
-        if (eStart !== false && eEnd !== false){
-  
-          let isTwix = (tTime >= eStart && tTime < eEnd) 
-          //let hasEnded = eEnd >= tTime //&& tEnd <= eEnd) //umm what if it's just at the line though? >>gets included...so removing '=' for endTime..prolly others too but ToReview!!
-          
-          let hasEnded = tTime >= eEnd
-  
-          //let diffyEnd = diffTimestamp(eEnd, tTime) 
-          //test to see if accurate! 
-          //>> (diffyEnd > 0) >> so evt has NOT ended
-          ////negative means it has ended...
-          if (isTwix || hasEnded) {
-            //console.log(`Evt:${key} > ongoing:${isTwix} or ended:${hasEnded}`) //, diffyEnd > 0, compareTime 
-            mappy.push(key)
-          }
-          if (isTwix){//showEndBtn
-            this.hasStarted[key] = true  
-          }
-          //if(hasEnded){
-            //should disableScore prolly
-            this.disableEvtScoreEdit(key, hasEnded)
-          //}
-        }else{
-          console.log(`ERROR?!:${key} has no start/end?.`,value) //shouldnt happen?--toMonitor**
-        }
-      })
-  
-      return mappy
-  
     }
     getTimeyNumber(timey) { 
       if (timey !== null) {
@@ -1982,101 +1740,5 @@ export default class daySchedule {
         return getDayTimeIdentifier(timey)
       }
       return false
-    }
-    addEventInSchedule(evt,checkOverlap,useProp=false) { //redundant--toRemove
-      
-      //ALSO review return!!!--for overlaps!!
-
-      //let euhOverlaps = null
-
-      if (! this._dailyScheduled.has(evt.id)){
-          
-        //let c = createEvent(evt.id, evt) //const e = createEvent(evt.id, evt);
-        //console.log(`dSchedule::addEventInSchedule--created`,c) 
-          
-        //toTest and use it below**
-        //...can invoke withProps() later? like outside? toTest**
-          
-          //c.setBirthday(LocalDate.parse("1961-03-31"));
-          //const hasNote = c.hasNote(); //works?!?
-        
-        //use this.currentDate instead of >> evt.date  
-        let startTime = addToDate(parsed(this.currentDate), { minute: parseTime(evt.time) }) 
-        let endTime = addToDate(startTime, { minute: evt.duration })
-        
-          
-        if (checkOverlap) {
-          //let startTime = addToDate(parsed(evt.date), { minute: parseTime(evt.time) })
-          //toReview***
-          //as should prolly just check this._startTimesSet && this._endTimesSet 
-          //instead of walking though array 
-          let oOth = this.hasOverlappingEvent(evt.id, startTime, endTime) //before add evt
-          if(oOth.length > 0){
-            //console.log(`addEventInSchedule--OVERLAP of `+oOth.length,oOth)
-            //skip handling for now!--toDO*** as in overlapCheckEvtsAdd()**
-            //add to euhOverlaps OR return them to be handled in caller? 
-            //>>meh prolly better here as could be multiple? BUT adding single though...TBD
-            //euhOverlaps = oOth
-            return oOth 
-          } //else {
-            //should invoke withProps() here if possible?...
-
-            //console.log(`dSchedule::addEventInSchedule--GOOD no OVERLAP`,startTime,endTime) 
-            
-            /*this._dailyScheduled.set(evt.id, {...evt,
-              on: evt.date,
-              //originalAt: evt.time, //keep original...needed still? >prolly not..toRemove**
-              for: evt.duration,
-              start: startTime,
-              end: endTime,
-              score: evt.score
-            })
-            //this.endTimesSet.add(endTime.time)
-            //this.startTimesSet.add(startTime.time)
-          
-            this._endTimesSet.add(endTime.time)
-            this._startTimesSet.add(startTime.time)*/
-          //}
-          
-        } //else {
-
-        let eProp = useProp ? this.schedEvtWithProps(evt,startTime,endTime) : this.doProppy(evt,this.currentDate)
-        //event.bgcolor, .time , .duration
-        //events[ 0 ].side = 'full'
-        //eProp.side = 'full' //just to see if shows in template? >>nope!
-
-        eProp.sortTime = startTime //addToDate(parsed(eProp.date), { minute: parseTime(eProp.time) }) 
-
-        //let f = evt.addPropsEventsTo(this.currentDate)
-        //console.log(`dSchedule::addEventInSchedule-`,evt,evt.date(),eProp)
-        this.actualEvts.push(eProp)
-        this._dailyScheduled.set(eProp.id, {...eProp,
-          for: eProp.duration,
-          start: startTime,
-          end: endTime,
-          score: eProp.score
-        })
-        //,
-        /*this._dailyScheduled.set(evt.id, {...evt,
-            //on: this.currentDate, //evt.date, //redundant prolly..toRemove**
-            //originalAt: evt.time, //keep original...needed still? >prolly not..toRemove**
-            for: evt.duration,
-            start: startTime,
-            end: endTime,
-            score: evt.score//,
-            //date:this.currentDate  //just to add date!!toReview**
-          })
-          //this.endTimesSet.add(endTime.time)
-          //this.startTimesSet.add(startTime.time)
-        */
-          this._endTimesSet.add(endTime.time)
-          this._startTimesSet.add(startTime.time)
-        //}
-      } else {
-        console.log(`addEventInSchedule--NOT created>>HAS already!!?`,checkOverlap,evt) 
-        return false //checked at caller
-      }
-      
-      return this.findEvent(evt.id)  //OR euhOverlaps? --TODO**
     }
 }

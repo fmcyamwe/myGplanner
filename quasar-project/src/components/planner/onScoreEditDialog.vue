@@ -1,5 +1,5 @@
 <template>
-    <q-dialog v-model="show" class="mobile-only" transition-show="rotate" transition-hide="rotate"> <!--bon see if works in mobile...need media query class?-->
+    <q-dialog v-model="show" class="mobile-only" transition-show="rotate" transition-hide="rotate" @before-hide="gonHide"> 
         <q-card class="my-card-mobile text-white"> <!--bg-secondary -->
           <div class="title"> NoteyOnScore :: {{title}}</div>
 
@@ -85,8 +85,7 @@ import { defineComponent,ref } from 'vue'
     emits: [
         'saveScore',
         'deleteNow',
-        'endNow', //redundant
-        'addMins'  //prolly redundant too?
+        'euhHidin'
     ],
     computed: {
         showy:{ //just to see if updates..
@@ -122,9 +121,14 @@ import { defineComponent,ref } from 'vue'
     },
     methods: {
         onDelete () { //no need for @click="(e) => onDelete(e)"...phew!
-            console.log('huh delete?',this.id)
+            //console.log('huh delete?',this.id)
             this.$emit('deleteNow')
             this.showy = false // gotta hide dialog...huh works
+        },
+        gonHide(){ 
+          //console.log(`gonHide...about to hide...showPicky: showAdHoc`, this.showPickyDialog,this.showAddyDialog)
+
+          this.$emit('euhHidin') //needed to reset parent's  
         },
         onSave () { 
             //console.log('huh saveScore?',this.aScore, this.id,this.aNote)

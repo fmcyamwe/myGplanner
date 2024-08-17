@@ -100,7 +100,7 @@ export function storedAlternatives() {
 }
 
 export function currentBalance() {
-    return _store.getBalance // doesnt update after a setBalance with current balance estiii---toFix**
+    return _store.currentBalance()
 }
 
 export function constructTree() {

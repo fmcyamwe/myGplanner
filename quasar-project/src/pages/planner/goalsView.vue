@@ -701,29 +701,68 @@ export default {
             }
         }
 
+        function editSubGoal(){
+            if(updatingSubG){
+                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value,moods.value)
+            } else{
+                errorNotify(`ERROR: No subgoalId to edit found!`)
+            }
+        }
+
+        function editAction(){ //for all edits
+            let pId = pGoal.value//umm should be present...toMonitor**
+            if (goalType.value ==='main') {
+                if(updatingSubG && pId?.id == updatingSubG){ //second check just in case...
+                    store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value)
+                    
+                    expanded.value[pId?.id] = false  //umm to see...
+                } else{
+                    console.log("Error when Edit Parent Goal...inconsistent or not found!",updatingSubG,pId)//shouldnt get here!
+                }
+            } else { //subgoal
+                if (time.value == ''){
+                    errorNotify(`Schedule Time not set`)
+                    return
+                }
+                editSubGoal()
+                expanded.value[pId?.id] = false //just so that it can be updated!
+            }
+
+            buttonLabel.value = "Submit"
+
+            //hardReset() //reset variables ...
+            tab.value = "GList"  //nav to GList tab
+        }
+
         function onSubmit() {
             
+            //console.log("onSubmit",JSON.parse(JSON.stringify(buttonLabel.value)),JSON.parse(JSON.stringify(time.value)))
             let action = buttonLabel.value === "Save" ? 'Save' : 'Add'
 
             if(action === "Save"){
                 editAction()
+                return
             } else { //adding new goal
                 if (goalTitle.value.trim() == ''){
                     errorNotify(`Cannot have an empty goal!`)
-                    
                     return
                 }
 
                 if (goalType.value === 'main') {
                     store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
                 } else {
+                    if (time.value == ''){
+                        errorNotify(`Schedule Time not set`)
+                        return
+                    }
                     if(pGoal.value){
                         let pId = pGoal.value
                         store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value,moods.value)
                         console.log("Subgoal Goal added for parent:",pId.title)
 
                         expanded.value[pId.id] = true //to see in tab
-                    }else{//subG have to have a parentG
+                    }
+                    else{//subG have to have a parentG
                         errorNotify(`A sub goal must have a parent goal`)
 
                         softReset() //soft reset...prolly?
@@ -882,34 +921,6 @@ export default {
                 console.log('ERROR...unknow action!')
                 expanded.value[id] = false //mmm?
             }
-        }
-
-        function editSubGoal(){
-            if(updatingSubG){
-                store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value,moods.value)
-            } else{
-                errorNotify(`ERROR: No subgoalId to edit found!`)
-            }
-        }
-
-        function editAction(){ //for all edits
-            let pId = pGoal.value//umm should be present...toMonitor**
-            if (goalType.value ==='main') {
-                if(updatingSubG && pId?.id == updatingSubG){ //second check just in case...
-                    store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value)
-                    
-                    expanded.value[pId?.id] = false  //umm to see...
-                } else{
-                    console.log("Error when Edit Parent Goal...inconsistent or not found!",updatingSubG,pId)//toSee***
-                }
-            } else { //subgoal 
-                editSubGoal()
-                expanded.value[pId?.id] = false //just so that it can be updated!
-            }
-
-            buttonLabel.value = "Submit"
-
-            //hardReset() //reset variables ...done at call site--toMonitor
         }
         
         function refresh(done) {  //drag for refresh
