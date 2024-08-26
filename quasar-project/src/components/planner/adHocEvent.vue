@@ -6,7 +6,7 @@
     <q-input
     v-model="evName"
     filled 
-    label="A Goal"
+    label="Title"
     lazy-rules
     item-aligned
     :rules="[ val => val && val.length > 0 || 'Please type a goal']"
@@ -47,17 +47,18 @@
       />
     </div>
   </div>
+
+  <q-card-actions align="center" class="q-px-xl">
+    <q-checkbox dense v-model="doForce" label="Force" color="teal"/> <!--class="q-pa-sm"-->
+    <q-space/> <!-- v-if="canBalance"..todo**-->
+    <q-checkbox dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
+  </q-card-actions>
   
   <div class="q-mx-md" style="text-align: center;">
     <q-btn flat align="center" label="Cancel" color="primary" @click="$emit('doCancel')"/>
     
-    <q-btn elevated color="primary" @click="onClicked"> Add </q-btn>
-  </div> 
-          <!--
-            style="text-align: center;"
-            @click="showDefaultEvtByType = !showDefaultEvtByType"
-            passing in function prop and then invoke doCancel() worked! huh..but finicky that it's better to emit!
-          -->
+    <q-btn elevated color="primary" align="between" @click="onClicked"> Add </q-btn>
+  </div>
 </template>
 <script>
 //import { defineComponent } from 'vue' --see about using this...
@@ -65,14 +66,17 @@
     name: 'adHocEvent',
     props: {
       mainGoals: Array,
-      //doCancel: Function, // can execute function BUT better to emit...
+      toBalance:Number, //umm needed?!?--used to show checkbox when have balance!
     },
     data(){
         return {
             aTitle : "",
             daP : null,   //huh seems to work! an m surprised it show the correct stuff even!
             own :"misc",
-            duration:15
+            duration:15,
+            //toSee if should use below...normal with selectEvent and have to emit them as well!!
+            useBalance:false,
+            doForce:false,
         }
     },
     emits: [
@@ -110,13 +114,17 @@
         return this.daP == null ? '' : l == 'c' ? 'bg-'+this.daP.bgcolor : this.daP.bgcolor
       },
       onClicked () {
-        //console.log('huh trying to add event', this.aTitle, this.daP)
+        //console.log('huh trying to add event', this.aTitle, this.daP,this.useBalance,this.doForce)
+        //todo** transmit useBalance flag
         this.$emit('saveEvent', this.aTitle, this.daP, this.own,this.duration)
 
-        //reset--toTest**
+        //reset
         this.own = 'own'
         this.daP = null
         this.duration = 15
+
+        this.useBalance = false
+        this.doForce = false
       }
     }
 }

@@ -1689,7 +1689,7 @@ computed: {
         if (oDirection){
           //console.log(`OverlappingConflict ${evID} en "${oDirection}" of evt:${key} at`,value.start.time)//tStartAt value
           // duration, tStartAt, tEndsAt, value.start, value.end
-
+          //if (this.startTimesSet.has(tStartAt.time)){console.log(`OverlappingConflict ${evID} same start`,tStartAt.time)} // ? sameTime.add({at:startTime.time, id:event.id})
           mappyA.push({ 
             target:evID,
             targetStart:tStartAt,
@@ -1743,7 +1743,7 @@ computed: {
 
             //>could have multiple default that are overlapping yes!
             //
-            //console.log("WOAH WOAH, multiple overlaps with same obj!"+j, obj,oOth)
+            console.log("WOAH WOAH, multiple overlaps with same obj!"+j, obj,oOth)
             if (oDets.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",oDets.inConflict); delete euhOverlaps[oDets.inConflict] }
             if (oOth[j-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",oOth[j-1].inConflict); delete euhOverlaps[oOth[j-1].inConflict] }
 
@@ -2427,8 +2427,10 @@ computed: {
       if (toH.length > 1) {//for multiple overlapps with same events
         console.log(`fixyOverlaps::WOAH WOAH...multiple overlaps!!`) //,JSON.parse(JSON.stringify(toH))
         if ("withID" in toHandle){
+          console.log(`fixyOverlaps::using fixMultiConflicts!`)
           this.fixMultiConflicts(toH,override,from)
         }else {
+          console.log(`fixyOverlaps::using multiConflicts!`)
           this.multiConflicts(toH,override,from)
         }
         continue

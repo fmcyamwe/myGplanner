@@ -105,6 +105,7 @@
         </div>
         <br>
         <div v-if="tasks.length <= 0" class="column justify-center items-center">
+          <br>
           <q-card>
             1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
           </q-card>
@@ -168,8 +169,52 @@
           </div>
         </div>
       </q-slide-transition>
-    <!--</template>
-    </q-splitter> -->
+      <!--<q-tab-panels
+        v-model="panel"
+        animated
+        swipeable
+        infinite
+        class="bg-purple text-white shadow-2 rounded-borders"
+      >
+        <q-tab-panel v-for="(value, key) in daOptions" :name="key" :key="key">
+          <div class="text-h6">{{key}}</div>
+          {{ value[0].title }}
+          <q-timeline color="secondary">
+            <q-timeline-entry heading body="Timeline heading" />
+            <q-timeline-entry v-for="e in value" :key="e.on" :title="e.title"
+            :subtitle="e.on">
+              {{ e.note }} -- {{e.score}}
+            </q-timeline-entry>
+          </q-timeline>
+        </q-tab-panel>
+      </q-tab-panels> -->
+
+      <q-carousel
+      v-model="panel"
+      transition-prev="scale"
+      transition-next="scale"
+      swipeable
+      animated
+      control-color="white"
+      navigation
+      padding
+      infinite
+      arrows
+      class="bg-primary text-white shadow-2 rounded-borders">
+        <q-carousel-slide v-for="(value, key) in daOptions" :name="key" :key="key">
+          <!--<q-icon name="style" size="56px" /> class="q-mt-md text-center"-->
+          <div>
+            <q-timeline color="secondary">
+              <q-timeline-entry heading :body="value[0].title" /><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
+              <q-timeline-entry v-for="e in value" :key="e.on" :title="e.score"
+              :subtitle="e.on">
+                {{ e.note }}
+              </q-timeline-entry>
+            </q-timeline>
+          </div>
+        </q-carousel-slide>
+      </q-carousel>
+    
   </div>
 </q-page>
 </template>
@@ -213,6 +258,9 @@ export default defineComponent({
       expanded:[], //to hold expanding parentGoals...
       showTree:false,
       //splitterModel: ref(70) // start at 70% redundant
+      daOptions:ref({}),//[], //or {}
+      panel: ref(''),  //tab panels >>have grab at least one key in daOptions...otherwise blank
+      //slide: ref('style'), //carousel test
     }
   },
   computed: {
@@ -264,25 +312,42 @@ export default defineComponent({
         return
       }
       this.tasks = e
+      const map = {}
 
       //console.log("weeee tasks:", this.tasks)
       
-      const updateTask = task => {
+      const updateTask = (task,isChild=false) => { //bon isChild flag kinda too much?
         task.logged.forEach(logged => {
           // get last 2 digits from current date (day)
           const day = logged.date.slice(-2)
           //logged.date = 2024-03-14 == 2024-03-14
           //const datey = [ year, padNumber(month, 2), padNumber(day, 2) ].join('-')
           //console.log("taks woulda been", datey, day, logged.date)
+          if (isChild && 'notes' in logged) {
+            //console.log("updateTask:: task NOTE",logged,task.key,task.title)//,isChild)
+            
+            if(!map[task.key]){
+              map[task.key] = [] //map[logged.date] = []
+              
+              this.panel = task.key
+            }
+            //map[logged.date].push({ k: task.key, note: logged.notes, score:logged.atScore})
+            map[task.key].push({ on: logged.date, note: logged.notes, score:logged.atScore,title:task.title})
+          }
         })
       }
-  
+
+   
+
       this.tasks.forEach(task => {
         updateTask(task)
         if (task.children !== void 0) {
-          task.children.forEach(child => { updateTask(child) })
+          task.children.forEach(child => { updateTask(child,true) })
         }
       })
+
+      //console.log("weeee mappy:", map)
+      this.daOptions = map
       
       this.constructTree()
     },
@@ -328,7 +393,7 @@ export default defineComponent({
 
       constructTree(){
         this.treeGoals = this.store.fetchGoalsTree()
-        console.log("constructTree", this.treeGoals.length) //
+        //console.log("constructTree", this.treeGoals.length) //
       },
   
       /**
@@ -516,6 +581,10 @@ export default defineComponent({
   background: grey
 .bg-purple
   background: purple
+
+@media (max-width: 500px)
+  .key
+    display: none
 </style>
 
 <style lang="sass">

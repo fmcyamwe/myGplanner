@@ -563,7 +563,13 @@ export const useGoalStore = defineStore('allGoals', () => {
                 //console.log(`addin...`,dateKey,onDay[evID].duration)
                 //div by 60 to get hours
                 //let d = onDay[evID].duration / 60
-                daDs[evID].push({ date: dateKey, logged: returnDuration(onDay[evID].duration)}) //toFixed(2) >>pad 0's on integer number too smh and this aint better>>.toPrecision(2) 
+                let e = { date: dateKey, logged: returnDuration(onDay[evID].duration)}
+                if ('notes' in onDay[evID]) { //for timeline.. pushes to parent too?!? toFix**
+                    //console.log(`fetchAllTaskSummary:: notes!!!`,dateKey,onDay[evID])
+                    e.notes = onDay[evID].notes
+                    e.atScore = onDay[evID].atScore
+                }
+                daDs[evID].push(e)//{ date: dateKey, logged: returnDuration(onDay[evID].duration)}) //toFixed(2) >>pad 0's on integer number too smh and this aint better>>.toPrecision(2) 
             }
         }
         //console.log(`DaDs`, daDs)

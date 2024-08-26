@@ -15,6 +15,93 @@
             </q-tabs>
 
               <q-tab-panels v-model="tab" animated > <!--class="bg-primary text-white"-->
+                <q-tab-panel name="GList">
+                    <q-list bordered>
+                        <q-item>
+                            <q-item-section>
+                            <q-item-label overline class="q-mx-lg q-px-md row justify-center" style="max-width:100%;font-weight: bolder;">Swipe to Edit or Delete Goal</q-item-label>
+                            </q-item-section>
+                        </q-item>
+                    
+                        <q-separator spaced />
+                    
+                        <transition-group name="dalist">
+                            <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
+                            v-model="expanded[goal.id]"
+                            :key="goal.id"
+                            :label="goal.title"
+                            :caption="goal.details"
+                            popup
+                            expandSeparator
+                            :header-class= "classyHeader(goal?.bgcolor)"
+                            clickable>
+                            <!--<template v-slot:header></template> -->
+                        
+                                <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
+                                    <!-- bon touchswipe seem to work except that doesnt show the sliding animation...toSee if should use***
+        
+                                    <q-card-section v-touch-swipe.mouse="(e) => onSwipeAction(e,subGoal.id, goal.id)"
+                                    class="custom-area cursor-pointer bg-primary text-white shadow-2 relative-position row flex-center">
+                                       // {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}  class="q-my-sm"  color="red"//
+                                       <div class="q-mx-sm"> {{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}})</div>
+                                       <div class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}} </div>
+                                    </q-card-section> -->
+        
+                                    <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
+                                        <template v-slot:left>
+                                        Edit
+                                        </template>
+                                        <template v-slot:right>
+                                        Delete
+                                        </template>
+        
+                                        <q-item>
+                                            <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
+                                            <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
+                                        </q-item>
+                                    </q-slide-item>
+                                    <q-separator :color="goal?.bgcolor?.toLocaleLowerCase()"/>
+                                </q-card>
+        
+                                <q-card v-if="!hasSubG(goal.id)">
+                                    <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
+                                    OR
+                                    <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
+                                </q-card>
+                            </q-expansion-item>
+                        </transition-group>
+                    </q-list>
+
+                    <br>
+                    
+                    <div v-if="Object.keys(allMGoals).length <= 0" class="column justify-center items-center">
+                        <q-card>
+                        1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        2. Go to Schedule to see a daily schedule. Drag scheduled events to new timeslots or click in calendar to add an event.
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        3. Reload a saved daily schedule or defaults or choose minimal score events to schedule. Fix any scheduling conflicts.
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        4. Save the daily schedule (dont forget to update their score as needed!)
+                        </q-card>
+                        <q-separator />
+                        <q-card>
+                        5. Check out the summary of all goals here!
+                        </q-card>
+                    </div>
+
+                    <div class="q-pa-lg" align="center">
+                        *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
+                    </div>
+
+                    <q-toggle v-model="enableAdmin" label="Enable Admin" color="teal" class="q-pa-sm" align="center"/>
+                </q-tab-panel>
                 <q-tab-panel name="Goal">
                     <q-form @submit="onSubmit" class="q-gutter-md form" >
                         <div class="q-gutter-sm">
@@ -147,7 +234,7 @@
                                 <q-badge 
                                 color="orange" floating
                                 style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                ? <q-tooltip>Is Default--Needs to get done!</q-tooltip>
+                                ? <q-tooltip>Is Default OR Needs to get done!</q-tooltip>
                                 </q-badge>
                             </q-toggle>
                             <br>
@@ -166,98 +253,12 @@
                         </div>
 
                         <div>
-                        <q-btn :label="buttonLabel" type="submit" color="primary" class="q-ml-sm" align="between" />
-                        <!--<q-btn label="Reset" type="reset" color="primary" flat class="q-ml-sm" />  label="Submit"-->
+                            <q-btn :label="buttonLabel" type="submit" color="primary" class="q-ml-sm" align="between" />
+                            
+                            <!--Cancel only shown on edit-->
+                            <q-btn v-if="buttonLabel == 'Save'" label="Cancel" type="reset" color="secondary" class="q-ml-sm" align="between" @click="doCancel"/>
                         </div>
                     </q-form>
-                </q-tab-panel>
-
-                <q-tab-panel name="GList">
-                    <q-list bordered>
-                        <q-item>
-                            <q-item-section>
-                            <q-item-label overline class="q-mx-lg q-px-md row justify-center" style="max-width:100%;font-weight: bolder;">Swipe to Edit or Delete Goal</q-item-label>
-                            </q-item-section>
-                        </q-item>
-                    
-                        <q-separator spaced />
-                    
-                        <transition-group name="dalist">
-                            <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
-                            v-model="expanded[goal.id]"
-                            :key="goal.id"
-                            :label="goal.title"
-                            :caption="goal.details"
-                            popup
-                            expandSeparator
-                            :header-class= "classyHeader(goal?.bgcolor)"
-                            clickable>
-                            <!--<template v-slot:header></template> -->
-                        
-                                <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
-                                    <!-- bon touchswipe seem to work except that doesnt show the sliding animation...toSee if should use***
-        
-                                    <q-card-section v-touch-swipe.mouse="(e) => onSwipeAction(e,subGoal.id, goal.id)"
-                                    class="custom-area cursor-pointer bg-primary text-white shadow-2 relative-position row flex-center">
-                                       // {{subGoal.title}} >> {{subGoal.time}} :: {{subGoal.score}}  class="q-my-sm"  color="red"//
-                                       <div class="q-mx-sm"> {{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}})</div>
-                                       <div class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}} </div>
-                                    </q-card-section> -->
-        
-                                    <q-slide-item @right="(e) => onRightDelete(e, subGoal.id, goal.id)" @left="(e) => onLeftEdit(e, subGoal.id, goal.id)">
-                                        <template v-slot:left>
-                                        Edit
-                                        </template>
-                                        <template v-slot:right>
-                                        Delete
-                                        </template>
-        
-                                        <q-item>
-                                            <q-item-section class="q-mx-sm">{{subGoal.title}} > {{niceyLabel(subGoal.time)}} ({{subGoal.duration}}) </q-item-section>
-                                            <q-item-section class="q-mx-*"> {{subGoal.score}} :: {{subGoal.canMove ? 'canMove' : 'NoMoves'}} :: {{subGoal.inDefaults ? 'InDefaults' : 'NotADefault'}} :: {{subGoal.isAlternative ? 'Alt' : ''}}</q-item-section>
-                                        </q-item>
-                                    </q-slide-item>
-                                    <q-separator :color="goal?.bgcolor?.toLocaleLowerCase()"/>
-                                </q-card>
-        
-                                <q-card v-if="!hasSubG(goal.id)">
-                                    <q-btn label="Delete goal" type="reset" color="secondary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('del',goal.id,goal.title)" />
-                                    OR
-                                    <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
-                                </q-card>
-                            </q-expansion-item>
-                        </transition-group>
-                    </q-list>
-
-                    <br>
-                    
-                    <div v-if="Object.keys(allMGoals).length <= 0" class="column justify-center items-center">
-                        <q-card>
-                        1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
-                        </q-card>
-                        <q-separator />
-                        <q-card>
-                        2. Go to Schedule to see a daily schedule. Drag scheduled events to new timeslots or click in calendar to add an event.
-                        </q-card>
-                        <q-separator />
-                        <q-card>
-                        3. Reload a saved daily schedule or defaults or choose minimal score events to schedule. Fix any scheduling conflicts.
-                        </q-card>
-                        <q-separator />
-                        <q-card>
-                        4. Save the daily schedule (dont forget to update their score as needed!)
-                        </q-card>
-                        <q-separator />
-                        <q-card>
-                        5. Check out the summary of all goals here!
-                        </q-card>
-                    </div>
-
-                    <div class="q-pa-lg" align="center">
-                        *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
-                    </div>
-
-                    <q-toggle v-model="enableAdmin" label="Enable Admin" color="teal" class="q-pa-sm" align="center"/>
                 </q-tab-panel>
 
                 <q-tab-panel name="Admin">
@@ -730,8 +731,8 @@ export default {
 
             buttonLabel.value = "Submit"
 
-            //hardReset() //reset variables ...
-            tab.value = "GList"  //nav to GList tab
+            hardReset() //reset variables >>also navigate to GList tab...
+            //tab.value = "GList"  //nav to GList tab
         }
 
         function onSubmit() {
@@ -742,32 +743,33 @@ export default {
             if(action === "Save"){
                 editAction()
                 return
-            } else { //adding new goal
-                if (goalTitle.value.trim() == ''){
-                    errorNotify(`Cannot have an empty goal!`)
+            } //else { 
+            
+            //adding new goal
+            if (goalTitle.value.trim() == ''){
+                errorNotify(`Cannot have an empty goal!`)
+                return
+            }
+
+            if (goalType.value === 'main') {
+                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
+            } else {
+                if (time.value == ''){
+                    errorNotify(`Schedule Time not set`)
                     return
                 }
+                if(pGoal.value){
+                    let pId = pGoal.value
+                    store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value,moods.value)
+                    console.log("Subgoal Goal added for parent:",pId.title)
 
-                if (goalType.value === 'main') {
-                    store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
-                } else {
-                    if (time.value == ''){
-                        errorNotify(`Schedule Time not set`)
-                        return
-                    }
-                    if(pGoal.value){
-                        let pId = pGoal.value
-                        store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value,moods.value)
-                        console.log("Subgoal Goal added for parent:",pId.title)
+                    expanded.value[pId.id] = true //to see in tab
+                }
+                else{//subG have to have a parentG
+                    errorNotify(`A sub goal must have a parent goal`)
 
-                        expanded.value[pId.id] = true //to see in tab
-                    }
-                    else{//subG have to have a parentG
-                        errorNotify(`A sub goal must have a parent goal`)
-
-                        softReset() //soft reset...prolly?
-                        return
-                    }
+                    softReset() //soft reset...prolly?
+                    return
                 }
             }
 
@@ -960,6 +962,10 @@ export default {
             console.log("softResetting...with label as>>", buttonLabel.value) //toSee***
         }
 
+        function doCancel(){//just wrapper to reset goalPage ...
+            buttonLabel.value = "Submit"
+            hardReset() 
+        }
         function hardReset(){
             goalTitle.value = ' ' //subvert the rule check with space tho and add an extra space in beginnin..toReview***
             priority.value = 3
@@ -1038,7 +1044,7 @@ export default {
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
             hasSubG,resetLabel,
             doPrint,doReset,doImport,resetBoxes,
-            onSubmit,getSubGoals,onSwipeAction,
+            onSubmit,getSubGoals,onSwipeAction,doCancel,
             onRightDelete,onLeftEdit,softReset,onParentAction,refresh,classyHeader,niceyLabel //,euh,classyColor,
         }
     }

@@ -11,7 +11,7 @@
         <q-card v-if="showPickyDialog">
           <div class="q-ma-md event-select">
             <select-event
-              :canBeScheduled="allScheduled"
+              :canBeScheduled="allUnscheduled"
               :toBalance="balance"
               @on-Pick-Event="onAddClicked"
               @do-Cancel="onCancelBtn"
@@ -23,6 +23,7 @@
           <div class="q-ma-md event-select">
             <ad-hoc-event
               :mainGoals="parentGoals"
+              :toBalance="balance"
               @save-Event="adHocNewEvent"
               @do-Cancel="onCancelBtn"
             />
@@ -91,9 +92,9 @@ export default {
         this.showAdHocDialog = value
       }
     },
-    allScheduled:{
+    allUnscheduled:{
         get(){
-          //console.log(`allScheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
+          //console.log(`allUnscheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
 
           this.canBeScheduled.forEach((obj) => { //not too expensive?!? meh...
             let a = this.parentGoals.find(item => item.id == obj.parentGoal)
@@ -101,7 +102,7 @@ export default {
             obj.pg = a?.title.trim() //useful for label
           })
 
-          //console.log(`allScheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
+          //console.log(`allUnscheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
           return this.canBeScheduled
         },
     }

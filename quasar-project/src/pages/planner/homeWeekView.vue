@@ -135,6 +135,7 @@
           </div>
 
           <div v-else class="column justify-center items-center">
+            <br>
             <q-card>
               1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
             </q-card>
