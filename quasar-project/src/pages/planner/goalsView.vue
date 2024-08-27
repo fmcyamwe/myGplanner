@@ -102,6 +102,7 @@
 
                     <q-toggle v-model="enableAdmin" label="Enable Admin" color="teal" class="q-pa-sm" align="center"/>
                 </q-tab-panel>
+                
                 <q-tab-panel name="Goal">
                     <q-form @submit="onSubmit" class="q-gutter-md form" >
                         <div class="q-gutter-sm">
@@ -114,6 +115,7 @@
                             filled
                             v-model="goalTitle"
                             label="A Goal"
+                            clearable
                             lazy-rules
                             item-aligned
                             :rules="[ val => val && val.length > 0 || 'Please type a goal']"
@@ -128,6 +130,7 @@
                             label="Parent Goal"
                             popup-content-class="q-px-md"
                             />
+                            <br>
                         </div> 
 
                         <q-input v-else
@@ -142,7 +145,15 @@
                             :color="bgcolor"
                             label="Color"
                             popup-content-class="q-px-md"
-                            />
+                            >
+                              <template v-slot:label>
+                                <div class="row items-center all-pointer-events q-mx-xs">
+                                  <q-icon class="q-mx-xs" :color="bgcolor" size="24px" name="palette" />
+                                  Color
+                                  <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Subgoals color group</q-tooltip>
+                                </div>
+                              </template>
+                            </q-select>
                             <!--popupContentStyle="justify-content: center"
                             /> -->
                             <br>
@@ -156,19 +167,28 @@
                         </div>
 
                         <div v-if="showSubG" class="q-gutter-sm">
-                            <q-input v-model="time" filled type="time" hint="Default time" />
+                            <q-input v-model="time" filled type="time" hint="Scheduled time" />
                             
                             <br>
-
+                            <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview 
+                                use function with regex match /^\don\d$/g instead? >>yup better
+                                label="Score" or use label-slot prop to customize the label slot and show tooltip
+                            -->
                             <q-input v-model="score" 
-                            filled 
-                            label="Score" 
+                            filled
+                            label-slot
                             hint="format: #on#"
                             lazy-rules
                             :rules="[ val => val && val.match(/^\don\d$/g) && val.length > 3 || 'hint, hint!']"
-                            /> <!-- lazy-rules="ondemand" but doesnt evaluate after typing...also quite crude validation..toReview 
-                                use function with regex match /^\don\d$/g instead? 
-                            -->
+                            > 
+                              <template v-slot:label>
+                                <div class="row items-center all-pointer-events q-mx-xs">
+                                  <!--<q-icon class="q-mx-xs" color="deep-orange" size="24px" name="mail" /> -->
+                                  Score (hover for more info)
+                                  <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Progress/Rating to next level of Mastery</q-tooltip>
+                                </div>
+                              </template>
+                            </q-input>
 
                             <br>
                             <q-select
@@ -183,7 +203,14 @@
                             new-value-mode="add-unique"
                             style="width: 100%"
                             >
-                             <template v-slot:selected-item="scope">
+                              <template v-slot:label>
+                                <div class="row items-center all-pointer-events q-mx-xs">
+                                  <q-icon class="q-mx-xs" color="blue" size="24px" name="mood" />
+                                  Moods (hover for more info)
+                                  <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">'je-suis' keywords for scheduling.</q-tooltip>
+                                </div>
+                              </template>
+                              <template v-slot:selected-item="scope">
                                 <q-chip
                                   removable
                                   dense
@@ -221,7 +248,7 @@
                                 <q-badge
                                 color="orange" floating
                                 style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                ? <q-tooltip>Have to confirm any timeslot change</q-tooltip>
+                                ? <q-tooltip>Or need to confirm any timeslot change</q-tooltip>
                                 </q-badge>
                             </q-toggle>
 
@@ -234,7 +261,7 @@
                                 <q-badge 
                                 color="orange" floating
                                 style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                ? <q-tooltip>Is Default OR Needs to get done!</q-tooltip>
+                                ? <q-tooltip>Is Default/Need to get done!</q-tooltip>
                                 </q-badge>
                             </q-toggle>
                             <br>

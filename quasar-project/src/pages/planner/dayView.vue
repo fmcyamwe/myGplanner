@@ -4585,7 +4585,7 @@ computed: {
     let isTod = this.isViewingToday()
 
     if (flag == 'overwrite' || flag == 'add'){
-      const colis = this.store.fetchGoalsWithMinScore(this.chosenScore)//deepCopy? no need
+      const colis = this.store.fetchGoalsUpToMaxScore(this.chosenScore)//deepCopy? no need
       //console.log(`scheduleByScore SCORE`, JSON.parse(JSON.stringify(colis))) //, typeof colis
 
       if(flag == 'add'){// filter out events that are already scheduled..not too expensive?

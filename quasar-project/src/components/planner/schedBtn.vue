@@ -17,12 +17,12 @@
         elevated
         dense
         no-wrap
-        @click="onClicked"
+        @click.prevent="onClicked"
         no-caps
         >
             <div>{{textLabel}}</div>
         </q-btn>
-        <!--<q-space /> -->
+        <!--added .prevent on click -->
     <!--</div> -->
 </template>
 

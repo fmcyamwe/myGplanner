@@ -406,7 +406,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         return map  
     }
 
-    function fetchGoalsWithMinScore(scorey){  //of scorey minimum --actually max difference range in the score **ToRename properly!!
+    function fetchGoalsUpToMaxScore(scorey){  //of scorey minimum --actually max difference range in the score **ToRename properly!!
         const map = []
         //const tokenRegex = /^[0-9]{1,2}on[0-9]{1,2}$/g; //toREview....
 
@@ -433,12 +433,12 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
 
         allSubGoals.forEach(event => {
-            if (event.score == ""){ //ben add those without score...toReview
+            if (event.score == ""){ //ben add those without score...should NOT happen.
                 console.log(`no score event added: ${event.title}`,event.score)
                 map.push(event)
             }else{
                 let parsey = parseScore(event.score)
-                if (parsey > -1 && parsey >= scorey) {
+                if (parsey > -1 && parsey <= scorey) {
                     map.push(event)
                 }//else {
                 //    console.log(`subGoal is less than scorey ${event.title}`, parsey)
@@ -698,7 +698,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         getEventsForDate,
         hasEventsForDate,
         fetchAllTaskSummary,
-        fetchGoalsWithMinScore,
+        fetchGoalsUpToMaxScore,
         fetchAllPrio,
         fetchDefaults,
         fetchAlternativeEvts,

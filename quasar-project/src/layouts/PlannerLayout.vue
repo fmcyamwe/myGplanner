@@ -54,11 +54,10 @@ import EssentialLink from 'components/EssentialLink.vue'
 
 const linksList = [
   {
-    title: 'Summary',
-    caption: 'Summary',
-    icon: 'summarize', //self_improvement ?
-    link: '/summary', //'https://quasar.dev'
-    //clicky: 
+    title: 'Goals',
+    caption: 'All Goals',
+    icon: 'edit_note',
+    link: '/goalsPage', 
   },
   {
     title: 'Day View',
@@ -67,10 +66,11 @@ const linksList = [
     link: '/dayCalendar',
   },
   {
-    title: 'Goals',
-    caption: 'All Goals',
-    icon: 'edit_note',
-    link: '/goalsPage', 
+    title: 'Summary',
+    caption: 'Summary',
+    icon: 'summarize', //self_improvement ?
+    link: '/summary', //'https://quasar.dev'
+    //clicky: 
   }
   //{
   //  title: 'Alt',

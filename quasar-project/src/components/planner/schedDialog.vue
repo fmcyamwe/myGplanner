@@ -52,7 +52,6 @@ import {ref, defineAsyncComponent } from 'vue'  //defineComponent,
 export default {
   name: 'schedDialog',
   components:{
-    //adHocEvent,
     adHocEvent: defineAsyncComponent(() => import('../../components/planner/adHocEvent.vue')), //seems good for loading on demand!
     selectEvent: defineAsyncComponent(() => import('../../components/planner/selectEvent.vue')),
   },
@@ -69,7 +68,7 @@ export default {
     }
   },
   emits: [
-    'addAdHocEvent',
+    'adHocEvent',
     'onPickEvent',
     'euhHidin'
   ],
@@ -113,9 +112,9 @@ export default {
       this.$emit('onPickEvent',toAdd,forceFlag,useBalance)
       this.reset()
     },
-    adHocNewEvent(aTitle, daP, own, duration) {
+    adHocNewEvent(aTitle, daP, own, duration,useBalance) {
       //console.log(`addAdHocEvent..emitting`,aTitle, daP, own, duration)
-      this.$emit('addAdHocEvent',aTitle, daP, own, duration)
+      this.$emit('adHocEvent',aTitle, daP, own, duration,useBalance)
       this.reset() 
     },
     onChooseExisting(){ // hide the main dialog and show the pickEvent dialog

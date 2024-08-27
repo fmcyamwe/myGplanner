@@ -125,8 +125,8 @@ export function getDefaultEvts() {
     return _store.fetchDefaults()
 }
 
-export function goalsByMinScore(score) {
-    return _store.fetchGoalsWithMinScore(score)
+export function goalsUpToScore(score) {
+    return _store.fetchGoalsUpToMaxScore(score)
 }
 
 export function doSaveEvtProp(evtID, timey = null, score = null) {

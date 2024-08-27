@@ -116,9 +116,8 @@
               no-connectors
               dense
               accordion
+              :defaultExpandAll="showTree"
               >
-        
-              <!--class="row items-center" :style="titleStyles(prop.node)"-->
               <template v-slot:default-header="prop">
                   <div :class="classyColor(prop.node)">
                     <q-icon v-if="!prop.node.isChildren" :name="prop.node.icon || prop.expanded ? 'expand_less' : 'expand_more'" size="28px" class="q-mr-sm"/>

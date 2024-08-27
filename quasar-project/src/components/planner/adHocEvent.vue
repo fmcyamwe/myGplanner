@@ -49,8 +49,8 @@
   </div>
 
   <q-card-actions align="center" class="q-px-xl">
-    <q-checkbox dense v-model="doForce" label="Force" color="teal"/> <!--class="q-pa-sm"-->
-    <q-space/> <!-- v-if="canBalance"..todo**-->
+    <!--<q-checkbox dense v-model="doForce" label="Force" color="teal"/> -->
+     <!-- v-if="canBalance"..todo**-->
     <q-checkbox dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
   </q-card-actions>
   
@@ -116,10 +116,10 @@
       onClicked () {
         //console.log('huh trying to add event', this.aTitle, this.daP,this.useBalance,this.doForce)
         //todo** transmit useBalance flag
-        this.$emit('saveEvent', this.aTitle, this.daP, this.own,this.duration)
+        this.$emit('saveEvent', this.aTitle, this.daP, this.own,this.duration,this.useBalance)
 
         //reset
-        this.own = 'own'
+        this.own = 'misc'
         this.daP = null
         this.duration = 15
 
