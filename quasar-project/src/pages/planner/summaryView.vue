@@ -204,7 +204,7 @@
         <q-carousel-slide v-for="(value, key) in daOptions" :name="key" :key="key">
           <!--<q-icon name="style" size="56px" /> class="q-mt-md text-center"-->
           <div>
-            <q-timeline color="secondary">
+            <q-timeline :class="timelineColor(value[0].color)"><!--color="secondary"-->
               <q-timeline-entry heading :body="value[0].title" /><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
               <q-timeline-entry v-for="e in value" :key="e.on" :title="e.score"
               :subtitle="e.on">
@@ -316,7 +316,7 @@ export default defineComponent({
 
       //console.log("weeee tasks:", this.tasks)
       
-      const updateTask = (task,isChild=false) => { //bon isChild flag kinda too much?
+      const updateTask = (task,isChild=false,color='') => { //bon isChild flag kinda too much?
         task.logged.forEach(logged => {
           // get last 2 digits from current date (day)
           const day = logged.date.slice(-2)
@@ -332,7 +332,7 @@ export default defineComponent({
               this.panel = task.key
             }
             //map[logged.date].push({ k: task.key, note: logged.notes, score:logged.atScore})
-            map[task.key].push({ on: logged.date, note: logged.notes, score:logged.atScore,title:task.title})
+            map[task.key].push({ on: logged.date, note: logged.notes, score:logged.atScore,title:task.title,color:color})
           }
         })
       }
@@ -342,7 +342,7 @@ export default defineComponent({
       this.tasks.forEach(task => {
         updateTask(task)
         if (task.children !== void 0) {
-          task.children.forEach(child => { updateTask(child,true) })
+          task.children.forEach(child => { updateTask(child,true,task?.color) }) //meh toReview passing color like this....
         }
       })
 
@@ -369,6 +369,9 @@ export default defineComponent({
       },
       classyColor(proppy){//bg-{color} or text-{color} in class
         return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
+      },
+      timelineColor(item){
+         return item != '' ? `bg-${item} text-white shadow-2 rounded-borders` : `bg-black text-white shadow-2 rounded-borders`
       },
       getLoggedSummary (date) {
         let total = 0

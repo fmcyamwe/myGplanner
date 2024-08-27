@@ -382,8 +382,7 @@ export default class daySchedule {
       return allG.filter(evt => evt?.inDefaults && evt?.time != '' && !this.actualEvts.find(x => x.id == evt.id))
     }
     unscheduled(){
-      let allG= this.getSubGoals()
-      //let notScheduled = 
+      let allG= this.getSubGoals() ///// these dont work >> !this.scheduledEvents.includes(x)  //this.scheduledEvents.indexOf(x) !== -1
       return allG.filter(x => !this.actualEvts.find(item => item.id == x.id))
 
     }
@@ -425,7 +424,7 @@ export default class daySchedule {
             let daScore = parseScore(item.score)
             if (daScore > -1 && daScore <= this.chosenScore) {
               toReload.push(item)
-            }//else{console.log('ERROR...parseScore?skippin',daScore, item)}
+            }//else{console.log('filterCurrent::parseScore?skippin',daScore, item)}
           })
           return toReload
         }
@@ -449,17 +448,12 @@ export default class daySchedule {
       console.log(`scheduleByScore::AFTER flag ${flag} from size: ${this.actualEvts.length} to some evts = ${toRet.length}`) // JSON.parse(JSON.stringify(toRet))
       
       if (toRet.length < 1) {
-        console.log(`Empty for Score <= ${this.chosenScore} :(`)
+        //console.log(`Empty for Score <= ${this.chosenScore} :(`)
         
-        //this.disableSaveSchedule = true
-        //this.showReloadBtn = false //nothing to reload...
-        //this.showClearBtn = false
-        //this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
-        //return false
         this.toggleActionBtns(false,'byScore')
         return {
           overlaps:null,
-          canContinue:false, //for doNotify
+          canContinue:false, //for doNotify //this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
         }
       }
 
@@ -495,13 +489,12 @@ export default class daySchedule {
           return this.actualEvts.filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
         }
       
-      //let isTod = this.isViewingToday()
+
       let toRet = []
 
       if(flag == 'filter'){
         toRet = filterCurrent()
-        //console.log('scheduleSamePrio..filtering!!',this.chosenPrio,toRet)
-        this.resetSchedule() //prolly...
+        this.resetSchedule()
       } else { //flag == 'overwrite' || flag == 'add'
         //let allEvts = this.deepCopy(this.storedSubGoals)
         let allEvts = this.getSubGoals()
@@ -524,23 +517,17 @@ export default class daySchedule {
           //this.updateCurrentSchedule()
           this.resetSchedule()
         }
-        console.log(`scheduleSamePrio...${flag} to size: ${this.actualEvts.length} some evts = ${toRet.length}`, JSON.parse(JSON.stringify(toRet)))
+        console.log(`scheduleSamePrio::After ${flag} from size: ${this.actualEvts.length} to evts = ${toRet.length}`, JSON.parse(JSON.stringify(toRet)))
       }
      
       //add to schedule!
       if (toRet.length < 1) {
-        console.log(`Empty for Priority == ${this.chosenPrio} :(`)
+        //console.log(`Empty for Priority == ${this.chosenPrio} :(`)
         this.toggleActionBtns(false,'byPrio')
 
-        //this.disableSaveSchedule = true
-        //this.showReloadBtn = false //nothing to reload...
-        //this.showClearBtn = false
-
-        //this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
-        //return false
         return {
           overlaps:null,
-          canContinue:false,//for notify
+          canContinue:false,//for notify this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
         }
       }
 
@@ -1249,9 +1236,12 @@ export default class daySchedule {
         //return 'haut'  //so target is LATER than scheduled evt...prolly?
         dir = 'haut'
       }
-      if((evtStart >= targetStart && targetEnd >= evtEnd) || (targetStart >= evtStart && targetEnd <= evtEnd)){ //have to also check opposite!!!
-        //return 'surrounding'  //prolly? 
-        dir = 'surrounding'
+      let surrounding = (evtStart >= targetStart && targetEnd >= evtEnd)
+      let surrounded = (targetStart >= evtStart && targetEnd <= evtEnd)//have to also check opposite!!!
+      //if((evtStart >= targetStart && targetEnd >= evtEnd) || (targetStart >= evtStart && targetEnd <= evtEnd)){ 
+      if(surrounding || surrounded){ 
+        dir = 'surrounding' //prolly
+        console.log("checkOverlapByTime","surrounding:"+surrounding,"surrounded:"+surrounded)
       }
       
       return dir //false
@@ -1402,8 +1392,7 @@ export default class daySchedule {
 
         let added = this.addToSchedule(obj,checkOverlap,false) //false to use proppy() as it's goal
         if(!added){
-          console.log('addGoalsToSchedule::ERROR?!? not added',added,obj)
-          //could be present?--toSee***
+          console.log('addGoalsToSchedule::ERROR>> not added',added,obj) //could be present
         }else{
           if(Array.isArray(added)){ //overlap!!!
             //console.log('addGoalsToSchedule::overlap?!!!'+checkOverlap,JSON.parse(JSON.stringify(added)))//,obj)
@@ -1442,9 +1431,8 @@ export default class daySchedule {
         this._startTimesSet.add(startTime.time)
     
         this.enableNoteScoreEdit(eProp.id,startTime,endTime)
-        //return true better here? toSee**
       }else {
-        console.log(`addToSchedule--NOT created>>HAS already!!?`,checkOverlap,evt) 
+        console.log(`addToSchedule--NOT added! present?!!?`,checkOverlap,evt.title) 
         return false //checked at caller
       }
       
@@ -1715,17 +1703,15 @@ export default class daySchedule {
         }
       
     }
-    deleteEvtMood(id){ //prolly redundant....
+    deleteEvtMood(id){ 
       if (this.usingMoods[id]){
-        //let b = this.usingMoods[id] //just to see....
         delete this.usingMoods[id]
-    
         console.log(`deleteEvtMood::>`+id) 
       }else{
         console.log(`deleteEvtMood>>NO mood by `+id)
       }
 
-      return  //true or false? toSee
+      return
     }
     removeScheduledEvt(evt,rMood=false){  //rMood flag to also delete any this.usingMoods
       //console.log('removeScheduledEvt..',evt)
