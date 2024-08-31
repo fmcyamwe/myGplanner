@@ -99,7 +99,7 @@
       <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" />
     </template> -->
 
-      <q-toggle v-model="showTree" label="Tree Legend" color="teal" class="q-pa-md" /> <!--align="center"-->
+      <q-toggle v-model="showTree" :label="label" color="teal" class="q-pa-md" /> <!--align="center"-->
 
       <q-slide-transition>
         <div v-if="showTree" class="q-pa-md"> <!--style="width: 1000px" with q-fab OR use q-scroll-area? -->
@@ -235,6 +235,9 @@ export default {
         })
         //console.log('parentGoalsMap', map) //JSON.stringify(e)
         return map
+    },
+    label(){ //could move inline...
+      return this.showTree ? "Hide Legend" :"Show Legend"
     },
     allEvents(){
         return this.store.getAllDates

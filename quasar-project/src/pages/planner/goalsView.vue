@@ -100,7 +100,12 @@
                         *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
                     </div>
 
-                    <q-toggle v-model="enableAdmin" label="Enable Admin" color="teal" class="q-pa-sm" align="center"/>
+                    <q-toggle 
+                    v-model="enableAdmin"
+                    :label="enableAdmin ? 'Disable Admin' : 'Enable Admin'"
+                    color="teal" 
+                    class="q-pa-sm" 
+                    align="center"/>
                 </q-tab-panel>
                 
                 <q-tab-panel name="Goal">

@@ -134,7 +134,11 @@
     </template>
 
     <template v-slot:after> -->
-      <q-toggle v-model="showTree" label="Tree Legend" color="teal" class="q-pa-md" /> <!--align="center"-->
+      <q-toggle 
+      v-model="showTree" 
+      :label="showTree ? 'Hide Legend' :'Show Legend'" 
+      color="teal" 
+      class="q-pa-md" /> <!--align="center"-->
 
       <q-slide-transition>
         <div v-if="showTree" class="q-pa-md">
@@ -190,19 +194,19 @@
       </q-tab-panels> -->
 
       <q-carousel
+      v-if="Object.keys(daOptions).length > 0"
       v-model="panel"
       transition-prev="scale"
       transition-next="scale"
       swipeable
       animated
       control-color="white"
-      navigation
       padding
       infinite
       arrows
       class="bg-primary text-white shadow-2 rounded-borders">
         <q-carousel-slide v-for="(value, key) in daOptions" :name="key" :key="key">
-          <!--<q-icon name="style" size="56px" /> class="q-mt-md text-center"-->
+          <!--<q-icon name="style" size="56px" /> class="q-mt-md text-center" class="column items-center"-->
           <div>
             <q-timeline :class="timelineColor(value[0].color)"><!--color="secondary"-->
               <q-timeline-entry heading :body="value[0].title" /><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
@@ -253,7 +257,7 @@ export default defineComponent({
       footerTasks: [
         { title: 'TOTALS' }
       ],
-      $q : useQuasar(), //umm $?
+      $q : useQuasar(),
       treeGoals:[],
       expanded:[], //to hold expanding parentGoals...
       showTree:false,
@@ -371,7 +375,7 @@ export default defineComponent({
         return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
       },
       timelineColor(item){
-         return item != '' ? `bg-${item} text-white shadow-2 rounded-borders` : `bg-black text-white shadow-2 rounded-borders`
+         return item != '' ? `bg-${item} text-black shadow-2 rounded-borders` : `bg-black text-white shadow-2 rounded-borders`
       },
       getLoggedSummary (date) {
         let total = 0

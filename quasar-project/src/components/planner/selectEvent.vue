@@ -52,7 +52,7 @@
             <q-card-actions align="center" class="q-px-xl">
               <q-checkbox dense v-model="doForce" label="Force" color="teal"/> <!--class="q-pa-sm"-->
               <q-space/> 
-              <q-checkbox v-if="canBalance" dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
+              <q-checkbox v-if="canBalance()" dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
             </q-card-actions>
             <q-card-actions align="center">
               <q-btn flat label="Cancel" color="primary" @click="$emit('doCancel')" />
@@ -151,10 +151,9 @@
         return (this.toAdd == null  || this.toAdd == undefined || this.toAdd == '') ? ' Sub Goal' : ' Of: '+this.toAdd?.pg
       },
       canBalance(){
-        ////true when balance >toadd.duration || isAlt?
         let canBalance = this.toBalance + parseInt(this.toAdd?.duration) || this.toAdd?.isAlternative
-        console.log(`canBalance`,canBalance)//canBalance...umm
-        return this.toAdd == null ? false : (this.toBalance + parseInt(this.toAdd?.duration) || this.toAdd?.isAlternative)
+        //console.log(`canBalance`,canBalance,this.toBalance) //undefined, null 
+        return this.toAdd == null ? false : canBalance //(this.toBalance + parseInt(this.toAdd?.duration) || this.toAdd?.isAlternative)
       }
     }
 }
