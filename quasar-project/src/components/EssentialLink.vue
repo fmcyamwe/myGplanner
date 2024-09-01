@@ -69,6 +69,7 @@ export default defineComponent({
 
 @media (max-width: 500px)
   .g-link
-    display: none
-
+    visibility: hidden
+  .g-link>.g-caption
+    visibility: visible
 </style>

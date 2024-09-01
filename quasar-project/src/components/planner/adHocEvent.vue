@@ -1,63 +1,71 @@
 <template>
-  <div class="text-h3">Ad hoc Event</div>
-  <q-space />
-  <q-separator />
-  <div class="q-ml-md">
-    <q-input
-    v-model="evName"
-    filled 
-    label="Title"
-    lazy-rules
-    item-aligned
-    :rules="[ val => val && val.length > 0 || 'Please type a goal']"
-    />
-    <div class="radio-select">
-      <q-radio class="q-mx-md" v-model="own" val="misc" label="Misc" />
-      <q-radio class="q-mx-md" v-model="own" val="self" label="By Self" />
-    </div>
-    
-    <div v-if="pGoals" ><!--style="width: 100%;"  label="Select Parent Goal"-->
-      <q-select class="q-gutter-md"
-      v-model="daP"
-      :options="pGoals"
-      option-value="id"
-      option-label="title"
-      :disable="own!='misc'"
-      :label="labely"
-      popupContentClass="q-px-sm"
-      :options-selected-class="goalyColor('c')"
-      :label-color="goalyColor('l')"
-      />
-    </div>
-    
-    <div>
-      Duration
-      <q-knob
-      :min="15"
-      :max="120"
-      :thickness="0.22"
-      :step="5"
-      v-model="duration"
-      show-value
-      label="Duration"
-      size="75px"
-      color="teal"
-      track-color="grey-3"
-      class="q-ma-md"
-      />
-    </div>
-  </div>
-
-  <q-card-actions align="center" class="q-px-xl">
-    <!--<q-checkbox dense v-model="doForce" label="Force" color="teal"/> -->
-     <!-- v-if="canBalance"..todo**-->
-    <q-checkbox dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
-  </q-card-actions>
-  
-  <div class="q-mx-md" style="text-align: center;">
-    <q-btn flat align="center" label="Cancel" color="primary" @click="$emit('doCancel')"/>
-    
-    <q-btn elevated color="primary" align="between" @click="onClicked"> Add </q-btn>
+  <div class="q-pa-md">
+    <q-card>
+      <q-card-section>
+        <div class="text-h4 title">New Ad hoc Event</div>
+      </q-card-section>
+      <q-separator />
+      
+      <div class="q-mx-md event-select">
+        <q-input
+        v-model="evName"
+        filled 
+        label="Title"
+        lazy-rules
+        item-aligned
+        :rules="[ val => val && val.length > 0 || 'Please type a goal']"
+        />
+        <div class="radio-select">
+          <q-radio class="q-mx-md" v-model="own" val="misc" label="Misc" />
+          <q-radio class="q-mx-md" v-model="own" val="self" label="By Self" />
+        </div>
+        
+        <div v-if="pGoals" ><!--style="width: 100%;"  label="Select Parent Goal"-->
+          <q-select class="q-mx-md"
+          v-model="daP"
+          :options="pGoals"
+          option-value="id"
+          option-label="title"
+          :disable="own!='misc'"
+          :label="labely"
+          popupContentClass="q-px-sm"
+          :options-selected-class="goalyColor('c')"
+          :label-color="goalyColor('l')"
+          />
+        </div>
+        
+        <div>
+          Duration
+          <q-knob
+          :min="15"
+          :max="120"
+          :thickness="0.22"
+          :step="5"
+          v-model="duration"
+          show-value
+          label="Duration"
+          size="75px"
+          color="teal"
+          track-color="grey-3"
+          class="q-ma-md"
+          />
+        </div>
+      </div>
+      <q-card-actions class="q-px-xl">
+        <!--<q-checkbox dense v-model="doForce" label="Force" color="teal"/> -->
+        <q-checkbox dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
+      </q-card-actions>
+      
+      <div class="q-ma-md" style="text-align: center;">
+        <q-btn flat align="center" label="Cancel" color="primary" @click="$emit('doCancel')"/>
+        <q-btn elevated color="primary" align="between" @click="onClicked">       
+          <div class="q-mx-xs" style="text-align:center;">
+            Add 
+          </div>
+        </q-btn>
+      </div>
+      <br>
+    </q-card>
   </div>
 </template>
 <script>
@@ -66,7 +74,7 @@
     name: 'adHocEvent',
     props: {
       mainGoals: Array,
-      toBalance:Number, //umm needed?!?--used to show checkbox when have balance!
+      toBalance:Number, 
     },
     data(){
         return {
@@ -74,9 +82,8 @@
             daP : null,   //huh seems to work! an m surprised it show the correct stuff even!
             own :"misc",
             duration:15,
-            //toSee if should use below...normal with selectEvent and have to emit them as well!!
             useBalance:false,
-            doForce:false,
+            //doForce:false, //redundant as implicitely force
         }
     },
     emits: [
@@ -85,37 +92,27 @@
       'doCancel'
     ],
     computed: {
-        pGoals:{
-            get(){return this.mainGoals},  //no massaging?~? guess not
-        },
-        evName:{
-            get(){return this.aTitle},
-            set(value){
-                //console.log("setting title", value)
-                this.aTitle = value
-            }
-        },
-        labely:{
-          get(){
-            return this.own =='misc' ? this.daP == null ? 'Defaut Misc. PGoal' : 'Of Parent Goal' : 'Select Parent Goal' //umm sheesh
-          }
-        },
-        //goalyColor:{
-        //  get(l){
-        //    return this.daP == null ? '' : l == 'c' ? 'bg-'+this.daP.bgcolor : this.daP.bgcolor
-        //  }
-          //optionsSelectedClass="bg-red"
-          //labelColor="green"
-        //}
-
+      pGoals:{
+        get(){return this.mainGoals},  //no massaging?~? guess not
+      },
+      evName:{
+        get(){return this.aTitle},
+        set(value){
+          //console.log("setting title", value)
+          this.aTitle = value
+        }
+      },
+      labely:{
+        get(){
+          return this.own =='misc' ? this.daP == null ? 'Defaut Misc. Parent' : 'Of Parent Goal' : 'Select Parent Goal' //umm sheesh
+        }
+      },
     },
     methods: {
       goalyColor(l){
         return this.daP == null ? '' : l == 'c' ? 'bg-'+this.daP.bgcolor : this.daP.bgcolor
       },
       onClicked () {
-        //console.log('huh trying to add event', this.aTitle, this.daP,this.useBalance,this.doForce)
-        //todo** transmit useBalance flag
         this.$emit('saveEvent', this.aTitle, this.daP, this.own,this.duration,this.useBalance)
 
         //reset
@@ -124,7 +121,6 @@
         this.duration = 15
 
         this.useBalance = false
-        this.doForce = false
       }
     }
 }
@@ -134,4 +130,16 @@
   margin: 0 auto
   padding: 20px
   width: 100%
+.event-select
+  display: flex
+  flex-direction: column
+  justify-content: center
+  text-align: center
+  width: 100%
+.title
+  white-space: nowrap
+@media (max-width: 500px)
+  .title
+    transform: scale(.75, .75)
+    white-space: nowrap
 </style>

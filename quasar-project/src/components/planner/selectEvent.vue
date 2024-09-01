@@ -48,15 +48,16 @@
                   >>see if filterFn is good and the change of label='PgoalTitle' ?
                 -->
             </div>
-            
+            <br>
             <q-card-actions align="center" class="q-px-xl">
-              <q-checkbox dense v-model="doForce" label="Force" color="teal"/> <!--class="q-pa-sm"-->
+              <q-checkbox dense v-model="doForce" label="Force In" color="teal"/> <!--class="q-pa-sm"-->
               <q-space/> 
               <q-checkbox v-if="canBalance()" dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
             </q-card-actions>
+            
             <q-card-actions align="center">
               <q-btn flat label="Cancel" color="primary" @click="$emit('doCancel')" />
-              <q-btn elevated color="primary" @click="onAddClicked">
+              <q-btn elevated color="primary" align="between" @click="onAddClicked">
                 <div class="q-mx-md" style="text-align:center;">
                   Add 
                 </div>
@@ -159,10 +160,6 @@
 }
 </script>
 <style lang="sass" scoped>
-.radio-select
-  margin: 0 auto
-  padding: 20px
-  width: 100%
 .event-select
   display: flex
   flex-direction: column

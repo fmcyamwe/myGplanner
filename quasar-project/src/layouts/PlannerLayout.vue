@@ -118,8 +118,6 @@ export default defineComponent({
       box-shadow: $button-shadow-active
 
 @media (max-width: 500px)
-  .g-planner::before
-    content: "G."
   .g-planner 
     display: none
   .home-view

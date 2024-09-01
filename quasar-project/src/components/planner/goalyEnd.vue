@@ -13,12 +13,14 @@
         <q-btn
         no-caps
         label="Add5"
+        align="between"
         @click="wannaAdd(5)"
         /> 
         
         <q-btn
         no-caps
         label="Add10"
+        align="between"
         class="q-mx-md poppy"
         @click="wannaAdd(10)"
         /><!--hide this when in mobile due to screen space-->
@@ -27,6 +29,7 @@
         <q-btn
         no-caps
         label="End-Now"
+        align="between"
         @click="wannaEnd"
         /> 
       </div>
@@ -296,9 +299,6 @@ import { defineComponent,ref } from 'vue'
   align-items: center
   height: 100%
 
-.my-card
-  width: 100%
-
 .poppy
   width: 100%
 
@@ -307,8 +307,5 @@ import { defineComponent,ref } from 'vue'
     display: none
   .title
     transform: scale(.75, .75)
-
-.my-card-mobile
-  background-color: gainsboro
 
 </style>

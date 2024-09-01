@@ -1,8 +1,8 @@
 <template>
     <q-dialog v-model="show" class="mobile-only" transition-show="rotate" transition-hide="rotate" @before-hide="gonHide"> 
-        <q-card class="my-card-mobile text-white"> <!--bg-secondary -->
-          <div class="title"> NoteyOnScore :: {{title}}</div>
-
+        <q-card class="my-card-mobile"> <!--bg-secondary -->
+          <div class="q-ma-md title"> Notey & Score :: {{title}}</div>
+          
           <q-card-section class="q-gutter-md">
             <q-input v-model="aScore" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
             <!--
@@ -89,34 +89,31 @@ import { defineComponent,ref } from 'vue'
     ],
     computed: {
         showy:{ //just to see if updates..
-            get(){return this.show},
-            set(value){
-                //console.log(`showy getting set`,value, this.id)
-                this.show = value
-            }
+          get(){return this.show},
+          set(value){
+            //console.log(`showy getting set`,value, this.id)
+            this.show = value
+          }
         },
         aScore:{
-            get(){return this.daScore},
-            set(value){
-                //console.log(`aScore getting set`,value, this.id) 
-                //this.$emit('saveScore', value, this.id) //auto-save does update it? >>does!
-                //let e = this.aScoreValidation >>dont work..some side-effect error..cause it's in computed section...
-                //def roundabout way to validate instead of using :validate smh..toReview **
-                let e = this.aScorey(value)
-                
-                if (!e){ 
-                    console.log(`aScore invalid?`,e,value,this.score)
-                }
-                
-                this.daScore = value //to allow correction!!!
-            },
+          get(){return this.daScore},
+          set(value){
+            //console.log(`aScore getting set`,value, this.id) 
+            //this.$emit('saveScore', value, this.id) //auto-save does update it? >>does!
+            //let e = this.aScoreValidation >>dont work..some side-effect error..cause it's in computed section...
+            //def roundabout way to validate instead of using :validate smh..toReview **
+            //let e = 
+            this.aScorey(value)
+
+            this.daScore = value //to allow correction!!!
+          },
         },
         aNote:{
-            get(){return this.note},
-            set(value){
-                //console.log(`setting aNote from: ${this.notes} to ${value}`) 
-                this.note = value
-            }
+          get(){return this.note},
+          set(value){
+            //console.log(`setting aNote from: ${this.notes} to ${value}`) 
+            this.note = value
+          }
         },
     },
     methods: {
