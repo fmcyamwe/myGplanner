@@ -58,7 +58,7 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
       durationChanged:changedDuration,
       timeChanged:changedTime,
       parsedScore: parseScore,
-      withPropsEventsTo:withProps,
+      withPropsEventsTo:withProps, //not used--toREmove**
       addPropsEventsTo:addProps
     };
 

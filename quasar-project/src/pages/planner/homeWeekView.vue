@@ -179,7 +179,7 @@ import {
 //import NavigationBar from '../../components/NavigationBar.vue'
 import { applyClasses, applyStyles } from '../util/utiFunc'
 import { useGoalStore } from 'stores/goalStorage'
-//import { useQuasar } from 'quasar'
+import { useQuasar } from 'quasar'
 //import { isMobile } from '../util/isMobile'
 
 /*const CURRENT_DAY = new Date()
@@ -202,6 +202,8 @@ export default {
   data () {
     //const draggedItem = ref(null)
     //const targetDrop = ref(null)
+    const $q = useQuasar()
+
     return {
       store:useGoalStore(),
       calendar: ref(null),
@@ -210,7 +212,8 @@ export default {
       mostEvts:5, //huh just to set the interval-height for proper spacing..default or things are squished badly when empty
       treeGoals:ref([]), //umm ref does anything?!?
       expanded:ref([]), //to hold expanding parentGoals...
-      showTree:ref(false)
+      showTree:ref(false),
+      moods:ref({})
       //splitterModel: ref(70) // start at 70% >>redundant
     }
   },
@@ -325,6 +328,14 @@ export default {
                 } else{
                   detz =  `${eS.time} - ${eE.time}`
                 }
+                if(dEvts[evtId].byMood !== void 0){
+                  //console.log(`loadEvts::has moods>>`,dateKey,evtId,dEvts[evtId].byMood)
+                  if(!this.moods[dateKey]){
+                    this.moods[dateKey] = []
+                  }
+                  this.moods[dateKey].push(...dEvts[evtId].byMood)
+                }
+
                 //todo**review look of title,details info! especially with tooltips for header vs body evt!***
                 this.events.push({
                   id: e.id,
@@ -339,6 +350,7 @@ export default {
             }
           }
         }
+        //console.log(`loadEvts::Moods>>`,this.moods)
       } else {
         console.log("ERROR--no parent or goals!!REVIEW**")
         return
@@ -422,11 +434,22 @@ export default {
       console.log('onClickHeadIntervals', data)
       //events.value.unshift(`click:interval:header: ${JSON.stringify(data)}`)
     },
-    onClickHeadDay (data) { //date header where the date is....
-      console.log('onClickHeadDay', data)
+    onClickHeadDay ({ scope, event }) { //date header where the date is....
+      let d = scope.timestamp.date
+      let hasM = this.moods[d]
+      console.log('onClickHeadDay',d,hasM) 
+      if (hasM){  //toSee if can do it better as tooltip!
+        this.$q.notify({
+        color: 'positive',
+        position: 'top',
+        message: `Scheduled by mood: ${hasM.join()}`,
+        icon: 'tag_faces', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+        //group?: boolean | string | number;
+        //timeout?: number; // time to display (in milliseconds)>>default is 5000
+      })
+      }
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
-      //let oldy = this.mostEvts
       this.mostEvts = 5 //to update the interval-height
       console.log('onChange', data)
     }
