@@ -63,7 +63,6 @@
                                   @choose-option="onChoosenPrio"
                                   />
                                 </div>
-                
                                 <div v-if="daSchedule.getProps().showOneEachBtn"><!--disable instead of hidding?-->
                                   <sched-btn
                                   text-label="One Each"
@@ -85,7 +84,6 @@
                                 @click="doSaveSchedule"
                                 no-caps
                                 />
-                                
                                 <q-btn
                                 class="q-mt-md"
                                 text-color="green"
@@ -114,16 +112,6 @@
                                 <q-separator />
                                 <br>
                                 <!--<q-space/> have to be inside qComponent-->
-                    
-                                <!--oldie but q-select below better
-                                  <q-input ref="filterRef" filled v-model="filter" label="Filter" class="q-pa-md q-gutter-sm">
-                                  <template v-slot:append>
-                                    <q-icon v-if="filter !== ''" name="clear" class="cursor-pointer" @click="resetFilter" />
-                                  </template>
-                                </q-input> 
-                  
-                                huh suprised that isViewingPast() works below!
-                                -->
                                 
                                 <div v-if="showTreeForm" class="q-gutter-md">
                                   <q-select
@@ -270,8 +258,7 @@
                             @click-head-day="onClickHeadDay"
                             @mousedown-time="onMouseDownTime"
                             @mouseup-time="onMouseUpTime"
-                            @mousemove-time="onMouseMoveTime"
-                          >
+                            @mousemove-time="onMouseMoveTime">
                               <template #head-day-event="{ scope: { timestamp } }">
                                 <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
                                   <template
@@ -391,11 +378,10 @@
                           </q-calendar-day>
                         </div>
                     </div> 
-                    <br>
-                    <!--sched-dialog was here-->             
+                    <br>          
                 </template>
             </q-splitter>
-            <!--no issue when here-->
+
             <sched-dialog v-if="showEvtDialog"
             :parentGoals="daSchedule.allPGoals()"
             :canBeScheduled="canbeScheduled"
@@ -465,8 +451,7 @@ data () {
         splitterPage: ref(35), // start--left side--before at 35%
         splitterLegend:ref(40),
         timeStartPos:ref(0), ///This is the one for actually showing current time and needs to be in return for proper update
-        
-        //umm below into daySchedule class too? tbd***
+
         showTree: ref(false), //showing Legend Tree
         treeGoals:ref([]), 
         expanded:ref([]), //to hold expanding pGoal nodes...
@@ -487,7 +472,7 @@ data () {
         mobile: ref(true),
 
         //daSchedule:ref(new daySchedule("euuh")), //gets created!
-        daSchedule:ref(null) //huh updates!!
+        daSchedule:ref(null)
     }
 },
 beforeMount() {
@@ -574,8 +559,6 @@ computed: {
 
       diff.sort(sorty)
 
-      //console.log('canbeScheduled AFTER sort ',JSON.parse(JSON.stringify(difference)))
-
       return diff
       
     },
@@ -588,10 +571,8 @@ computed: {
       if (!Object.keys(cMoods).length > 0) {return ret }
 
       let aSet = new Set()
-      for (let key in cMoods) { //this.daSchedule.usingMoods
-        aSet.add(cMoods[key].join()) //join needed for uniqueness...or should do (*SeenNumber)?!? tbd**
-        //i < 1 ? ret = ret + this.usingMoods[key] : ret = ret + ', ' + this.usingMoods[key]  //huh gotta add empty ret'' in front or single elt is as array!
-        //i++ 
+      for (let key in cMoods) {
+        aSet.add(cMoods[key].join()) //join needed for uniqueness...
       }
       
       let i = 0
@@ -808,15 +789,9 @@ methods:{
               toAddy.push({id: u.id, mood: n}) //huh no prob below!!
               return u
             }
-          })//.map((element) => {
-              //console.log(`onMoodAdd>>>filtering`, element)
-              //return element  //works?!? >>nope..shows proper but doesnt return subGoal...
-            //})
+          })
         }
-            //node.children.length > 0 && node.children.find(u => u?.moods.length > 0 && u?.moods.some(e => filt.indexOf(e.toLowerCase()) > -1))
       })
-
-      //console.log(`onMoodAdd>>>toADD`, JSON.parse(JSON.stringify(toAddy)))
 
       if (toAddy.length > 0){
         toAddy = toAddy.filter(x => !this.daSchedule.getAllEvts().find(item => item.id == x.id)) //filter out already scheduled
@@ -883,7 +858,7 @@ methods:{
     },
     onReloadSaved(){
       let hasEvents = this.daSchedule.hasEventsForDate()
-      console.log('onReloadSaved',hasEvents)
+      //console.log('onReloadSaved',hasEvents)
       
         let doCancel = () => {
           console.log('Aborting', this.currentDate,this.scheduledEvents, hasEvents)
@@ -891,9 +866,7 @@ methods:{
         }
         let doOverwrite = () => {
           console.log('onReloadSaved::Overwriting',hasEvents)
-          //this.scheduledEvents = []
-          //this.updateCurrentSchedule()
-          //this.loadForDate(this.currentDate, hasEvents, this.isViewingPast())
+
           let res = this.daSchedule.loadEvtsForDay(false)
           if(!res.canContinue){
             if(res.overlaps && Object.keys(res.overlaps).length > 0){
@@ -1205,9 +1178,6 @@ methods:{
           //at ${toAdd.time} with ovrd:${override}`, aConf)  //aConf.targetStart.date
           console.log(`movedIntoConflict::removeReplace >> replacing>> ${toRem.id}) '${toRem.title.trim()}' WITH ${toAdd.id}) ${toAdd.title.trim()}`, aConf, 'from>'+from)
 
-          //no need line below now...toTest***
-          //toAdd = this.addPropsEventsTo(aConf.targetStart.date,[{...toAdd,time:aConf.targetStart.time}]) //proper change of time
-        
           if(override){
             console.log("movedIntoConflict::removeReplace...OVERRIDE from>>"+from) //,JSON.parse(JSON.stringify(toAdd))
             if (from == 'onDrop'){//for consistency with okChoice....
@@ -1278,7 +1248,7 @@ methods:{
           if (toAddy){
             let oldy = JSON.parse(JSON.stringify(toAdd))
             Object.assign(toAdd, toAddy,{time:conf.targetStart.time}) // enrich with saved
-            //console.log(`movedIntoConflict::forceAdd:: had SAVED!`+toAdd.id,oldy) //toAddy,oldy,JSON.parse(JSON.stringify(toAdd)))
+            //console.log(`movedIntoConflict::forceAdd:: had SAVED! `+from,toAdd.id,oldy) //toAddy,oldy,JSON.parse(JSON.stringify(toAdd)))
           }
 
           let euhOverlaps = this.daSchedule.recurChangeTime(toChange.id,toAdd,conf.targetStart,from != 'onDrop')//doAdd flag important for small time interval jump
@@ -1293,16 +1263,6 @@ methods:{
               return this.movedIntoConflict(euhOverlaps,override,from+'nah') //handleOverlaps
             }
           }
-            //let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...toAdd,time:conf.targetStart.time}],true) //,time:conf.targetStart.time
-            /*let sizey = Object.keys(euhOverlaps).length
-            if(sizey > 0) {
-              console.log(`movedIntoConflict::forceAdd:: OVERLAPS again of size:${sizey} from >${from}>`+toAdd.title,JSON.parse(JSON.stringify(euhOverlaps)))
-              
-              //Note*** see with adding 'nah' that no more circles--should be less prolly with recurChangeTime()
-              this.doNotify(`Extra Overlaps while adding '${toAdd.title.trim()}' `, "warning",'top')
-              return this.movedIntoConflict(euhOverlaps,override,from+'nah') //handleOverlaps
-            }*/
-          //}
           this.scheduleMoodsLabel
 
           this.daSchedule.toggleActionBtns(true,from)
@@ -2350,7 +2310,7 @@ methods:{
         }
         return
       }
-      //check return?!? toSee...
+
       this.daSchedule.updateNoteScore(id,newScore,note)
     },
     onAddMins(id,mins){
@@ -2488,7 +2448,7 @@ methods:{
       let alts = this.daSchedule.getAltEvts().sort(sorty)
       let now = parseDate(new Date())
 
-      console.log('chooseAlternatives >>ALTS:',JSON.parse(JSON.stringify(alts)),now.date)
+      //console.log('chooseAlternatives >>ALTS:',JSON.parse(JSON.stringify(alts)),now.date)
       
       let evtTimey = evt.time //for scheduling later
       let futureDatey = now.date
@@ -2564,7 +2524,7 @@ methods:{
             }
           })
 
-          console.log("chooseAlternatives::addInFutur>>>",startDay.date, JSON.parse(JSON.stringify(toSave)))
+          //console.log("chooseAlternatives::addInFutur>>>",startDay.date, JSON.parse(JSON.stringify(toSave)))
 
           //this.doNotify(`Saving ${toAddy.title} in ${startDay.date}`, "positive",'bottom') //${JSON.stringify(toSave)}
 
@@ -2966,14 +2926,14 @@ methods:{
           e.preventDefault()
           return
 
-        } else { ////no arialLabel...prolly when over another event! || or same one but in early stages of dragging?
+        } /*else { ////no arialLabel...prolly when over another event! || or same one but in early stages of dragging?
           let f = target.closest('.my-event')
           if (f && !f.classList.contains("my-event-drag")) {
             //target.parentNode.classList.add("my-event-drag")
             console.log("onTouchEvt::move >>TO ADD AGAIN?!?",f,target, this.touchedItem)
           }//else{console.log("handleTouchMove:gooootIT",f,target)}
-      
-        }
+        } */
+
         //e.preventDefault()
         return //true? tbd**
       }
@@ -3017,13 +2977,13 @@ methods:{
           
           this.targetDrop = s
           
-          this.doDroppy("onTouch",this.targetDrop, this.selectedItem)
+          this.doDroppy("onDrop",this.targetDrop, this.selectedItem) // oldie from >onTouch but should act as a drop in mobile
         } else {
-          console.log("onTouchEvt::END>>ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.daSchedule.isDisabledScoreEdit[item.id])//,this.allowDialog[item.id])
+          //console.log("onTouchEvt::END>>ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.daSchedule.isDisabledScoreEdit[item.id])//,this.allowDialog[item.id])
           if(target.classList.contains("title")){
             console.log("onTouchEvt::END--has title!",this.targetDrop)
             if (this.targetDrop){//just drop on top to see--ToReview **
-              this.doDroppy("onTouch",this.targetDrop, this.selectedItem)  
+              this.doDroppy("onDrop",this.targetDrop, this.selectedItem)   // oldie from >onTouch but should act as a drop in mobile
             }
           }
         }
@@ -3054,14 +3014,6 @@ methods:{
       
       this.daSchedule.toggleEvtNoteScoreMobile(item.id)
 
-      /*if(this.isViewingPast()){ //bon in past allowDialog as mobileEnableScore[item.id] never get set?!? why false--toReview**
-        console.log("onTouchHold>> INPAST: toggle!", "isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"oldy:: "+oldy,"mobileEnableScore>> "+ this.daSchedule.mobileEnableScore[item.id])
-        
-        this.daSchedule.showMobileDialog[item.id] = !this.daSchedule.isDisabledScoreEdit[item.id] //toTest** toggling isDisabledScoreEdit   //true
-      }else{
-        console.log("onTouchHold>> INPRESENT: ","isDisabledScoreEdit>> "+ this.daSchedule.isDisabledScoreEdit[item.id],oldy, "mobileEnableScore>> "+this.daSchedule.mobileEnableScore[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id])
-      }*/
-
       let f = target.closest('.my-event')
     
       if(target.classList.contains("title") && target.parentNode.classList.contains("my-event-drag")){ 
@@ -3072,7 +3024,7 @@ methods:{
           //console.log("onTouchHold--WRONG target... ",evt,target, target.parentNode,f) //could be cause of that transform on elt
           f.classList.toggle("my-event-drag") 
         }else{
-          console.log("onTouchHold::class not found on Target!!",target,this.touchedItem)//could and need to use touchedItem
+          //console.log("onTouchHold::class not found on Target!!",target,this.touchedItem)//could and need to use touchedItem
           if (this.touchedItem){ //use when not set to false in touch-start
             f = this.touchedItem.closest('.my-event') 
             if (f && f.classList.contains("my-event-drag")){
