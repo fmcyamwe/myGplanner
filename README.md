@@ -8,10 +8,16 @@ This ongoing project, using [Quasar framework](https://quasar.dev/), built on to
 
 ### The What and How
 
-Starting from the Quasar's boilerplate, a simple form page to add/edit goals is used. Then using a [calendar library](https://qcalendar.netlify.app/), a calendar view to show what activities/events are scheduled on the current day in view. The user can drag and move a scheduled event to a better time in the day calendar--potentially re-orgarnizing the day's schedule(with the exception of some predefined events that cannot be moved).
+Starting from the Quasar's boilerplate, a simple form page to add/edit goals is used. Then using a [calendar library](https://qcalendar.netlify.app/), a calendar view to show what activities/events are scheduled on the current day in view. The user can drag and move a scheduled event to a better time in the day calendar--potentially re-orgarnizing the day's schedule(with the exception of some predefined goal events that cannot be moved and requiere confirmation).
 
 Goals are defined in my own way of course and they usually have some subgoals (these are the ones that actually get scheduled). Currently a subgoal has a score that ideally should be updated whenever it is felt that progress has been made for that specific subgoal and accomplishing the parent goal is within reach.
 
+# :compass: App Images
+<img src="docs/homeWeekView.png" width="40%"></img>
+<img src="docs/summaryView.png" width="40%"></img>
+
+<img src="docs/goalsView.png" width="40%"></img>
+<img src="docs/dayScheduleView.png" width="40%"></img>
 
 [//]: # (Function)
 ## :dart: Features
@@ -31,7 +37,7 @@ Goals are defined in my own way of course and they usually have some subgoals (t
 
 ### Now! And Next...
 
-WooHoo! The working app, hosted via github pages, is [here](https://fmcyamwe.github.io/gplanner/).
+The working app, hosted via github pages, is [here](https://fmcyamwe.github.io/gplanner/).
 The minified production code was put into a different [repo](https://github.com/fmcyamwe/gplanner) while I was exploring ways to deploy the app with minimal cost--Thank you Github!
 
 I would like to add local notifications for Android to allow more scheduling capability in case an event drags on longer (or shorter and move on to the next scheduled event). A definite todo also is using a central database as each device (and browser) keeps a local copy of the data for now, which defeats the purpose of the summary tracking for all goals :D 
