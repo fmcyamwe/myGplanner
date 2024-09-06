@@ -554,7 +554,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let daDs = {}
 
         //slurp all the subgoals, keeping date && duration(logged)
-        for (let dateKey in savedDates) { 
+        for (let dateKey in savedDates) {
             let onDay = savedDates[dateKey]
             for (let evID in onDay) {
                 if (!daDs[evID]) {
@@ -563,11 +563,11 @@ export const useGoalStore = defineStore('allGoals', () => {
                 //console.log(`addin...`,dateKey,onDay[evID].duration)
                 //div by 60 to get hours
                 //let d = onDay[evID].duration / 60
-                let e = { date: dateKey, logged: returnDuration(onDay[evID].duration)}
+                let e = { date: dateKey, logged: returnDuration(onDay[evID].duration), atScore: onDay[evID]?.atScore } //|| "" >>better to leave so dont 
                 if ('notes' in onDay[evID]) { //for timeline.. pushes to parent too?!? toFix**
                     //console.log(`fetchAllTaskSummary:: notes!!!`,dateKey,onDay[evID])
                     e.notes = onDay[evID].notes
-                    e.atScore = onDay[evID].atScore
+                    //e.atScore = onDay[evID].atScore
                 }
                 daDs[evID].push(e)//{ date: dateKey, logged: returnDuration(onDay[evID].duration)}) //toFixed(2) >>pad 0's on integer number too smh and this aint better>>.toPrecision(2) 
             }

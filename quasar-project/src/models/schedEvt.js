@@ -43,6 +43,7 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
       date:() => _date, //_date, //or use () for more up 2 date?
       datey:dater, //equivalent to above! 
       score:atScore(), //works as prop when()..otherwise have to invoke as functin outside!! or have to ()?!?
+      atScore:_data.atScore, //to keep distinction with score above
       getGoal:() => _goal, //_data,
       getPGoal:() => _pGoal,
       data: () => _data,
@@ -53,7 +54,6 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
       hasNote: hasNote,
       setDura: (d) => _duration = d,  //prolly redundant...toSee**
       setTime: (t) => _time = t,
-      //atScore:atScore,
       setDate:(d)=> _date = d,
       durationChanged:changedDuration,
       timeChanged:changedTime,

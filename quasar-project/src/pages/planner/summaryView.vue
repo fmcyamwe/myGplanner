@@ -208,7 +208,7 @@
         <q-carousel-slide v-for="(value, key) in daOptions" :name="key" :key="key">
           <!--<q-icon name="style" size="56px" /> class="q-mt-md text-center" class="column items-center"-->
           <div>
-            <q-timeline :class="timelineColor(value[0].color)"><!--color="secondary"-->
+            <q-timeline :class="timelineColor(value[0].color)"><!--color="secondary" :title="e.score+'{{ fdf }}'" -->
               <q-timeline-entry heading :body="value[0].title" /><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
               <q-timeline-entry v-for="e in value" :key="e.on" :title="e.score"
               :subtitle="e.on">
@@ -327,12 +327,11 @@ export default defineComponent({
           //logged.date = 2024-03-14 == 2024-03-14
           //const datey = [ year, padNumber(month, 2), padNumber(day, 2) ].join('-')
           //console.log("taks woulda been", datey, day, logged.date)
-          if (isChild && 'notes' in logged) {
-            //console.log("updateTask:: task NOTE",logged,task.key,task.title)//,isChild)
+          if (isChild){ //&& 'notes' in logged
+            //console.log("updateTask:: isChild NOTE",logged,task.key,task.title)//,isChild)
             
             if(!map[task.key]){
               map[task.key] = [] //map[logged.date] = []
-              
               this.panel = task.key
             }
             //map[logged.date].push({ k: task.key, note: logged.notes, score:logged.atScore})
@@ -351,7 +350,7 @@ export default defineComponent({
       })
 
       //console.log("weeee mappy:", map)
-      this.daOptions = map
+      this.daOptions = map  //should make sure dates are sorted--todo
       
       this.constructTree()
     },
@@ -374,8 +373,8 @@ export default defineComponent({
       classyColor(proppy){//bg-{color} or text-{color} in class
         return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
       },
-      timelineColor(item){
-         return item != '' ? `bg-${item} text-black shadow-2 rounded-borders` : `bg-black text-white shadow-2 rounded-borders`
+      timelineColor(item){ //text-black
+         return item != '' ? `bg-${item} text-white shadow-2 rounded-borders` : `bg-black text-white shadow-2 rounded-borders`
       },
       getLoggedSummary (date) {
         let total = 0

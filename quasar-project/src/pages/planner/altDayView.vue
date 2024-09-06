@@ -261,6 +261,7 @@
                             @mousemove-time="onMouseMoveTime">
                               <template #head-day-event="{ scope: { timestamp } }">
                                 <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
+                                  
                                   <template
                                     v-for="event in eventsMap[timestamp.date]"
                                     :key="event.id"
@@ -819,9 +820,9 @@ methods:{
     },
     onScheduleOneEach(){
 
-      let doAction = (flag) => {
+        let doAction = (flag) => {
           let res = this.daSchedule.scheduleOneEach(flag)
-          console.log(`onScheduleOneEach::ACTION!!!`,JSON.parse(JSON.stringify(res)))
+          //console.log(`onScheduleOneEach::ACTION!!!`,JSON.parse(JSON.stringify(res)))
           if(!res.canContinue){
             if(res.overlaps && Object.keys(res.overlaps).length > 0){
               this.handleOverlaps(res.overlaps,null,'oneEach')
@@ -834,6 +835,7 @@ methods:{
             //console.log("onScheduleOneEach::Continue. ACTION Res>>",JSON.parse(JSON.stringify(res)))
           }
         }
+        
         let doCancel = () => { //do cancel
           console.log('onScheduleOneEach..Aborting',this.daSchedule.getAllEvts())
           this.reset() //OneEach
@@ -1125,6 +1127,38 @@ methods:{
         return
       }
     },
+    canAutoSchedule(toAdd,sched){
+        //case sensitive?!? >>yup includes is case-sensitive!
+        let toAddInclud = toAdd.title.trim().toLowerCase().includes(sched.title.trim().toLowerCase())
+        let scheduledInclud = sched.title.trim().toLowerCase().includes(toAdd.title.trim().toLowerCase())
+
+        //check also for the parent relation?--toSee...especially if too much for no reason....
+        let toAddPrt = this.daSchedule.parentGoalById(toAdd.parentGoal) //this.parentGoalsMap().get(toAdd.parentGoal)
+        let scheduledPrt = this.daSchedule.parentGoalById(sched.parentGoal) //this.parentGoalsMap().get(currScheduled.parentGoal)
+        
+        let toAddPrtInclud = toAdd.title.trim().toLowerCase().includes(scheduledPrt.title.trim().toLowerCase())
+        let scheduledPrtInclud = sched.title.trim().toLowerCase().includes(toAddPrt.title.trim().toLowerCase())
+        
+        if (toAddPrtInclud || scheduledPrtInclud){ //auto-schedule...for parents!!---todo***
+          //should schedule the subGoal!!! (Next of 'Me Me' parent)
+          // OR (if cant for any reason?!?)
+          // one of the subGoals of the parent? (parentGoal 'Next' with subgoals-Jobs,Massage,PmP/Pilot,etc)
+          //--which should be the one of scheduled or toAdd prolly
+          //
+          console.log(`canAutoSchedule:: WOAH PARENT AUTO schedule?--TODO***`,toAddPrtInclud, scheduledPrtInclud,"Normal AUTO>>", toAddInclud, scheduledInclud)//,'direction == surrounding? >>', aConf.direction == 'surrounding')
+
+          //return ...todo**
+        }
+
+        if (toAddInclud || scheduledInclud){
+          //console.log(`checkIncludedTitles:: can AUTO schedule`,toAddInclud, scheduledInclud)//,'direction == surrounding? >>', aConf.direction == 'surrounding')
+          return {
+            addIncSched:toAddInclud,
+            schdIncToAdd:scheduledInclud,
+          }
+        }
+        return false //not too fast here? toTest**
+    },
     //single evt already scheduled overlap--same as handleOverlaps but no adding--changes rawSaved..
     //override applicable here! --addMins && onDrop
     movedIntoConflict(overlaps,override,from,addMins=0){ //addMins could be redundant..toSee**
@@ -1415,26 +1449,36 @@ methods:{
     ///////////////////// START ///////////////////     
       let daChoice = []
       let toHandleSize = Object.keys(overlaps).length  //should be one...prolly
-
+      
       for (let key in overlaps) {
-        if (!overlaps[key] || !overlaps[key][0]){//could happen with fixMultiConflicts()--see below! 
-          console.log("movedIntoConflict...skipping unknown key",key)//,overlaps) 
+        if (!overlaps[key] || !overlaps[key][0]){//shouldnt happen now!
+          console.log("movedIntoConflict...ERROR::skipping unknown key",key)//,overlaps) 
+          continue
+        }
+        if (key == "withID"){
+          console.log("movedIntoConflict...skipping withID key",key,overlaps["withID"])
           continue
         }
 
         let toH = overlaps[key]
-        if (toH.length > 1) { //umm still here eh smh
+        if (toH.length > 1) { //umm still here eh smh..toReview*** as redundant! and should use manyToOne by default!!
           if ("withID" in overlaps){
-            console.log(`movedIntoConflict::using oneToManyConflict as ${toH.length} of`+toHandleSize)//JSON.parse(JSON.stringify(toH)))
-            this.oneToManyConflict(toH,override,from)
-          }else {
-            console.log(`movedIntoConflict::using manyToOneConflictas ${toH.length} of`+toHandleSize)//JSON.parse(JSON.stringify(toH)))
-            this.manyToOneConflict(toH,override,from)
+            if (overlaps["withID"].find(id => id == key)){
+              console.log(`movedIntoConflict::WITHID>>using oneToManyConflict as ${toH.length} of`+toHandleSize,overlaps["withID"])//JSON.parse(JSON.stringify(toH)))
+              this.oneToManyConflict(toH,override,from)
+            }else {
+              console.log(`movedIntoConflict::WITHID>>using manyToOneConflictas ${toH.length} of`+toHandleSize,overlaps["withID"])//JSON.parse(JSON.stringify(toH)))
+              this.manyToOneConflict(toH,override,from)
+            }
+            continue
           }
+          console.log(`movedIntoConflict::NORMAL>>using manyToOneConflictas ${toH.length} of`+toHandleSize,overlaps["withID"])//JSON.parse(JSON.stringify(toH)))
+          this.manyToOneConflict(toH,override,from)
           continue
         }
 
-          //proper reset by iteration means declaring Opts here --lambda be better? toTry***
+  
+        //proper reset by iteration means declaring Opts here --lambda be better? toTry***
         let defaultOpts = [
             //{ label: 'Choose by Priority', value: 'opt1', color: 'secondary' },
             //{ label: 'Choose by Score', value: 'opt2' },
@@ -1531,44 +1575,19 @@ methods:{
         }
       }
     },
-    canAutoSchedule(toAdd,sched){
-        //case sensitive?!? >>yup includes is case-sensitive!
-        let toAddInclud = toAdd.title.trim().toLowerCase().includes(sched.title.trim().toLowerCase())
-        let scheduledInclud = sched.title.trim().toLowerCase().includes(toAdd.title.trim().toLowerCase())
-
-        //check also for the parent relation?--toSee...especially if too much for no reason....
-        let toAddPrt = this.daSchedule.parentGoalById(toAdd.parentGoal) //this.parentGoalsMap().get(toAdd.parentGoal)
-        let scheduledPrt = this.daSchedule.parentGoalById(sched.parentGoal) //this.parentGoalsMap().get(currScheduled.parentGoal)
-        
-        let toAddPrtInclud = toAdd.title.trim().toLowerCase().includes(scheduledPrt.title.trim().toLowerCase())
-        let scheduledPrtInclud = sched.title.trim().toLowerCase().includes(toAddPrt.title.trim().toLowerCase())
-        
-        if (toAddPrtInclud || scheduledPrtInclud){ //auto-schedule...for parents!!---todo***
-          //should schedule the subGoal!!! (Next of 'Me Me' parent)
-          // OR (if cant for any reason?!?)
-          // one of the subGoals of the parent? (parentGoal 'Next' with subgoals-Jobs,Massage,PmP/Pilot,etc)
-          //--which should be the one of scheduled or toAdd prolly
-          //
-          console.log(`canAutoSchedule:: WOAH PARENT AUTO schedule?--TODO***`,toAddPrtInclud, scheduledPrtInclud,"Normal AUTO>>", toAddInclud, scheduledInclud)//,'direction == surrounding? >>', aConf.direction == 'surrounding')
-
-          //return ...todo**
-        }
-
-        if (toAddInclud || scheduledInclud){
-          //console.log(`checkIncludedTitles:: can AUTO schedule`,toAddInclud, scheduledInclud)//,'direction == surrounding? >>', aConf.direction == 'surrounding')
-          return {
-            addIncSched:toAddInclud,
-            schdIncToAdd:scheduledInclud,
-          }
-        }
-        return false //not too fast here? toTest**
-    },
     handleOverlaps(overlaps,override = null,from =''){
       console.log('handleOverlaps >>',JSON.parse(JSON.stringify(overlaps)),"from:"+from)
+      //let withID = null
       for (let key in overlaps) {
         //console.log("handleOverlaps..Handling",key) //,JSON.parse(JSON.stringify(overlaps[key])))
-        if (!overlaps[key] || !overlaps[key][0]){//could happen with fixMultiConflicts()--see below! 
-          console.log("handleOverlaps...skipping unknown key",key) 
+        //if (!overlaps[key] || !overlaps[key][0]){//could happen with fixMultiConflicts()--see below! 
+        //  console.log("handleOverlaps...skipping unknown key",key) 
+        //  continue
+        //}
+
+        if (key == "withID"){
+          console.log("handleOverlaps...skipping key",key,overlaps["withID"])
+          //withID = overlaps["withID"] //bof null as last key of object
           continue
         }
 
@@ -1581,13 +1600,19 @@ methods:{
           //console.log(`handleOverlaps::WOAH WOAH...multiple overlaps!!`,JSON.parse(JSON.stringify(toH)))
 
         if ("withID" in overlaps){
-          console.log(`handleOverlaps::>>oneToManyConflict=`+toH.length)//,JSON.parse(JSON.stringify(toH)))
-          this.oneToManyConflict(toH,override,from)
-        }else {
-          console.log(`handleOverlaps::>> manyToOneConflict=`+toH.length)//,JSON.parse(JSON.stringify(toH)))
+          //console.log(`handleOverlaps::WITHID>=`+toH.length,key,overlaps["withID"])//,JSON.parse(JSON.stringify(toH)))  
+          if (overlaps["withID"].find(id => id == key)){
+            console.log(`handleOverlaps::WITHID>>oneToManyConflict=`+toH.length,key,overlaps["withID"])
+            this.oneToManyConflict(toH,override,from)  
+          } else {
+            console.log(`handleOverlaps::WITHID>>manyToOneConflict=`+toH.length,key,overlaps["withID"])
+            this.manyToOneConflict(toH,override,from)
+          }
+          continue
+        } else { //prolly no need for this else as would get here...
+          //console.log(`handleOverlaps::>>NORMAL>> manyToOneConflict=`+toH.length,key,overlaps["withID"])//,JSON.parse(JSON.stringify(toH)))
           this.manyToOneConflict(toH,override,from)
-        }
-        continue
+        }  
       }
     },
     oneToManyConflict(conflicts,override = null,from=''){
@@ -2137,18 +2162,6 @@ methods:{
         }
       )
     },
-    reset() { //reset variable for next use 
-      this.selectedItem = null
-      this.targetDrop = null
-      this.touchedItem = null 
-     
-      this.daSchedule.resetChosen() //explicit reset of dropdown chosenScore && chosenPrio values
-
-      this.possibleRange = null 
-    },
-    closingDialog(){// close dialog
-      this.showEvtDialog = false
-    },
     onPickEvent(addE,skipAsk,useBalance) { 
       //console.log('onPickEvent',addE,skipAsk,useBalance)
     
@@ -2587,6 +2600,18 @@ methods:{
         //onDismiss >>no need
       )
     },
+    reset() { //reset variable for next use 
+      this.selectedItem = null
+      this.targetDrop = null
+      this.touchedItem = null 
+     
+      this.daSchedule.resetChosen() //explicit reset of dropdown chosenScore && chosenPrio values
+
+      this.possibleRange = null 
+    },
+    closingDialog(){// close dialog
+      this.showEvtDialog = false
+    },
     onPrev(){
       let doContinue = () => {
         this.$refs.calendar.prev()
@@ -2643,7 +2668,7 @@ methods:{
       if(!res.canContinue){
         if(res.overlaps && Object.keys(res.overlaps).length > 0){
           console.log("onChangeViewDate::overlaps=="+Object.keys(res.overlaps).length)//, JSON.parse(JSON.stringify(res.overlaps)))
-          //this.movedIntoConflict(res.overlaps,null,'view') //umm just to handle one by one
+          //this.movedIntoConflict(res.overlaps,null,'view') //umm just to handle one by one but handleOverlaps() better!
           this.handleOverlaps(res.overlaps,null,'view')
         }else{
           this.doNotify(`Loaded schedule for ${this.currentDate}`, "positive",'bottom')
