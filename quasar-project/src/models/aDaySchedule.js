@@ -174,6 +174,10 @@ export default class daySchedule {
       }
       return null
     }
+    getOriginalEvtTime(id){ //to get original scheduled evt time!
+      let evt = this.getSubGoalByID(id)
+      return !evt ? "" : evt.time
+    }
     getStoredRawEvt(id){
       if (id in this.savedRawEvts){
         //console.log('getStoredRawEvt--FOUND',id,this.savedRawEvts[id])
@@ -1148,9 +1152,8 @@ export default class daySchedule {
             //umm shouldnt use this.fixyOverlaps() instead of recursion self?!? --toTry**
           } while (++i < sizey)
         }
-  
-        //this.changeEvtTime(overlappedEvtID, overlappedEvtNew, skipAsk) //recurChangeTime
-        this.changeEvtTime(overlappedEvt, overlappedEvtNew)
+
+        this.changeEvtTime(overlappedEvt, overlappedEvtNew) //recurChangeTime
         console.log(`recurChangeTime::OVERLAPPED (${overlappedEvtID}) ${dName} to ${overlappedEvtNew.time} >> doAdd:${doAdd}..DONE`)
         
         //umm should stays the same here!!--for dragging up keep interval of 10 minutes? prolly better for separation?
@@ -1408,6 +1411,8 @@ export default class daySchedule {
       d.time = targetDrop.time  //works?!? >>yup 
       d.sortTime = newStart
 
+      this.updateDetz(d) //toTest** if update details...
+
       this.enableNoteScoreEdit(draggedItem.id,newStart,endTime)
     }
     saveDaySchedule(){
@@ -1484,6 +1489,7 @@ export default class daySchedule {
       let e = this.findEvent(evtID)
       e.duration = duration //gotta set new duration
       
+      this.updateDetz(e)
      
       this.enableNoteScoreEdit(evtID, starty,now) //not much different than below but meh--just shows score edit immediately
       //this.updateEvtMinsEndNowBtns(evtID, starty,now)

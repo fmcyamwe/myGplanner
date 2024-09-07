@@ -448,6 +448,8 @@ data () {
 
     const touchedItem = ref(null) //for touch mobile elt
 
+    const lastTarget = ref(null) //for drag/drop highlight...toTest** 
+
     return {
         splitterPage: ref(35), // start--left side--before at 35%
         splitterLegend:ref(40),
@@ -637,7 +639,7 @@ methods:{
     
       this.currentDate = now.date 
       this.currentTime = now.time //'00:52'
-      this.timeStartPos = this.$refs.calendar.timeStartPos(now.time, false)  
+      this.timeStartPos = this.$refs?.calendar?.timeStartPos(now.time, false)  
       //the above dont update in view >>cause was not in return!!
 
       let timeSets = this.daSchedule.getCurrentSchedTimesSets()
@@ -835,7 +837,7 @@ methods:{
             //console.log("onScheduleOneEach::Continue. ACTION Res>>",JSON.parse(JSON.stringify(res)))
           }
         }
-        
+
         let doCancel = () => { //do cancel
           console.log('onScheduleOneEach..Aborting',this.daSchedule.getAllEvts())
           this.reset() //OneEach
@@ -1087,41 +1089,43 @@ methods:{
         }
 
         let canDrop =  this.daSchedule.canDropEvent(targetDrop, draggedItem)
-        //hasOverlappingEvent(draggedItem.id, targetDrop, draggedItem.duration)
-       
-        //console.log("doDroppy: "+from,canDrop,draggedItem)
+        let orig = this.daSchedule.getOriginalEvtTime(draggedItem.id)
+        //console.log("doDroppy: "+from,draggedItem.time,orig) //should skip ask if originalTime is already different? toReview**
+        
         if (canDrop.canContinue){ //&& canDrop.overlaps == null){
           let askUser = draggedItem?.inDefaults || !draggedItem?.canMove 
           if (askUser){
-            let pre = draggedItem?.inDefaults ? "Default at " : "Cannot Move from" 
-            let mess = [`Evt "${draggedItem.title.trim()}" ${pre} ${whenFrmtTime(draggedItem.time)}.`, //shows misleading time--toFix**
-            `\nAlso update to new time ${whenFrmtTime(targetDrop.time)}?`,
-            "\nCancel or Dismiss to undo!\n\u2800\n",
-            `\nNo selection to keep default ${whenFrmtTime(draggedItem.time)}`
+            let pre = draggedItem?.inDefaults ? "Default at " : "Cannot Move from " 
+            let mess = [`Evt "${draggedItem.title.trim()}" ${pre} ${whenFrmtTime(orig)}.`, // draggedItem.time>>misleading time >>have to use orig
+            `\nAlso Change Evt to new time ${whenFrmtTime(targetDrop.time)}?`,
+            "\nCancel or Dismiss to undo!", //\n\u2800\n
+            `\nNo selection to keep at ${whenFrmtTime(draggedItem.time)}`
             ].join('\n')
 
             const c = this.daSchedule  //huh works for below to keep context!!
+            const clean = this.doCleanup
             this.confirmTimeChange("Changing Evt's time",
               mess, 
               "Change", //okBtn
               `Temp.Move`,//`Temp.${doAdd ? 'Add':'Move'}`, //altbtn //oldie >>"Temp.Move"
-              function(d){c.changeEvtTime(draggedItem, targetDrop,d)}, //onOk  //userChoice(d,evt,doAdd)
-              function(){console.log(`doDroppy::onCancel..>doing nothing for ${draggedItem.id})'${draggedItem.title.trim()}'`)}, //;keepAsIs() //doUpdateEvt()  //shouldnt cancel/dismiss NOT schedule?!?
-              function(){console.log(`doDroppy::onDismiss..keep as is>> ${draggedItem.id})'${draggedItem.title.trim()}'`)}//;keepAsIs(evt,doAdd)} //.scheduling at default time`);keepAsIs() 
+              function(d){c.changeEvtTime(draggedItem, targetDrop,d);clean()}, //onOk  //userChoice(d,evt,doAdd)
+              function(){console.log(`doDroppy::onCancel..>doing nothing for ${draggedItem.id})'${draggedItem.title.trim()}'`);clean()}, //;keepAsIs() //doUpdateEvt()  //shouldnt cancel/dismiss NOT schedule?!?
+              function(){console.log(`doDroppy::onDismiss..keep as is>> ${draggedItem.id})'${draggedItem.title.trim()}'`),clean()}//;keepAsIs(evt,doAdd)} //.scheduling at default time`);keepAsIs() 
               //onDismiss/...should prolly remove it actually!--or leave at default time?!?
               ) 
 
           }else{ //skip asking user...
             this.daSchedule.changeEvtTime(draggedItem, targetDrop,false)
+            this.doCleanup()  //as interval below still have same color that shows up when moved again...
           }
         
         }else{//else handle .overlaps
           //console.log("doDroppy::CANNOT Drop",JSON.parse(JSON.stringify(canDrop)))
           
-          this.movedIntoConflict(canDrop.overlaps,false,from) //beware of override flag and from
+          //override flag null as better handled and transmitting from
+          this.movedIntoConflict(canDrop.overlaps,null,from) 
           //this.handleOverlaps(canDrop.overlaps,true,'onDrop')
         }
-
       } else{
         console.log("doDroppy null ERROR?", targetDrop,this.targetDrop, draggedItem, this.selectedItem )
         return
@@ -1206,6 +1210,9 @@ methods:{
           //should NOT enable even when no change...but meh
           //daChoice[0] == id ? this.daSchedule.toggleActionBtns(true,from) : console.log('onDismissy::no change '+from,mess,daChoice[0], id)
           this.scheduleMoodsLabel //just in case
+
+          this.doCleanup() //as target interval have bg color
+
           this.daSchedule.toggleActionBtns(true,from)
         }
         const removeReplace = (toRem,toAdd,aConf) => { 
@@ -1233,7 +1240,7 @@ methods:{
           }else {
             console.log(`movedIntoConflict::removeReplace >>addGoalsToSchedule from `+from)
 
-            let toAddy = this.daSchedule.getStoredRawEvt(aConf.target) //to not carry it around so much
+            let toAddy = this.daSchedule.getStoredRawEvt(aConf.target)
             if (toAddy){
               let oldy = JSON.parse(JSON.stringify(toAdd))
               Object.assign(toAdd, toAddy,{time:aConf.targetStart.time}) // enrich with saved
@@ -1276,8 +1283,7 @@ methods:{
         const forceAdd = (toChange, toAdd,conf) => {
           console.log(`movedIntoConflict::forceAdd:${from} >>${toAdd.id})'${toAdd.title}' at ${toAdd.time} to ${conf.targetStart.time}
           \nChanging >>${toChange.id} from ${toChange.time}`)//,toAddy)
-          
-          //console.log(conf, properT)
+
           let toAddy = this.daSchedule.getStoredRawEvt(conf.target) //to not carry it around so much
           if (toAddy){
             let oldy = JSON.parse(JSON.stringify(toAdd))
@@ -1297,9 +1303,11 @@ methods:{
               return this.movedIntoConflict(euhOverlaps,override,from+'nah') //handleOverlaps
             }
           }
-          this.scheduleMoodsLabel
 
-          this.daSchedule.toggleActionBtns(true,from)
+          //this.scheduleMoodsLabel
+          //this.daSchedule.toggleActionBtns(true,from)
+          onDismissy("ForceAdd") //does above and potensh cleanup
+
           //console.log(`handleOverlaps`,this.daSchedule.getAllEvts())
         }
         let onOkChoice = (og,c, toAdd,currScheduled,aConf) => {
@@ -1316,7 +1324,7 @@ methods:{
               updateMoodLabel(toAdd.id)
             }
 
-            if(override){
+            if(from == 'onDrop'){ //oldie checked override but should remove  onDrop
               doRemove(toAdd)
             }
           }
@@ -1405,7 +1413,8 @@ methods:{
           } else if (opt =='opt0'){ //euh...drop==opt0
             console.log("resolveChoice::it's a drop?...keeping as is....",from)
             //cancelChoice(toAdd,currScheduled)
-            aNotif(`Umm...keeping as is then!`) //toTest** if works for all
+            aNotif(`Umm...keeping as is then!`)
+            this.doCleanup()
           } else{ //OPT4..FORCING.
             //console.log("chooseEvt::by forceAdd...")
             forceAdd(currScheduled,toAdd,aConf)  
@@ -1424,7 +1433,7 @@ methods:{
             //console.log("handleOverlaps::manualSolve NO force option...direction!==surrounding?",aConf.direction !== 'surrounding', 'autoSolve?: '+ autoSolve, from)
           //}
 
-          let mess = `Adding '${toAdd.title.trim()}' at ${whenFrmtTime(aConf.targetStart.time)} Overlaps with Scheduled '${currScheduled.title.trim()}' at ${whenFrmtTime(currScheduled?.time)}.
+          let mess = `${from == 'onDrop'? "Moving":"Adding"} '${toAdd.title.trim()}' at ${whenFrmtTime(aConf.targetStart.time)} Overlaps with Scheduled '${currScheduled.title.trim()}' at ${whenFrmtTime(currScheduled?.time)}.
           \nCancel to keep '${currScheduled.title.trim()}' ` // ${whenFrmtTime(toAdd?.time)}
         
           let title = autoSolve ? 'Choose Auto Resolution' : 'Resolve Overlapping Events'
@@ -1506,8 +1515,7 @@ methods:{
         if (!currScheduled || !toAdd ){console.log("movedIntoConflict...ERROR ERROR no evts found!!!",aConf);return}
 
         let canAutoSolve = this.canAutoSchedule(toAdd,currScheduled)
-        //let toAddy = this.daSchedule.getStoredRawEvt(aConf.target) ////this is what should be used as was saved..otherwise lose saved notes-
-
+       
         if (from == 'onAddMins'){ //just ask to move conflict evt down
           let reason = currScheduled?.inDefaults ? "In Defaults" : !currScheduled?.canMove ? "Cannot move" : "" //umm last one shouldnt be empty?
           //|| !currScheduled?.canMove
@@ -1531,7 +1539,7 @@ methods:{
               //this.daSchedule.toggleActionBtns(true,from)//no need as auto save schedule
               console.log(`movedIntoConflict >>onAddMins>> onDismiss`)
             })
-        }else{ //from onDrop...check explicitely or? ...toSee if handles other**
+        }else{ //normally onDrop....
           //console.log(`movedIntoConflict::`,from,"autoSolve:"+canAutoSolve)
           if(canAutoSolve){
             console.log(`movedIntoConflict:: can AUTO schedule`,canAutoSolve.addIncSched, canAutoSolve.schdIncToAdd,'direction == surrounding? >>', aConf.direction == 'surrounding')
@@ -1812,7 +1820,7 @@ methods:{
         forceAddy.set(aConf.target,aConf?.targetStart) 
 
         if (!toAdd){
-          let addin = this.daSchedule.getSubGoalByID(aConf.target) //this.getLocalEvt(aConf.target)
+          let addin = this.daSchedule.getSubGoalByID(aConf.target)
           if (!addin) {console.log("oneToManyConflict...ERROR ERROR local evt not found!!!",aConf);return}
           toAdd = addin
         }else{ //below should not happen!
@@ -2176,9 +2184,8 @@ methods:{
       
       let doForce = this.daSchedule.isViewingPast() ? true : skipAsk //inPast >>just force!!
 
-      //console.log(`onPickEvent::(${addE.id})' ${addE.title.trim()}' from ${addE.time} to ${this.targetDrop.timestamp.time} with force?${skipAsk} BUT Forcing?:${doForce}`,this.targetDrop.timestamp)
-
-      let isClose = this.daSchedule.tooClose(this.targetDrop.timestamp, addE.duration) //this.tooClose(this.targetDrop.timestamp, addy.duration)//could prolly do midnight check faster as Start/End times could be:[2345 20]  with endTime being smaller when shouldnt** 
+      let isClose = this.daSchedule.tooClose(this.targetDrop.timestamp, addE.duration) 
+      //could prolly do midnight check faster as Start/End times could be:[2345 20]  with endTime being smaller when shouldnt** 
         
       if(isClose){
         console.log("onPickEvent::tooClose check FAIL!",isClose) 
@@ -2644,7 +2651,6 @@ methods:{
       } else {
         doContinue()
       }
-      //oldie >> this.$refs.calendar.moveToToday()
     },
     onNext(){
       let doContinue = () => {
@@ -2664,6 +2670,15 @@ methods:{
       }
     },
     onChange(){
+
+      const scrollToCurrent = (noOv) => {
+        setTimeout(() => {
+          let timey = parseDate(new Date())
+          this.scrollToTime(timey,noOv ? 'slow' : 'fast') // >> hadO ? 'slow' : 'fast' >> with overlaps, scroll slow, else false! >>meh slow better
+        }, noOv ? 0 : 1000) //with overlaps, take some time, otherwise execute immediately
+        //setTimeout(doContinue, 1000);
+      }
+
       let res =  this.daSchedule.onChangeViewDate(this.currentDate)
       if(!res.canContinue){
         if(res.overlaps && Object.keys(res.overlaps).length > 0){
@@ -2672,15 +2687,18 @@ methods:{
           this.handleOverlaps(res.overlaps,null,'view')
         }else{
           this.doNotify(`Loaded schedule for ${this.currentDate}`, "positive",'bottom')
-          
-          if(this.isViewingPast() || this.currentDate !== today()) { //adjustTime for past && futur 
-            //console.log("adjusting time for past/future", this.currentDate) //,this.scheduledEvents.length)
-            this.adjustCurrentTime()
-          }
+
+          this.adjustCurrentTime() //meh just do always...
+          //if(this.isViewingPast() || this.currentDate !== today()) { //adjustTime for past && futur 
+          //  console.log("adjusting time for past/future", this.currentDate) //,this.scheduledEvents.length)
+          //  this.adjustCurrentTime()
+          //}
         }
       }else{
         this.doNotify(`Empty for currentDay :(`, "warning",'bottom')
       }
+
+      scrollToCurrent(res.canContinue) //scrollTo current time
     },
     onDragStart(e, item) {
       //console.log('onDragStart',e,item)
@@ -2696,7 +2714,7 @@ methods:{
      
     },
     onDragEnter(e, type, scope){
-       // console.log('onDragEnter',e, type, scope)
+      //console.log('onDragEnter',e, type, scope)
       if(type === 'goal-item'){
         //console.log('onDragEnter..goal-item',e, scope) 
         // scope is undefined here hence saving it below
@@ -2705,26 +2723,46 @@ methods:{
         //ABSO necessary to save this as it's the last position before potential overlap with goal-item!
         //but not precise enough
 
-        //let target = document.elementFromPoint(e.clientX, e.clientY)
-        //console.log('onDragEnter...calendar', target) //e,type,scope
-
+        //console.log('onDragEnter...calendar')//, e, type, scope) //e,type,scope
+        if(this.targetDrop && this.targetDrop.timestamp.time == scope.timestamp.time){
+          console.log('onDragEnter...calendar,SAME',this.targetDrop.timestamp.time)//prolly nothing...should return?
+        }else{
+          let target = e.target
+          //console.log('onDragEnter>>TARGET',this.targetDrop?.timestamp?.time,scope.timestamp.time,this.selectedItem)//,target.style,target)
+          target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //oldie >> 'pink'
+          this.lastTarget = target
+        }
+      
         this.targetDrop = scope
         e.preventDefault()
       }
       return true
     },
     onDragOver(e, type, scope){ //fires lot
-      //console.log('onDragOver')
+      //console.log('onDragOver',e, type, scope)
       e.preventDefault() //to allow drop
       return true
     },
     onDragLeave(e, type, scope){
-        return false  //what if true?!?
+      //console.log('onDragLeave',this.targetDrop?.timestamp?.time,this.selectedItem.color)//,e, type, scope)
+      let target = e.target
+      //console.log('onDragLeave',this.targetDrop?.timestamp?.time,target.style.background)//,target.style,target)
+      target.style.background = ''
+
+      return false  //what if true?!? >>methink false in order to preventDefault and not handled by browser...
     },
-    onDragEnd(e){//umm why thig again? //can use to do cleanup maybe?
-      //console.log('onDragEnd',e)
+    onDragEnd(e){//umm can use to do cleanup maybe?>>meh done in doCleanup()
+      //console.log('onDragEnd',this.lastTarget)//.style.background)
+      
       //e.preventDefault() //bof nope
       //return true //meh
+    },
+    doCleanup(){
+      //console.log('doCleanup',this.lastTarget)//.style.background)
+      if(this.lastTarget){
+        this.lastTarget.style.background = ''
+        this.lastTarget = null
+      }   
     },
     onDrop(e, type, scope){
       //console.log('onDrop',e, type, scope)
@@ -2772,12 +2810,12 @@ methods:{
     onClickHeadDay(data){ //same as above
         console.log('onClickHeadDay',data)
     },
-    onMouseEnter(data) {
+    /*onMouseEnter(data) {
         console.log("onMouseAt", data)
     },
     onMouseLeave(data) { //this fires!
         console.log("onMouseLeave", JSON.stringify(data))
-    },
+    },*/
     ///Mouse event handler for range selection
     onMouseDownTime ({ scope, event }) {
         //console.log('onMouseDownTime', this.mobile)//,{ scope, event })
@@ -2806,7 +2844,7 @@ methods:{
             this.otherTimestamp = scope.timestamp
             this.mouseDown = false
         }
-
+        
         if(!this.mousedown) {
         let rangy = this.startEndTimes
         if (rangy[1] == rangy[0]){ //to keep selection range in case of adding new event ad hoc!
@@ -2848,31 +2886,31 @@ methods:{
     onTouchStart(e, item){
       if(e.type == "touchstart"){ //fires once!
       
-      //this.draggedItem = item
-      this.selectedItem = item
-      let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+        //this.draggedItem = item
+        this.selectedItem = item
+        let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
-      //let f = target.closest('.my-event')
+        //let f = target.closest('.my-event')
 
-      if(target.parentNode.classList.contains("my-event")){
-        console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id]) //target,,this.mobileEnableScore[item.id]
-        target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
-        this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
-      } else {
-        //console.log("onTouchStart:WOOOAH inner touch?",target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
-        //could happen if it's inner elt...so go up
-        let f = target.closest('.my-event')
-        target = target.parentNode
         if(target.parentNode.classList.contains("my-event")){
-          console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
+          console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id]) //target,,this.mobileEnableScore[item.id]
           target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
           this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
-        }else{
-          this.touchedItem = false //flag for later in case clicked on endNow, addMin btns....
-          //console.log("onTouchStart:ERROR...Btn?",target, target.parentNode) //this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
-          return //needed
+        } else {
+          //console.log("onTouchStart:WOOOAH inner touch?",target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
+          //could happen if it's inner elt...so go up
+          let f = target.closest('.my-event')
+          target = target.parentNode
+          if(target.parentNode.classList.contains("my-event")){
+            console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
+            target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
+            this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
+          }else{
+            this.touchedItem = false //flag for later in case clicked on endNow, addMin btns....
+            //console.log("onTouchStart:ERROR...Btn?",target, target.parentNode) //this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
+            return //needed
+          }
         }
-      }
 
         e.preventDefault() 
         //need to continue for touch-hold!...OR NOT? seems better for drag/drop smh
@@ -2916,41 +2954,66 @@ methods:{
           if (f.classList.contains("my-event-drag")) {
             f.classList.toggle("my-event-drag")
             //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
-          }else{console.log("onTouchEvt::resetClass...AINT THERE!",f,t)}
+          }//else{console.log("onTouchEvt::resetClass...AINT THERE!"+e.type,f,t)}
           return
         }
 
-      if (!this.selectedItem){ //should be populated** should return?!? tbd
-        console.log("onTouchEvt NULL Item ?!? >> "+e.type,this.selectedItem,this.touchedItem)
-        item = this.selectedItem
+      if (!this.selectedItem){ //should be populated** 
+        console.log("onTouchEvt NULL Item >>ERROR?!? "+e.type,this.selectedItem,this.touchedItem)
+        item = this.selectedItem //redundant prolly
+        //should return?!? prolly?
       }
 
-      if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
-        if(this.isViewingPast()){ //present check only for move/end --
+      if(this.isViewingPast()){ //present check only for move/end --
           this.doNotify("Editing past is no no!")  //meh same as below for grouping!
           //this.useGroupNotify("Editing past is no no!", null,'bottom',e.type)//for grouping>>'NoG' 
+          resetClass(this.touchedItem)  //still have to remove the drag class!
           e.preventDefault()
           e.stopPropagation()
           return
-        }
+      }
+
+      if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
+        //if(this.isViewingPast()){ //present check only for move/end --
+        //  this.doNotify("Editing past is no no!")  //meh same as below for grouping!
+          //this.useGroupNotify("Editing past is no no!", null,'bottom',e.type)//for grouping>>'NoG' 
+        //  e.preventDefault()
+        //  e.stopPropagation()
+        //  return
+        //}
+
         let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
         if(target.ariaLabel){ //when moving into calendar's interval
+
+        //e.target remains same original goal event
+        //console.log("onTouchEvt::touchmove",this.lastTarget)//target.style)
+        //target.style.background = 'pink' //toSee
+        //this.lastTarget = target //toSave just in case
+
           let s = getTimey(target.ariaLabel)
           if (this.targetDrop){ //-should skip when in same timestamp
             let changedBy = diffTimestamp(this.targetDrop,s) 
             let isSame = JSON.stringify(this.targetDrop) === JSON.stringify(s)
-  
+    
             if (isSame && changedBy == 0){ //--too much comparison? toReview
-              //console.log("INTERVAL SAME...",isSame,s.time == this.targetDrop?.time, changedBy)
+              //console.log("touchmove::INTERVAL SAME...",isSame,s.time == this.targetDrop?.time, changedBy,this.lastTarget,this.selectedItem.color,this.selectedItem.color.includes("-"))//,target)
               return
             }
-            //console.log("INTERVAL changed!!",isSame,s.time,this.targetDrop?.time,changedBy)
+
+            //console.log("touchmove::INTERVAL changed!!",isSame,s.time,this.targetDrop?.time,changedBy,this.lastTarget,target,this.selectedItem.color,this.selectedItem.color.includes("-"))
+            if(!this.lastTarget){
+              this.lastTarget = target
+              target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
+            }else{
+              this.lastTarget.style.background = '' //remove from old
+              target.style.background = this.selectedItem.bgcolor.includes("-") ?'grey' : this.selectedItem.bgcolor //todo***--add guardrails if not present..mayhaps
+              this.lastTarget = target 
+            }
           }
           this.targetDrop = s
 
           e.preventDefault()
           return
-
         } /*else { ////no arialLabel...prolly when over another event! || or same one but in early stages of dragging?
           let f = target.closest('.my-event')
           if (f && !f.classList.contains("my-event-drag")) {
@@ -2966,19 +3029,17 @@ methods:{
         
         let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
-        //if(this.mobile){
-        //  console.log("handleTouchEvt::END--ISMOBILE",target,this.touchedItem) //this.allowDialog[item.id]
-        //}
+        //console.log("onTouchEvt::END",target.style.background,this.lastTarget)//.style.background)
 
-        if(this.isViewingPast()){ //present check only for move/end --
-          this.doNotify("Editing past is no no!")  //meh same as below for grouping!
+        //if(this.isViewingPast()){ //present check only for move/end --
+        //  this.doNotify("Editing past is no no!")  //meh same as below for grouping!
           //this.useGroupNotify("Editing past is no no!", null,'bottom',e.type)//for grouping>>'NoG' 
 
-          resetClass(this.touchedItem)  //still have to remove the drag class!
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
+        //  resetClass(this.touchedItem)  //still have to remove the drag class!
+        //  e.preventDefault()
+        //  e.stopPropagation()
+        //  return
+        //}
 
         if(this.touchedItem){
           if(target.parentNode.classList.contains("my-event-drag")){ //on top of same Evt....
@@ -2989,11 +3050,11 @@ methods:{
             if(savedHas){//then remove it still
               this.touchedItem.parentNode.classList.remove("my-event-drag")
             }else{
-              console.log("onTouchEvt::END... target NO my-event-drag?",savedHas, target,target.parentNode )
+              console.log("onTouchEvt::END...target NO my-event-drag?",savedHas, target,target.parentNode )
             }
           }
         }else{
-          //console.log("onTouchEvt.....EUUH nothing?",this.touchedItem, target) //could happen for those AddMin btns...
+          console.log("onTouchEvt::END >> EUUH nothing? returning....",this.touchedItem, target) //could happen for those AddMin btns...
           return //continue default handling....
         }
       
@@ -3004,9 +3065,11 @@ methods:{
           
           this.doDroppy("onDrop",this.targetDrop, this.selectedItem) // oldie from >onTouch but should act as a drop in mobile
         } else {
-          //console.log("onTouchEvt::END>>ERROR?OVERLAP?",e, target,target.parentNode,this.mobile,this.daSchedule.isDisabledScoreEdit[item.id])//,this.allowDialog[item.id])
-          if(target.classList.contains("title")){
-            console.log("onTouchEvt::END--has title!",this.targetDrop)
+          //let f = target.closest('.my-event')
+          //console.log("onTouchEvt::END>>ERROR?OVERLAP?",target,target.classList.contains("my-event"),target.parentNode,this.daSchedule.isDisabledScoreEdit[item.id])//,this.allowDialog[item.id])
+          
+          if(target.classList.contains("title") || target.classList.contains("my-event")){
+            //console.log("onTouchEvt::END--has title!",this.targetDrop)
             if (this.targetDrop){//just drop on top to see--ToReview **
               this.doDroppy("onDrop",this.targetDrop, this.selectedItem)   // oldie from >onTouch but should act as a drop in mobile
             }
@@ -3071,10 +3134,16 @@ methods:{
     scrollToTime (timey,speed=null) { 
       if (this.$refs.calendar){//just to see..gotta check first! >>doesnt seem to work in first loop...second loop neither!! >WORKs when it's one iteration only!
         let s = addToDate(timey, { minute: -30 }) //remove some minutes in order to center evt..
-        console.log(`scrollToTime::gonna SCROLL`,timey.time, s.time, speed)
+        console.log(`scrollToTime::gonna SCROLL`,timey.time, s.time, speed)//,JSON.parse(JSON.stringify(this.$refs)))
         this.$refs.calendar?.scrollToTime(s.time, speed ? speed=='fast'? 400 : 1000 : 500)  //whats point of the second number param?!? >>OH the speed of the scroll!!!
       }else {
-        console.log(`scrollToTime::NO SCROLLY`,timey.time, JSON.parse(JSON.stringify(this.$refs)))
+        //console.log(`scrollToTime::NO SCROLLY`,timey.time)//, JSON.parse(JSON.stringify(this.$refs)))
+        //bon try again?
+        setTimeout(() => {
+          let newTimey = parseDate(new Date())
+          console.log(`scrollToTime::NO SCROLLY at`,timey.time,"Now going to: "+newTimey.time)
+          this.scrollToTime(newTimey,'slow') // >> hadO ? 'slow' : 'fast' >> with overlaps, scroll slow, else false! >>meh slow better
+        }, 1000 )
       }
     },
     //for Evts time change
@@ -3104,7 +3173,7 @@ methods:{
         }).onOk((data) => {
           if(data == ''){
             console.log("confirmTimeChange onOk with no selection >>onDismiss")
-            this.doNotify(`No selection made...Defaulting`, "positive",'bottom') //Leaving Evt as is!
+            this.doNotify(`No selection made...Leaving as is`, "positive",'bottom') //Leaving Evt as is!
             executeDismiss ? executeDismiss() : console.log("confirmTimeChange:: No Dismiss func to execute!")
             return
           }
