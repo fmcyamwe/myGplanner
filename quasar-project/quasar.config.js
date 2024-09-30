@@ -42,7 +42,8 @@ module.exports = configure(function (/* ctx */) {
     extras: [
       // 'ionicons-v4',
       // 'mdi-v5',
-      // 'fontawesome-v6',
+      //'fontawesome-v6',
+      'fontawesome-v5', //currently using v5 version..free at least...toReview**
       // 'eva-icons',
       // 'themify',
       // 'line-awesome',

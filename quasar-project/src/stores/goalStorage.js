@@ -96,9 +96,9 @@ export const useGoalStore = defineStore('allGoals', () => {
         return
     }
 
-    function addMainGoal(goal,details,color,priority) {
+    function addMainGoal(goal,details,color,priority,icon=null) {
        
-        //console.log(goal+ ' ' +details + ' ' +color + ' ' +priority)
+        //console.log("addMainG",goal+ ' ' +details + ' ' +color + ' ' +priority+' ' +icon, iconParse(icon))
         
         let current = this.getMainGoals
         if(!current){
@@ -109,7 +109,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 details: details,
                 priority: priority,
                 bgcolor: color,
-                icon: 'fas fa-utensils' //remove this prop as redundant...todo***
+                icon: icon ? iconParse(icon) : 'fas fa-utensils' 
             }]))
             return
         }
@@ -117,17 +117,19 @@ export const useGoalStore = defineStore('allGoals', () => {
         //let id = current !== null ? current.length + 1 : 0
         let newID = current.length + 1
 
-        while (current.some(item => item.id === newID)) {
-            newID = Math.floor(Math.random() * 1000)
+        //should try to have id that is larger that largest id as can assign id that is lower and mess up sorting when showing goals...todo**
+        // toReview if newID*2 is better
+        while (current.some(item => item.id === newID)) { 
+            newID = Math.floor(Math.random() * (newID*2)) //oldie >> 1000
             //console.log("an item had the same id...using random", newID)
         }
-        current.unshift({
+        current.push({ //oldie >> .unshift
             id: newID,
             title: goal.trim(),
             details: details,
             priority: priority,
             bgcolor: color,
-            icon: 'fas fa-utensils' 
+            icon: icon ? iconParse(icon) : 'fas fa-utensils' 
         })
 
       $q.localStorage.set('mainGoals', JSON.stringify(current))
@@ -136,9 +138,9 @@ export const useGoalStore = defineStore('allGoals', () => {
       return newID
     }
 
-    function editMainGoal(id,title,details,color,priority){
+    function editMainGoal(id,title,details,color,priority,icon=null){
         
-        //console.log("editMainGoal", id+ ' ' + title + ' ' + details + ' ' + color + ' ' +priority)
+        //console.log("editMainGoal", id+ ' ' + title + ' ' + details + ' ' + color + ' ' +priority+' ' +icon,iconParse(icon))
         
         let current = this.getMainGoals
         let found = false  //flag for success/found?!? >>return it?!? tbd**
@@ -149,7 +151,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[i].details = details,
                 current[i].bgcolor = color
                 current[i].priority = priority
-
+                current[i].icon = icon ? iconParse(icon) : current[i].icon 
                 found = true
                 break
             }
@@ -183,11 +185,11 @@ export const useGoalStore = defineStore('allGoals', () => {
         let newID = current.length + 1
 
         while (current.some(item => item.id === newID)) {
-            newID = Math.floor(Math.random() * 1000)
+            newID = Math.floor(Math.random() * (newID*2)) //oldie >> 1000
             //console.log("an subgoal item had the same id...using random", newID)
         }
 
-        current.unshift({ //or push to add at end?
+        current.push({ //push to add at end?  >>oldie .unshift
             id: newID,
             parentGoal:pGoal,
             title: title.trim(),
@@ -496,12 +498,13 @@ export const useGoalStore = defineStore('allGoals', () => {
         let tree = []
 
         mains.forEach(goal => {
-            let toAdd = {//anything else?!?
+            let toAdd = {
                 id: goal.id, //for sorting....
                 label: `${goal.id}) ${goal?.title.trim()}`,
                 details:`${goal.details} ==> Prio:${goal?.priority}`,
                 color:`${goal?.bgcolor}`,
                 prio: goal?.priority, //for now in label...
+                icon:goal?.icon, //toReview if not redundant...
                 children:[]
             }
 
@@ -669,6 +672,27 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function getRandomIndex(sizey){ //redundant
         return Math.floor(Math.random() * sizey)
+    }
+
+    function iconParse (name) {
+
+        if (name.indexOf('-') > -1){ //check that it has already that '-' 
+            //console.log("iconParse::GOOD?",name)
+            return name  //>> to not make it worse--toSee**
+        }
+
+        let a = name.replace(/\W+/g, " ") 
+          .split(/ |\B(?=[A-Z])/)
+          .map(word => word.toLowerCase())
+          //.join('-') //have to check length for fas/fab smh
+        let useFas = false
+        if (a.length > 1){
+            console.log("iconParse::FAS",a) //not always smh i.e "fas fa-handshake" 'fas fa-amazon-pay' should be 'fab fa-amazon-pay' --toReview** 
+            useFas = true
+        }
+        a = a.join('-')
+
+        return a.includes('regular') ? 'far fa-'+a.replace("-regular", "") : useFas ? 'fas fa-'+a : 'fab fa-'+a  // oldie >> 'fab fa-'+a  >> fab prefix tend to not show?....toReview** or use excludeIcons
     }
 
     return {

@@ -19,9 +19,10 @@
           <q-radio class="q-mx-md" v-model="own" val="misc" label="Misc" />
           <q-radio class="q-mx-md" v-model="own" val="self" label="By Self" />
         </div>
-        
+      
         <div v-if="pGoals" ><!--style="width: 100%;"  label="Select Parent Goal"-->
-          <q-select class="q-mx-md"
+          <q-select 
+          :class="classy()"
           v-model="daP"
           :options="pGoals"
           option-value="id"
@@ -31,7 +32,11 @@
           popupContentClass="q-px-sm"
           :options-selected-class="goalyColor('c')"
           :label-color="goalyColor('l')"
-          />
+          >
+            <template v-slot:before>
+              <q-icon v-if="daP" :name="daP.icon" size="14px" class="q-mx-md q-pr-sm" />
+            </template>
+          </q-select>
         </div>
         
         <div>
@@ -93,7 +98,9 @@
     ],
     computed: {
       pGoals:{
-        get(){return this.mainGoals},  //no massaging?~? guess not
+        get(){
+          return this.mainGoals
+        },  //no massaging?~? guess not
       },
       evName:{
         get(){return this.aTitle},
@@ -110,7 +117,10 @@
     },
     methods: {
       goalyColor(l){
-        return this.daP == null ? '' : l == 'c' ? 'bg-'+this.daP.bgcolor : this.daP.bgcolor
+        return this.daP == null ? '' : l == 'c' ? 'bg-'+this.daP.bgcolor + " "+ this.daP?.icon : this.daP.bgcolor
+      },
+      classy(){  //hannoying gutter class that messes up look when an option is selected
+        return this.daP == null ? 'q-gutter-md q-px-md' : "q-px-md"
       },
       onClicked () {
         this.$emit('saveEvent', this.aTitle, this.daP, this.own,this.duration,this.useBalance)

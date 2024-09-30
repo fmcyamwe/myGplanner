@@ -13,8 +13,9 @@
             @prev="onPrev"
             @next="onNext"
         />
+        <i class="row justify-center q-pa-sm">Click on Day header for that day's Moods </i>
         <div class="row justify-center">
-            <div class="q-px-md" style="display: flex; max-width: 800px; width: 100%;height: 400px;overflow: auto;"><!--class="row justify-center items-center" use 'no-scroll' to disallow scrolling border: 1px solid #ddd>>-->
+            <div class="q-px-md" style="display: flex; max-width: 800px; width: 100%;height: 500px;overflow: auto;"><!--class="row justify-center items-center" use 'no-scroll' to disallow scrolling border: 1px solid #ddd>>-->
                 <q-calendar
                 ref="calendar"
                 v-model="currentDate"
@@ -116,12 +117,12 @@
               no-connectors
               dense
               accordion
-              :defaultExpandAll="showTree"
-              >
+              ><!--:defaultExpandAll="showTree"  to expand all when toggled but too much-->
               <template v-slot:default-header="prop">
                   <div :class="classyColor(prop.node)">
-                    <q-icon v-if="!prop.node.isChildren" :name="prop.node.icon || prop.expanded ? 'expand_less' : 'expand_more'" size="28px" class="q-mr-sm"/>
+                    <q-icon v-if="!prop.node.isChildren" :name="prop.expanded ? 'expand_less' : 'expand_more'" size="28px" class="q-mr-sm"/>
                     <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+                    <q-icon :name="prop.node.icon" />
                   </div>
                 </template>
               <template v-slot:default-body="prop">
@@ -221,8 +222,8 @@ export default {
     this.loadEvts()
     this.constructTree()
   },
-  mounted() {
-    console.log(`mounted`)
+  mounted() { //redundant--toRemove**
+    console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
   },
   computed: {
     storedGoalsMap(){  //rename properly** todo
@@ -442,12 +443,22 @@ export default {
         this.$q.notify({
         color: 'positive',
         position: 'top',
-        message: `Scheduled by mood: ${hasM.join()}`,
+        message: `Scheduled by moods: ${hasM.join()}`, //need ',' separator?
         icon: 'tag_faces', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
         //group?: boolean | string | number;
         //timeout?: number; // time to display (in milliseconds)>>default is 5000
+        //multiLine:true ? //for max-width....
       })
-      }
+      }else{
+        this.$q.notify({ //no moods
+        color: 'white', //color of whole dialog //default to black
+        textColor: 'black', //message text color //default to white
+        position: 'top',
+        message: `NO mood!!`,
+        icon: 'sentiment_neutral',
+        iconColor: "red",
+        multiLine:true  //to have max-width
+      })}
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
       this.mostEvts = 5 //to update the interval-height

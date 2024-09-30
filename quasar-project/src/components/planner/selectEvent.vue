@@ -10,7 +10,7 @@
               <q-select
               v-model="toAdd" 
               :options="allScheduled"
-              class="q-gutter-md q-px-md"
+              :class="classy()"
               option-value="id"
               option-label="title"
               popupContentClass="q-px-sm"
@@ -24,13 +24,17 @@
               fill-input
               input-debounce="0"
               behavior="menu"><!--behavior?: "default" | "menu" | "dialog" | undefined; >> menu on desktop and dialog on mobiles 
-                have to force it as menu so that options dont jump on top of page...smh toMonitor-->
+                have to force it as menu so that options dont jump on top of page...smh toMonitor
+                class="q-px-md"-->
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
                       No results
                     </q-item-section>
                   </q-item>
+                </template>
+                <template v-slot:before><!--append better?-->
+                  <q-icon v-if="toAdd" :name="toAdd.ic" size="14px" class="q-mx-md q-pr-sm" />
                 </template>
                 <!--behavior?: "default" | "menu" | "dialog" | undefined; >> menu on desktop and dialog on mobiles
                   <template v-if="toAdd" v-slot:prepend>
@@ -47,6 +51,22 @@
                 could start being too much goals?...break down by parentGoal?!? tbd**
                   >>see if filterFn is good and the change of label='PgoalTitle' ?
                 -->
+
+            </div>
+            <div v-if="toAdd" class="q-px-md">
+              Duration (min)
+              <q-knob
+                  :min="5"
+                  :max="120"
+                  :thickness="0.22"
+                  :step="5"
+                  v-model="dura"
+                  show-value
+                  size="75px"
+                  color="teal"
+                  track-color="grey-3"
+                  class="q-ma-md"
+              />
             </div>
             <br>
             <q-card-actions align="center" class="q-px-xl">
@@ -83,6 +103,7 @@
       return {//no need for ref..prolly
         doForce:false, //ref(false), //force schedule and skip asking confirmation from user...
         toAddE:null,  //ref(null),
+        dura:null,  //toTest** changing duration
         useBalance:false,
         allEvts: this.canBeScheduled,//bon start with this....//null //ref(null)
         //empty:0 //smh >>no need as was hackish way to reset toAddE when not filtering!
@@ -104,7 +125,9 @@
       toAdd:{
         get(){return this.toAddE},
         set(value){
+          //console.log('toAdd...setting',value)
           this.toAddE = value
+          this.dura = value?.duration || 0 //default 0 needed or complain and shows NA when user doing filtering
         }
       },
     },
@@ -114,12 +137,12 @@
     //},
     methods: {
       onAddClicked () {
-        //console.log('huh picking event', this.toAdd,this.doForce)
-        this.$emit('onPickEvent',this.toAdd,this.doForce,this.useBalance)
+        //console.log('huh picking event', this.toAdd,this.doForce,this.useBalance,this.dura)
+        this.$emit('onPickEvent',this.toAdd,this.doForce,this.useBalance,this.dura)
 
         this.doForce = false
         this.useBalance = false
-        this.toAdd = null 
+        this.toAdd = null //huh complains for dura in set() 
       },
       filterFn (val, update, abort) {
         update(() => {
@@ -146,10 +169,13 @@
       //},
       goalyColor(l){
         //console.log(`goalyColor `+l,this.toAdd?.color, this.allScheduled.length)
-        return this.toAdd == null ? '' : l == 'c' ? 'bg-'+this.toAdd?.color : this.toAdd?.color
+        return this.toAdd == null ? '' : l == 'c' ? 'bg-'+this.toAdd?.color + " "+ this.toAdd?.ic : this.toAdd?.color  //huh works showing icon--toTry showing in list**
       },
       labely(){ //sheesh gotta check '' too due setModel() above smh
-        return (this.toAdd == null  || this.toAdd == undefined || this.toAdd == '') ? ' Sub Goal' : ' Of: '+this.toAdd?.pg
+        return (this.toAdd == null  || this.toAdd == undefined || this.toAdd == '') ? ' Sub Goal' : ` Of: ${this.toAdd?.pg || ""}` //<i v-html="${this.toAdd?.ic}"></i>` || <i class="fab fa-accusoft"></i> 
+      },
+      classy(){  //hannoying gutter class that messes up look when an option is selected
+        return (this.toAdd == null  || this.toAdd == undefined || this.toAdd == '') ? 'q-gutter-md q-px-md' : "q-px-md"
       },
       canBalance(){
         let canBalance = this.toBalance + parseInt(this.toAdd?.duration) || this.toAdd?.isAlternative

@@ -31,12 +31,40 @@
                             :key="goal.id"
                             :label="goal.title"
                             :caption="goal.details"
+                            :icon="goal.icon"
                             popup
                             expandSeparator
                             :header-class= "classyHeader(goal?.bgcolor)"
                             clickable>
-                            <!--<template v-slot:header></template> -->
+                            <!--:icon="goal.icon" //shows when fontAwesome added in quasar.config 
+                            ...literal as >> icon="fas fa-handshake" || "far fa-thumbs-up"-->
                         
+                            <template v-slot:header> <!--for edit ability...-->
+                                <div><!--add proper class..todo**-->
+                                    <q-icon v-if="expanded[goal.id] ? 'expand_less' : 'expand_more'" size="28px" right/>
+                                    <!-- huh q-item-label works even if not in a q-item-section
+                                        <div class="q-px-sm text-weight-bold" >{{ goal.title }}</div>
+                                        <div class="q-px-sm" >{{ goal.details }}--({{ goal.priority }})</div>
+                                        <i :class="goal.icon"></i> 
+                                    -->
+                                    <q-item-label overline>{{ goal.title }}</q-item-label>
+                                    <q-item-label caption>{{ goal.details }}--({{ goal.priority }})</q-item-label>
+                                    <q-icon :name="goal.icon" />
+                                    
+                                </div>
+                                <!--add delete btn?..prolly if (!hasSubG(goal.id))...toSee**-->
+                                <q-btn v-if="expanded[goal.id]" 
+                                label="Edit goal" 
+                                type="reset" 
+                                color="secondary" 
+                                noWrap 
+                                push 
+                                align="evenly" 
+                                class="q-mx-sm"  
+                                @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" 
+                                />
+                            </template>
+                            <template v-slot:default> 
                                 <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
                                     <!-- bon touchswipe seem to work except that doesnt show the sliding animation...toSee if should use***
         
@@ -68,6 +96,7 @@
                                     OR
                                     <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
                                 </q-card>
+                             </template>
                             </q-expansion-item>
                         </transition-group>
                     </q-list>
@@ -123,7 +152,7 @@
                             clearable
                             lazy-rules
                             item-aligned
-                            :rules="[ val => val && val.length > 0 || 'Please type a goal']"
+                            :rules="[ val => val && val.length > 1 || 'Please type a goal']"
                         />
 
                         <div v-if="showSubG" class="q-gutter-md">
@@ -162,6 +191,28 @@
                             <!--popupContentStyle="justify-content: center"
                             /> -->
                             <br>
+                            <div v-if="currentIcon">
+                                <!--add style class >> todo** -->
+                                Icon: <i :class="currentIcon" ></i>
+                                <br>
+                                <q-toggle
+                                v-model="changeIcon"
+                                label="Change Icon?"
+                                left-label
+                                />
+                            </div>
+
+                            <!--<q-icon :name="icon" /> :icon="icon"-->
+                            
+
+                            <Vue3IconPicker v-if="!currentIcon || changeIcon" v-model="icon" placeholder="Select icon" class="q-gutter-md" valueType="name" :displaySearch="false"/> 
+                            <!-- valueType as name important as default is svg
+                            //bon review placement as doesnt show all of dialog --show search ?
+                            
+                            -->
+
+                            <br>
+
                             <q-input
                                 filled
                                 v-model.number="priority"
@@ -266,7 +317,7 @@
                                 <q-badge 
                                 color="orange" floating
                                 style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                ? <q-tooltip>Is Default/Need to get done!</q-tooltip>
+                                ? <q-tooltip>Is Default/Get done daily!</q-tooltip>
                                 </q-badge>
                             </q-toggle>
                             <br>
@@ -435,12 +486,14 @@ import { computed, ref, onBeforeMount, onBeforeUnmount, watchEffect } from 'vue'
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
 import { pGColors } from '../util/utiFunc'
+ import { Vue3IconPicker } from 'vue3-icon-picker'
+ import 'vue3-icon-picker/dist/style.css'
 
 
 export default {
-    //components: {
-    //   draggable
-    // },
+    components: {
+        Vue3IconPicker //draggable
+     },
     name: 'goalsPage',
     setup () {
         //const splitterModel = ref(40) //at 40%
@@ -467,6 +520,10 @@ export default {
 
         const goalType = ref('line') //so nothing is selected at first
         const pGoal = ref(null)
+
+        const icon = ref(null) // icon of parent goal --toRename** >> pGIcon
+        const changeIcon = ref(false) //
+        const currentIcon = ref(null) //with above to proper show/hide icon on edit/add parentGoal
 
         const howThis = ref(null) //watchEffect testing...not bad--toRemove
 
@@ -555,7 +612,9 @@ export default {
             
             avColors.value = c.filter(item => !currentColors.find(o => o == item)) //filter out already taken colors...
             
-            mainGoals.value.sort(sorty) //sorty by earlier id!
+            mainGoals.value.sort(sorty) //sort by earliest id! >>can be wrong! >>see** in goalStorage file
+
+            //console.log(`resetGsAndColors`,JSON.parse(JSON.stringify(mainGoals.value))) //allMGoals
         }
 
         function doPrint () {
@@ -746,9 +805,9 @@ export default {
             let pId = pGoal.value//umm should be present...toMonitor**
             if (goalType.value ==='main') {
                 if(updatingSubG && pId?.id == updatingSubG){ //second check just in case...
-                    store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value)
+                    store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
                     
-                    expanded.value[pId?.id] = false  //umm to see...
+                    expanded.value[pId?.id] = false
                 } else{
                     console.log("Error when Edit Parent Goal...inconsistent or not found!",updatingSubG,pId)//shouldnt get here!
                 }
@@ -784,7 +843,8 @@ export default {
             }
 
             if (goalType.value === 'main') {
-                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value)
+                console.log("onSubmit::main",goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
+                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
             } else {
                 if (time.value == ''){
                     errorNotify(`Schedule Time not set`)
@@ -908,9 +968,9 @@ export default {
             expanded.value[pID] = true
         }
         
-        function onParentAction(action,id,title){ //annoyance that need to reload page to see change
+        function onParentAction(action,id,title){ //no need for title--toRemove**
             //let pG = getParent(id)
-            console.log(`onParentAction:${action} for> ${id}`, title)
+            //console.log(`onParentAction:${action} for> ${id}`, title)
 
             if (action == 'del'){
                 $q.dialog({
@@ -943,7 +1003,13 @@ export default {
                     details.value = pGoally.details
                     bgcolor.value = pGoally.bgcolor
                     priority.value = pGoally.priority
+
+                    icon.value = pGoally.icon  //empty when not in list smh
+                    currentIcon.value = pGoally.icon 
+                    //--might have to choose another icon(or leave as is to not change? toReview**) OR hide it? forcing to delete....
                 
+                    expanded.value[id] = !expanded.value[id] //toggle back to close(when coming back to tab after edit...)
+
                     updatingSubG = id  //for submit...redundant though...
                     tab.value = "Goal" //nav
                 }else {
@@ -983,7 +1049,7 @@ export default {
             priority.value = priority.value || 3
 
             //bon just in case...
-            time.value = time.value ||''
+            time.value = time.value || ''
             duration.value = duration.value || 15
             details.value = details.value || ''
             bgcolor.value = bgcolor.value || ''
@@ -1015,6 +1081,10 @@ export default {
             moods.value = null
 
             updatingSubG = null
+
+            icon.value = null
+            changeIcon.value = false //prolly no need but just in case 
+            currentIcon.value = null
 
             resetGsAndColors()
             //constructTree() //redundant
@@ -1074,7 +1144,7 @@ export default {
             tab,
             moods, //expandedNodes,treeGoals,selected,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
-            hasSubG,resetLabel,
+            hasSubG,resetLabel,icon,changeIcon,currentIcon,
             doPrint,doReset,doImport,resetBoxes,
             onSubmit,getSubGoals,onSwipeAction,doCancel,
             onRightDelete,onLeftEdit,softReset,onParentAction,refresh,classyHeader,niceyLabel //,euh,classyColor,

@@ -68,7 +68,7 @@ export function whenFrmtTime(timey){
   if(!timey) return ''
   
   let o = timey.split(':')
-  return parseInt(o[0]) >= 12 ? timey+"PM" : timey+"AM" 
+  return parseInt(o[0]) >= 12 ? timey+" PM" : timey+" AM" 
     //}
 
 }

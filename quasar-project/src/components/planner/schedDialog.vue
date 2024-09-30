@@ -99,6 +99,7 @@ export default {
             let a = this.parentGoals.find(item => item.id == obj.parentGoal)
             a ? obj.color = a.bgcolor : obj.color = ''
             obj.pg = a?.title.trim() //useful for label
+            obj.ic = a?.icon //toSee if can use instead of 'pg' above... todo**
           })
 
           //console.log(`allUnscheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
@@ -107,9 +108,9 @@ export default {
     }
   },
   methods: {
-    onAddClicked(toAdd,forceFlag,useBalance){
+    onAddClicked(toAdd,forceFlag,useBalance,newDura){
       //console.log(`onPickEvent..emitting`,toAdd,forceFlag)
-      this.$emit('onPickEvent',toAdd,forceFlag,useBalance)
+      this.$emit('onPickEvent',toAdd,forceFlag,useBalance,newDura)
       this.reset()
     },
     adHocNewEvent(aTitle, daP, own, duration,useBalance) {

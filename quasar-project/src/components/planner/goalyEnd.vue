@@ -6,6 +6,7 @@
       -->
       <div class="q-pl-sm">
         {{ ` ${title} (${score})`}}
+        <q-icon :name="daIcon" />
       </div>
       <q-tooltip>{{ "("+id+") "+ details }}</q-tooltip>
 
@@ -112,7 +113,7 @@ import { defineComponent,ref } from 'vue'
 
   export default defineComponent ({  //this be Options Vue notation
     name: 'GoalyEnd',
-    props: {
+    props: {  //too much? should use a data object?
       disabledScore: Boolean, //score popup-edit enabled or not--toRename**
       title: String,
       id: Number,
@@ -121,6 +122,7 @@ import { defineComponent,ref } from 'vue'
       notes:String, //notes
       score: String, //score to update
       happeningNow: Boolean, //to show the endNow button
+      icon: String, //toTest** if can show
       //showMobileDialog: Boolean, //related to disabledScore but for mobile 
     },
     data(){
@@ -132,6 +134,7 @@ import { defineComponent,ref } from 'vue'
         errorScore,
         note:this.notes,
         daScore:this.score,
+        daIcon:this.icon,
         //showDialog:this.showMobileDialog   // !this.disabledScore
         //umm inverse in mobile...except it shows immediately!
         //--or maybe should do so programmatically in parent when in mobile?

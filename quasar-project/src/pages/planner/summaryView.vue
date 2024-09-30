@@ -159,8 +159,9 @@
               <!--class="row items-center" :style="titleStyles(prop.node)"-->
               <template v-slot:default-header="prop">
                 <div :class="classyColor(prop.node)">
-                  <q-icon v-if="!prop.node.isChildren" :name="prop.node.icon || prop.expanded ? 'expand_less' : 'expand_more'" size="28px" class="q-mr-sm" />
+                  <q-icon v-if="!prop.node.isChildren" :name="prop.expanded ? 'expand_less' : 'expand_more'" size="28px" class="q-mr-sm" />
                   <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+                  <q-icon :name="prop.node.icon" /> <!--no need but to see...-->
                 </div>
               </template>
               <template v-slot:default-body="prop">
@@ -228,6 +229,7 @@ import {
   today,
   isBetweenDates,
   parsed,
+  parseDate,
   //padNumber,
   getMonthNames
 } from '@quasar/quasar-ui-qcalendar/src/QCalendarTask.js'
@@ -247,6 +249,7 @@ export default defineComponent({
   },
   data () {
     return {
+      calendar: ref(null),
       selectedDate: today(),
       selectedMonth:'',
       allMonths : getMonthNames('long', 'en-US'), //'short', 'en-US'
@@ -293,11 +296,16 @@ export default defineComponent({
         return `Goaly in ${this.selectedMonth}`
       },
     },
-    //mounted(){ //just to jump to current date...no bueno :(
-    //  this.onNext()
-    //  console.log("weeee mounted...")
-    //  this.onToday() 
-    //},
+    mounted() { ////to scroll to current date...no bueno :(
+      
+      console.log("weeee mounted...")
+      //toTry** see if could with below
+        //const now = parseDate(new Date())
+        //this.currentDate = now.date 
+        //this.currentTime = now.time //'00:52'
+        //this.timeStartPos = this.$refs?.calendar?.timeStartPos(now.time, false)  
+      
+    },
     beforeMount () {
       // adjust all the dates for the current month
       //const date = new Date()
@@ -511,7 +519,7 @@ export default defineComponent({
         //const start = parsed(this.startDate)
         let monthy = data.days[0].month  //meh this is good enough!
 
-        console.log('onChange', monthy,data ) //this.allMonths,this.allMonths[monthy-1]
+        console.log('onChange',monthy,this.selectedDate,data)//,data ) //this.allMonths,this.allMonths[monthy-1]
         this.selectedMonth = this.allMonths[monthy-1]
 
         this.startDate = data.start
