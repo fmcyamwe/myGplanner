@@ -167,6 +167,7 @@
               <template v-slot:default-body="prop">
                 <div v-if="prop.node.isChildren">
                   <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+                  <q-tooltip v-if="prop.node.moods.length > 0">{{ "Moods::> " +prop.node.moods.join(',') }}</q-tooltip>
                 </div>
                 <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
               </template>

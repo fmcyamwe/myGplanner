@@ -170,6 +170,7 @@
                                   <template v-slot:default-body="prop">
                                       <div v-if="prop.node.isChildren"> <!--onclick="klikaj('rad1')" test for maaaybe drag/drop or select..toSee-->
                                         <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+                                        <q-tooltip v-if="prop.node.moods.length > 0">{{ "Moods::> " +prop.node.moods.join(',') }}</q-tooltip>
                                       </div>
                                       <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
                                     </template>
@@ -288,8 +289,8 @@
                                       :style="badgeStyles(event, 'header')"
                                       style="margin: 1px; width: 10px; max-width: 10px; height: 10px; max-height: 10px; cursor: pointer"
                                       @click="scrollToEvent(event)"
-                                    >
-                                      <q-tooltip>{{ '('+ event.id +') '+ event.title +' - '+ event.time + ' >> '+event.duration+'min' }}</q-tooltip>
+                                    ><!--'('+ event.id +') '+ -->
+                                      <q-tooltip>{{ event.title +' ('+event.duration+' min) >>'+ event.time  +' - '+event.end.time }}</q-tooltip>
                                     </q-badge>
                                   </template>
                                 </div>
@@ -584,7 +585,7 @@ computed: {
 
       let aSet = new Set()
       for (let key in cMoods) {
-        aSet.add(cMoods[key].join()) //join needed for uniqueness...
+        aSet.add(cMoods[key].join()) //join for uniqueness...
       }
       
       let i = 0
@@ -593,9 +594,9 @@ computed: {
         i++ 
       }
 
-      if (Object.keys(cMoods).length != aSet.size){ //check for size change...
-        console.log(`scheduleMoodsLabel..prob change!`,JSON.parse(JSON.stringify(cMoods)),aSet, ret) //aSet, aSet.values(), 
-      }
+      //if (Object.keys(cMoods).length != aSet.size){ //check for size change >>would have duplicates that are added once
+      //  console.log(`scheduleMoodsLabel..prob change!`,JSON.parse(JSON.stringify(cMoods)),aSet, ret) //aSet, aSet.values(), 
+      //}
       
       return ret  //todo** <show each mood's evt.background-color for easier association with evt!!
     },
@@ -660,7 +661,8 @@ methods:{
         this.daSchedule.updateMinEndNowBtn(this.currentTime,hasEnd, hasStart)
         if (hasStart){
           this.scrollToTime(now,'slow')
-          this.doNotify(`Event Starting :)`, "positive",'center')
+          this.doNotify(`Event Starting :)`, "positive",'top') //umm try to get evt's title? toSee**
+          //should prolly be here that notification is sent!!
         }
       }
     },
@@ -1109,7 +1111,7 @@ methods:{
 
       this.doNotify(`Schedule saved for ${this.currentDate}`, "positive", "top")
     },
-    doDroppy(from, targetDrop, draggedItem){ //from param is redundant--toRemove*
+    doDroppy(targetDrop, draggedItem){
       //console.log("doDroppy: "+from,targetDrop, draggedItem)//.duration,draggedItem.time)
 
       if(targetDrop && draggedItem){
@@ -1132,7 +1134,7 @@ methods:{
           if (askUser){
             let pre = draggedItem?.inDefaults ? "Default at " : "Cannot Move from " 
             let mess = [`Evt "${draggedItem.title.trim()}" ${pre} ${whenFrmtTime(orig)}.`, // draggedItem.time>>misleading time >>have to use orig
-            `\nAlso Change Evt to new time ${whenFrmtTime(targetDrop.time)}?`,
+            `\nAlso Save Evt default time to ${whenFrmtTime(targetDrop.time)}?`,
             "\nCancel or Dismiss to undo!", //\n\u2800\n
             `\nNo selection to keep at ${whenFrmtTime(draggedItem.time)}`
             ].join('\n')
@@ -3183,7 +3185,7 @@ methods:{
               this.daSchedule.addToBalance(evt)
               this.doNotify(`Balance change after removing '${evt.title}'`,"warning",'top')
             }
-            
+
             this.daSchedule.saveDaySchedule()
             return
           }
@@ -3235,7 +3237,7 @@ methods:{
 
       let u = this.daSchedule.getCurrentMoods()[evt.id] 
       if (u){ //this.usingMoods[evt.id]
-        console.log("removeEvtInSchedule:: with MOODs ", u)//this.usingMoods[evt.id])
+        //console.log("removeEvtInSchedule:: with MOODs ", u)//this.usingMoods[evt.id])
         doSave = true 
         mess = mess + ` With Moods: '${u}'` //this.usingMoods[evt.id]
       }
@@ -3453,7 +3455,7 @@ methods:{
 
       this.checkBoxDialog('Gotta pick alternative!',
         'Select the first Evt to replace Removed + an Extra evt for next day (today)!',//mess,
-        alts.map(e => this.getEvtLabel(e,false)), //mapToLabels
+        alts.map(e => this.betterEvtLabel(e,'default',false)), //mapToLabels
         alts[0].id, //'', //have to at least include first Alternative...>> bof no need as check the length of model!
         function(opt){ //onOk
           console.log('chooseAlternatives::opt',opt) //JSON.parse(JSON.stringify(toKeep))
@@ -3653,7 +3655,7 @@ methods:{
 
       if (!targetTimey) {console.log("ERROR...no timestamp YO!!",e, type, scope, this.targetDrop); return}
       
-      this.doDroppy("onDrop",targetTimey, this.selectedItem) 
+      this.doDroppy(targetTimey, this.selectedItem) 
 
     },
     onClickTime(data){
@@ -3756,7 +3758,7 @@ methods:{
         //let f = target.closest('.my-event')
 
         if(target.parentNode.classList.contains("my-event")){
-          console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id]) //target,,this.mobileEnableScore[item.id]
+          //console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id]) //target,,this.mobileEnableScore[item.id]
           target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
           this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
         } else {
@@ -3765,7 +3767,7 @@ methods:{
           let f = target.closest('.my-event')
           target = target.parentNode
           if(target.parentNode.classList.contains("my-event")){
-            console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
+            //console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
             target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
             this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
           }else{
@@ -3904,29 +3906,30 @@ methods:{
         //  return
         //}
 
-        if(this.touchedItem){
-          if(target.parentNode.classList.contains("my-event-drag")){ //on top of same Evt....
-            console.log("onTouchEvt::END >>removing my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"mobileEnableScore>> "+this.daSchedule.mobileEnableScore[item.id])//target
-            target.parentNode.classList.remove("my-event-drag")
-          }else{
-            let savedHas = this.touchedItem.parentNode.classList.contains("my-event-drag")
-            if(savedHas){//then remove it still
-              this.touchedItem.parentNode.classList.remove("my-event-drag")
-            }else{
-              console.log("onTouchEvt::END...target NO my-event-drag?",savedHas, target,target.parentNode )
-            }
-          }
-        }else{
-          console.log("onTouchEvt::END >> EUUH nothing? returning....",this.touchedItem, target) //could happen for those AddMin btns...
+        if(!this.touchedItem){//could happen for those AddMin btns...
+          //console.log("onTouchEvt::END >> EUUH nothing? returning....",this.touchedItem, target)
           return //continue default handling....
         }
+
+        if(target.parentNode.classList.contains("my-event-drag")){ //on top of same Evt....
+          console.log("onTouchEvt::END >>removing my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"mobileEnableScore>> "+this.daSchedule.mobileEnableScore[item.id])//target
+          target.parentNode.classList.remove("my-event-drag")
+        }else{
+          let savedHas = this.touchedItem.parentNode.classList.contains("my-event-drag")
+          if(savedHas){//then remove it still
+            this.touchedItem.parentNode.classList.remove("my-event-drag")
+          }else{
+            console.log("onTouchEvt::END...target NO my-event-drag?",savedHas, target,target.parentNode )
+          }
+        }
+        
       
         if(target.ariaLabel){
           let s = getTimey(target.ariaLabel)
           
           this.targetDrop = s
           
-          this.doDroppy("onDrop",this.targetDrop, this.selectedItem) // oldie from >onTouch but should act as a drop in mobile
+          this.doDroppy(this.targetDrop, this.selectedItem) // should act as a drop in mobile
         } else {
           //let f = target.closest('.my-event')
           //console.log("onTouchEvt::END>>ERROR?OVERLAP?",target,target.classList.contains("my-event"),target.parentNode,this.daSchedule.isDisabledScoreEdit[item.id])//,this.allowDialog[item.id])
@@ -3934,7 +3937,7 @@ methods:{
           if(target.classList.contains("title") || target.classList.contains("my-event")){
             //console.log("onTouchEvt::END--has title!",this.targetDrop)
             if (this.targetDrop){//just drop on top to see--ToReview **
-              this.doDroppy("onDrop",this.targetDrop, this.selectedItem)   // oldie from >onTouch but should act as a drop in mobile
+              this.doDroppy(this.targetDrop, this.selectedItem)   //should act as a drop in mobile
             }
           }
         }
@@ -3987,7 +3990,7 @@ methods:{
 
       if(this.daSchedule.isDisabledScoreEdit[item.id] && !this.daSchedule.mobileEnableScore[item.id]){  //remove evt..
         //f.classList.toggle("my-event-drag") //bof just do it here..toReview as toggle re-add the class
-        console.log("onTouchHold::dblClicking!",this.daSchedule.showEvtNoteScoreMobile(item.id))
+        //console.log("onTouchHold::dblClicking!",this.daSchedule.showEvtNoteScoreMobile(item.id))
         this.onDblClickEvent(evt,item)
       }
     },
@@ -4000,7 +4003,7 @@ methods:{
         //console.log(`scrollToTime::gonna SCROLL`,timey.time, s.time, speed)//,JSON.parse(JSON.stringify(this.$refs)))
         this.$refs.calendar?.scrollToTime(s.time, speed ? speed=='fast'? 400 : 1000 : 500)  //whats point of the second number param?!? >>OH the speed of the scroll!!!
       }else {
-        console.log(`scrollToTime::NO SCROLLY`,timey.time)//, JSON.parse(JSON.stringify(this.$refs)))
+        //console.log(`scrollToTime::NO SCROLLY`,timey.time)//, JSON.parse(JSON.stringify(this.$refs)))
         //bon try again?---keeps trying >>BAAD! to review**
         setTimeout(() => {
           let newTimey = parseDate(new Date())

@@ -177,7 +177,7 @@ import { defineComponent,ref } from 'vue'
       aScore:{
         get(){return this.daScore},
         set(value){
-          console.log(`aScore getting set`,value, this.id) 
+          //console.log(`aScore getting set`,value, this.id) 
           //this.$emit('saveScore', value, this.id) //auto-save does update it? >>does!
           //let e = this.aScoreValidation >>dont work..some side-effect error..cause it's in computed section...
           //def roundabout way to validate instead of using :validate smh..toReview **

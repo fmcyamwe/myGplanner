@@ -476,7 +476,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             if(!timey) return ''
     
             let o = timey.split(':')
-            return parseInt(o[0]) >= 12 ? timey+"PM" : timey+"AM" 
+            return parseInt(o[0]) >= 12 ? timey+" PM" : timey+" AM" 
         }
 
         let findSubGoals = parentID => {

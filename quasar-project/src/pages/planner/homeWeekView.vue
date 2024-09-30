@@ -128,6 +128,7 @@
               <template v-slot:default-body="prop">
                   <div v-if="prop.node.isChildren">
                     <span class="text-weight-bold liney">  >> {{ prop.node.details }} </span> <!--for multiline gotta use .liney class -->
+                    <q-tooltip v-if="prop.node.moods.length > 0">{{ "Moods::> " +prop.node.moods.join(',') }}</q-tooltip>
                   </div>
                   <span v-else class="text-weight-light text-black liney" >{{ prop.node.details }}</span>
                 </template>
@@ -438,7 +439,7 @@ export default {
     onClickHeadDay ({ scope, event }) { //date header where the date is....
       let d = scope.timestamp.date
       let hasM = this.moods[d]
-      console.log('onClickHeadDay',d,hasM) 
+      //console.log('onClickHeadDay',d,hasM) 
       if (hasM){  //toSee if can do it better as tooltip!
         this.$q.notify({
         color: 'positive',

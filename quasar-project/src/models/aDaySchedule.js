@@ -81,7 +81,7 @@ export default class daySchedule {
       //return false //prolly?...
     }
     toggleEvtNoteScoreMobile(id){ 
-      console.log('toggleEvtNoteScoreMobile >>',id)
+      //console.log('toggleEvtNoteScoreMobile >>',id)
 
       if(this.isViewingPast() || this.isViewingToday()){ //isViewingToday
         this.showMobileDialog[id] = true 
@@ -296,7 +296,7 @@ export default class daySchedule {
       return ret
 
     }
-    doProppy(evtGoal,onDate){
+    doProppy(evtGoal,onDate){ //wonder if shouldnt set this dynamically....toReview**
       let pGoal = this.parentGoalById(evtGoal.parentGoal)
       if (!pGoal) {console.log(`doProppy:: ERROR no Pgoal found ?!?`, evtGoal); return}
       
@@ -318,7 +318,8 @@ export default class daySchedule {
       }
       clone.sortTime = startTime  //still needed?!?
  
-      if ('byMood' in evtGoal){ //add moods!
+      if ('byMood' in evtGoal){ //add moods!--shouldnt have any?!?
+        console.log(`doProppy::BYMOOD found!! ERROR?!?`, JSON.parse(JSON.stringify(evtGoal)))
         this.usingMoods[clone.id] = evtGoal.byMood
       }
       
@@ -535,7 +536,7 @@ export default class daySchedule {
       
       if(flag == 'filter'){
         toRet = filterCurrent()
-        this.resetSchedule()
+        this.resetSchedule() //byScore
       } else { //'overwrite' || 'add'
         const colis = Repo.goalsUpToScore(this.chosenScore)//deepCopy? no need
         //console.log(`scheduleByScore SCORE`, JSON.parse(JSON.stringify(colis))) //, typeof colis
@@ -544,7 +545,7 @@ export default class daySchedule {
           toRet =  colis.filter(x => !this.actualEvts.find(item => item.id == x.id)) 
         } else{ //for overwrite, also reset schedule....
           toRet = colis
-          this.resetSchedule(true)
+          this.resetSchedule(true) //byScore
         }
       }
       console.log(`scheduleByScore::AFTER flag ${flag} from size: ${this.actualEvts.length} to some evts = ${toRet.length}`) // JSON.parse(JSON.stringify(toRet))
@@ -584,7 +585,7 @@ export default class daySchedule {
 
       if(flag == 'filter'){
         toRet = filterCurrent()
-        this.resetSchedule()
+        this.resetSchedule() //byPrio
       } else { //flag == 'overwrite' || flag == 'add'
         //let allEvts = this.deepCopy(this.storedSubGoals)
         let allEvts = this.getSubGoals()
@@ -601,7 +602,7 @@ export default class daySchedule {
           // filter out events that are already scheduled..not too expensive?
           toRet =  toRet.filter(x => !this.actualEvts.find(item => item.id == x.id))
         } else { //for overwrite, also reset schedule....
-          this.resetSchedule(true)
+          this.resetSchedule(true) //byPrio
         }
         //console.log(`scheduleSamePrio::After ${flag} from size: ${this.actualEvts.length} to evts = ${toRet.length}`)//, JSON.parse(JSON.stringify(toRet)))
       }
@@ -798,7 +799,7 @@ export default class daySchedule {
       } else { //overwrite!
         //this.scheduledEvents = []
         //this.updateCurrentSchedule()
-        this.resetSchedule(true)
+        this.resetSchedule(true) //oneEach
       
         //random...implicit that overwrite and no need to check 'notScheduled' ...
 
@@ -841,7 +842,7 @@ export default class daySchedule {
         let local = this.getSubGoalByID(toAdd[i].id) //this.getLocalEvt(toAdd[i].id)
         //console.log(`scheduleByMood>>>local>>`,local)
         if (local && local.time != ''){
-          console.log(`scheduleByMood>>>local>>`,toAdd[i],local)
+          //console.log(`scheduleByMood>>>local>>`,toAdd[i],local)
           toReload.push(local)
           this.usingMoods[toAdd[i].id]=toAdd[i]?.mood  //umm add already here?!? hard to undo in case of overlaps smh---toTest**
         }//else {
@@ -881,7 +882,7 @@ export default class daySchedule {
       if(flag == 'add'){
         dEvts = this.unscheduledDefaults()
       }else{
-        this.resetSchedule(true)
+        this.resetSchedule(true) //byDefaults
         dEvts = this.unscheduledDefaults() //this.getSubGoals()
       }
 
