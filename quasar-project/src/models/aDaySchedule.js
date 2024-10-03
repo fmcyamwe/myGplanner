@@ -280,11 +280,15 @@ export default class daySchedule {
       ret.start = startAt
       ret.end = EndAt
 
+      let detz = `Of '${pGoal.title.trim()}' :: ${whenFrmtTime(ret?.time)} -> ${ret?.duration}min -- ${ret?.inDefaults ? 'Dft:':':'}${ret?.canMove ? ':Mv:':':'}${ret?.isAlternative ? ':Alt':':'}`
+
       if (ret.jeSuis && ret.jeSuis.length > 0){
-        ret.details = `Of '${pGoal.title.trim()}' :: << ${ret.jeSuis.join(',')} >>`
-      }else {
-        ret.details = `Of '${pGoal.title.trim()}' :: ${whenFrmtTime(ret?.time)} -> ${ret?.duration}min -- ${ret?.inDefaults ? 'Dft:':':'}${ret?.canMove ? ':Mv:':':'}${ret?.isAlternative ? ':Alt':':'}`
-      }
+        detz += hasMoods ? ` <>Mood:'${hasMoods}' >>${ret.jeSuis.join(',')}` : ` << ${ret.jeSuis.join(',')} >>`
+        //ret.details = `Of '${pGoal.title.trim()}' :: << ${ret.jeSuis.join(',')} >>`
+      }//else {
+        //ret.details = 
+      //}
+      ret.details = detz  //bon better?
 
       if (evt.hasNote()){
         //console.log(`schedEvtWithProps:: HASNOTES`,raw.notes,raw,ret)
@@ -316,14 +320,31 @@ export default class daySchedule {
       } else {
         clone.details = `Of '${pGoal.title.trim()}' :: ${whenFrmtTime(evtGoal?.time)} -> ${evtGoal?.duration}min -- ${evtGoal?.inDefaults ? 'Dft:':':'}${evtGoal?.canMove ? ':Mv:':':'}${evtGoal?.isAlternative ? ':Alt':':'}`
       }
-      clone.sortTime = startTime  //still needed?!?
+      //clone.sortTime = startTime  //still needed?!? >>meh done afterwards
  
-      if ('byMood' in evtGoal){ //add moods!--shouldnt have any?!?
+      if ('byMood' in evtGoal){ //add moods!--shouldnt have any!! ERROR
         console.log(`doProppy::BYMOOD found!! ERROR?!?`, JSON.parse(JSON.stringify(evtGoal)))
         this.usingMoods[clone.id] = evtGoal.byMood
       }
       
       return clone
+    }
+    updateDetz(evt){ //just to update event tooltip...
+      let pTitle = this.parentGoalById(evt.parentGoal)?.title?.trim()
+
+      let detz = `Of '${pTitle}' :: ${whenFrmtTime(evt?.time)} -> ${evt?.duration}min -- ${evt?.inDefaults ? 'Dft:':':'}${evt?.canMove ? ':Mv:':':'}${evt?.isAlternative ? ':Alt':':'}`
+
+      if (evt.jeSuis && evt.jeSuis.length > 0){
+        detz += this.usingMoods[evt.id] ? ` <> Mood:'${this.usingMoods[evt.id]}' >>${evt.jeSuis.join(',')}` : ` << ${evt.jeSuis.join(',')} >>`
+        //ret.details = `Of '${pGoal.title.trim()}' :: << ${ret.jeSuis.join(',')} >>`
+      }
+      evt.details = detz
+
+      /*if (evt.jeSuis && evt.jeSuis.length > 0){
+        evt.details = `Of '${pTitle}' :: << ${evt.jeSuis.join(',')} >>`
+      } else {
+        evt.details = `Of '${pTitle}' :: ${whenFrmtTime(evt?.time)} -> ${evt?.duration}min -- ${evt?.inDefaults ? 'Dft:':':'}${evt?.canMove ? ':Mv:':':'}${evt?.isAlternative ? ':Alt':':'}`
+      }*/
     }
     //for generic add when it's reload by score/prio/defaults...
     addGoalsToSchedule(toAdd,checkOverlap){
@@ -333,8 +354,8 @@ export default class daySchedule {
 
         let added = this.addToSchedule(obj,checkOverlap,false) //false to use proppy() as it's goal
         if(!added){
-          console.log('addGoalsToSchedule:: ERROR Evt NOT added',added,checkOverlap, obj.id, obj.title) 
-          //could be present...should try and just update evt(in case changed time?)
+          console.log('addGoalsToSchedule:: ERROR Evt NOT added',added,checkOverlap, obj.id, obj.title,obj.time) 
+          //could be present...should try and just update evt(in case changed time?) >>prolly smh
         }else{
           if(Array.isArray(added)){ //overlap!!!
             //console.log('addGoalsToSchedule::overlap for '+obj.id,JSON.parse(JSON.stringify(euhOverlaps[obj.id])),added)
@@ -461,6 +482,7 @@ export default class daySchedule {
       return this.loadEvtsForDay(sameDay)
     }
     resetSchedule(skipMoods=false){
+      //console.log('resetSchedule >>',skipMoods)
       this.savedRawEvts = []
       this.actualEvts = []
       this._dailyScheduled = new Map()
@@ -499,6 +521,17 @@ export default class daySchedule {
     chosenPrioLabel() { 
       return this.chosenPrio == null ? `By Priority` : `Prio = ${this.chosenPrio}` 
     }
+    calculatePrioEvts(){
+      //let add = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio).filter(x => !this.actualEvts.find(item => item.id == x.id)) //huh second filter work!!
+      let reset = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio) //reset with allEvts
+      let add = reset.filter(x => !this.actualEvts.find(item => item.id == x.id)) //add those not scheduled
+      this.byPrio={
+        prio:this.chosenPrio,
+        toAdd:add,  //.length? >>nah used later 
+        reset:reset, //oldie >> this.getSubGoals().length
+      }
+      //console.log(`calculatePrioEvts`, JSON.parse(JSON.stringify(this.byPrio)))
+    }
     onChoosenPrio(e){
       //console.log('onChoosenPrio',e,this.chosenPrio)
       let oldy = this.chosenPrio
@@ -507,105 +540,56 @@ export default class daySchedule {
       }else {
         this.chosenPrio = e
         this.disablePrioBtn = false
+        this.calculatePrioEvts()
       }
     }
-    onChoosenScore(e){
-      //console.log('onChoosenScore',e)
-      let oldy = this.chosenScore
-      if (oldy && oldy == e){
-        this.disableScoreBtn = true //user should not reclick without changing it again...
-      }else {
-        this.chosenScore = e
-        this.disableScoreBtn = false
-      }
-    }
-    scheduleByScore(flag){ //returns false || Overlaps 
+    scheduleSamePrio(flag){
       
-        const filterCurrent = () => {
-          let toReload = []
-          this.actualEvts.forEach((item) => {
-            let daScore = parseScore(item.score)
-            if (daScore > -1 && daScore <= this.chosenScore) {
-              toReload.push(item)
-            }//else{console.log('filterCurrent::parseScore?skippin',daScore, item,this.usingMoods[item.id])}
-          })
-          return toReload
-        }
-
-      let toRet = []
-      
-      if(flag == 'filter'){
-        toRet = filterCurrent()
-        this.resetSchedule() //byScore
-      } else { //'overwrite' || 'add'
-        const colis = Repo.goalsUpToScore(this.chosenScore)//deepCopy? no need
-        //console.log(`scheduleByScore SCORE`, JSON.parse(JSON.stringify(colis))) //, typeof colis
-
-        if(flag == 'add'){// filter out events that are already scheduled..not too expensive?
-          toRet =  colis.filter(x => !this.actualEvts.find(item => item.id == x.id)) 
-        } else{ //for overwrite, also reset schedule....
-          toRet = colis
-          this.resetSchedule(true) //byScore
-        }
-      }
-      console.log(`scheduleByScore::AFTER flag ${flag} from size: ${this.actualEvts.length} to some evts = ${toRet.length}`) // JSON.parse(JSON.stringify(toRet))
-      
-      if (toRet.length < 1) {
-        //console.log(`Empty for Score <= ${this.chosenScore} :(`)
-        
-        this.toggleActionBtns(false,'byScore')
-        return {
-          overlaps:null,
-          canContinue:false, //for doNotify //this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
-        }
-      }
-
-      //filter && overwrite replaces
-      //add concats //add to schedule!...
-      let euhOverlaps = this.addGoalsToSchedule(toRet,this.isViewingToday())
-      let sizey = Object.keys(euhOverlaps).length
-      
-      this.updateCurrentMoods() //should do for filter--could also call for add--in case overlaps erase mood evts? think handled!
-
-      this.toggleActionBtns((toRet.length > 0),'byScore')
-      return {
-        overlaps:euhOverlaps,
-        canContinue:sizey > 0 ? false : true, //true,
-      }
-
-    }
-    scheduleSamePrio(flag){ //returns false || euhOverlaps
-      
-        const filterCurrent =() => { //parentGoalsMap().get(
+        const filterCurrent =() => {
           return this.actualEvts.filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
         }
-      
 
+        const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculatePrioEvts() --toMonitor**
+          console.log(`scheduleSamePrio::RECALCULATE?!?`,flag,this.chosenPrio, JSON.parse(JSON.stringify(this.byPrio)))
+          let toRet = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
+          return flag == 'reset' ? toRet : toRet.filter(x => !this.actualEvts.find(item => item.id == x.id))
+        }
+      
       let toRet = []
+
+      //console.log(`scheduleSamePrio`, this.byPrio, flag) //JSON.parse(JSON.stringify(this.byScore)))
 
       if(flag == 'filter'){
         toRet = filterCurrent()
         this.resetSchedule() //byPrio
-      } else { //flag == 'overwrite' || flag == 'add'
+      } else { //flag == 'reset' || flag == 'add'
         //let allEvts = this.deepCopy(this.storedSubGoals)
+        
+        /*// use this.byPrio above instead of recalculating!!
         let allEvts = this.getSubGoals()
-        //console.log('findSamePrio..overwriting!!',this.chosenPrio,flag) //allEvts
-        //console.log(`findSamePrio for ${this.chosenPrio} with flag ${flag}..ALL`, JSON.parse(JSON.stringify(allEvts))) //, typeof colis
         for (let evt of allEvts) {
           let e = this.parentGoalById(evt.parentGoal)
           if (e?.priority == this.chosenPrio){
             toRet.push(evt)
           }
-        }
+        }*/
+
+       if(this.byPrio){
+        flag == 'add' ? toRet = this.byPrio.toAdd : toRet = this.byPrio.reset //; this.resetSchedule()
+       }else{ //have to recalculate...which shouldnt happen!
+        toRet = recalculate(flag)
+       }
           
-        if(flag == 'add'){ //just add to schedule
+        /*if(flag == 'add'){ //just add to schedule
           // filter out events that are already scheduled..not too expensive?
           toRet =  toRet.filter(x => !this.actualEvts.find(item => item.id == x.id))
-        } else { //for overwrite, also reset schedule....
+        } else { //for reset schedule....
           this.resetSchedule(true) //byPrio
-        }
-        //console.log(`scheduleSamePrio::After ${flag} from size: ${this.actualEvts.length} to evts = ${toRet.length}`)//, JSON.parse(JSON.stringify(toRet)))
+        }*/
+
+        flag != 'add' ? this.resetSchedule() : console.log(`scheduleSamePrio::No resetSchedule`,flag,toRet.length)
       }
+      //console.log(`scheduleSamePrio::After ${flag} from size: ${this.actualEvts.length} to evts = ${toRet.length}`, JSON.parse(JSON.stringify(toRet)))
      
       //add to schedule!
       if (toRet.length < 1) {
@@ -630,95 +614,101 @@ export default class daySchedule {
       return {
         overlaps:euhOverlaps,
         canContinue:sizey > 0 ? false : true,//true,
+        added: toRet.length  //show how many added...could be misleading with overlaps!!
       }
       
     }
-    //massage overlap Object...for multiple added evts overlapping single||multiple scheduled.
-    massageOverlapObj(oLaps){ //transform  //beware of semantics!
-      let euhOverlaps = {} 
+    calculateScoreEvts(){
+      let reset = Repo.goalsUpToScore(this.chosenScore)
+      let add = reset.filter(x => !this.actualEvts.find(item => item.id == x.id))
 
-      for (let key in oLaps) {
-        let obj = oLaps[key]
+      this.byScore={  //huh no complaint putting this here and can access later
+        score:this.chosenScore, //redundant but just to confirm still same later mayhaps...
+        toAdd:add, //.length? >>nah used later 
+        reset:reset //this.getSubGoals().length
+      }
+      //console.log(`calculateScoreEvts`, JSON.parse(JSON.stringify(this.byScore)))
+    }
+    onChoosenScore(e){
+      //console.log('onChoosenScore',e)
+      let oldy = this.chosenScore
+      if (oldy && oldy == e){
+        this.disableScoreBtn = true //user should not reclick without changing it again...
+      }else {
+        this.chosenScore = e
+        this.disableScoreBtn = false
+        this.calculateScoreEvts()
+      }
+    }
+    scheduleByScore(flag){ //returns false || Overlaps 
+      
+        const filterCurrent = () => {
+          let toReload = []
+          this.actualEvts.forEach((item) => {
+            let daScore = parseScore(item.score)
+            if (daScore > -1 && daScore <= this.chosenScore) {
+              toReload.push(item)
+            }//else{console.log('filterCurrent::parseScore?skippin',daScore, item,this.usingMoods[item.id])}
+          })
+          return toReload
+        }
+        const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculateScoreEvts() --toMonitor**
+          console.log(`scheduleByScore::RECALCULATE?!?`,flag,this.chosenScore, JSON.parse(JSON.stringify(this.byScore)))
+          let toRet = Repo.goalsUpToScore(this.chosenScore)
+          return flag == 'reset' ? toRet : toRet.filter(x => !this.actualEvts.find(item => item.id == x.id))
+        }
 
-        if(obj.length > 0){
+      let toRet = []
 
-          let j = 0
-          do {
-            let oDets = obj[j]
-  
-            //instead of target> add by inConflict
-            // better overlap resolution later--See multiConflicts()
-            if(!euhOverlaps[oDets.inConflict]){
-              euhOverlaps[oDets.inConflict] = []
-            }
-            euhOverlaps[oDets.inConflict].push(oDets)
-  
-            //console.log(`${j}-massageOverlapObj for ${oDets.target} conflict with ${oDets.inConflict}`, euhOverlaps[oDets.inConflict].length) //oOth[j]
-            if(j>0){//--case where using inConflict is wrong 
-              //bon here better to use the obj.id as the evt being added!
-              //--See fixMultiConflicts() >> evt CAN overlap with two others....
-              //if(!euhOverlaps[obj.id]){ //keep in mind the obj.id is target
-              //  euhOverlaps[obj.id]= []
-              //}
-              //euhOverlaps[obj.id].push(oDets)
-  
-              //>could have multiple that are overlapping yes!
-              //console.log("WOAH WOAH, massageOverlapObj:: multiple overlaps with same obj!", obj,oDets)
-              //this.doLog("WOAH WOAH, massageOverlapObj",obj)
-              if (oDets.inConflict in euhOverlaps){delete euhOverlaps[oDets.inConflict] } //; console.log("WOAH deleting inConflict",oDets.inConflict)
-              if (obj[j-1].inConflict in euhOverlaps){delete euhOverlaps[obj[j-1].inConflict] } //console.log("WOAH deleting PREV inConflict",obj[j-1].inConflict);
-  
-              if(euhOverlaps[oDets.target]) { 
-                euhOverlaps[oDets.target].push(oDets);
-                console.log("WOAH WOAH,massageOverlapObj::obj.id already present! ERROR?",oDets.target); 
-              } else { euhOverlaps[oDets.target] = [oDets]} 
-              
-              euhOverlaps[oDets.target].unshift(obj[j-1]) //also add previous as makes sense..
-              //flag how to solve these conflicts later!!--use array for granularity!
-              //oldie >> euhOverlaps["withID"] = true
-              if(!euhOverlaps["withID"]){
-                euhOverlaps["withID"] = []
-              } 
-              euhOverlaps["withID"].push(oDets.target) //prolly wouldnt have other normal overlap with same key...lool
-            }    
-          } while (++j < obj.length)
+      //console.log(`scheduleByScore`, this.byScore, flag) //JSON.parse(JSON.stringify(this.byScore)))
+      
+      if(flag == 'filter'){
+        toRet = filterCurrent()
+        this.resetSchedule() //byScore
+      } else { //'reset' || 'add'
+        //const colis = Repo.goalsUpToScore(this.chosenScore)//deepCopy? no need
+        //console.log(`scheduleByScore SCORE`, JSON.parse(JSON.stringify(colis))) //, typeof colis
+
+        if(this.byScore){
+          flag == 'add' ?  toRet = this.byScore.toAdd : toRet = this.byScore.reset //; this.resetSchedule() //umm it does execute after..huh 
+        }else{ //have to recalculate...which shouldnt happen!
+          toRet = recalculate(flag)
+        }
+        flag != 'add' ? this.resetSchedule() : console.log(`scheduleByScore::No resetSchedule`,flag,toRet.length) //should keep moods still for reset flag! 
+
+        /*if(flag == 'add'){// filter out events that are already scheduled..not too expensive?
+          toRet =  colis.filter(x => !this.actualEvts.find(item => item.id == x.id)) 
+        } else{ //for reset schedule....
+          toRet = colis
+          this.resetSchedule(true) //byScore
+        }*/
+      }
+      //console.log(`scheduleByScore::AFTER >>${flag} from current = ${this.actualEvts.length} to some evts = ${toRet.length}`,JSON.parse(JSON.stringify(toRet)))
+      
+      if (toRet.length < 1) {
+        //console.log(`Empty for Score <= ${this.chosenScore} :(`)
+        
+        this.toggleActionBtns(false,'byScore')
+        return {
+          overlaps:null,
+          canContinue:false, //for doNotify //this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
         }
       }
-      //console.log('massageOverlapObj::RETURNING',JSON.parse(JSON.stringify(euhOverlaps)))
 
-      return euhOverlaps
-    }
-    //massage overlap Array..for single added evt overlapping multiple scheduled.
-    massageSingleOverlapArr(overlaps){
-     
-      let euhOverlaps={} 
+      //filter && overwrite replaces
+      //add concats //add to schedule!...
+      let euhOverlaps = this.addGoalsToSchedule(toRet,this.isViewingToday())
+      let sizey = Object.keys(euhOverlaps).length
+      
+      this.updateCurrentMoods()
 
-      for(let i = 0; i < overlaps.length; i++){
-        let toH = overlaps[i]
-        //console.log("massageOverlaps",JSON.parse(JSON.stringify(toH)))
-        if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]} 
-         
-        if(i > 0){//keep in mind the obj.id is target
-            
-          console.log("WOAH WOAH,massageSingleOverlapArr..multiple overlaps with same target>>",overlaps[i].target)//>could have multiple default that are overlapping yes!
-            //ummm this where using inConflict is wrong as evt CAN overlap with two others....
-          if (toH.inConflict in euhOverlaps){ console.log("WOAH deleting inConflict",toH.inConflict); delete euhOverlaps[toH.inConflict] }
-          if (overlaps[i-1].inConflict in euhOverlaps){ console.log("WOAH deleting PREV inConflict",overlaps[i-1].inConflict); delete euhOverlaps[overlaps[i-1].inConflict] }
-
-          if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
-              
-          euhOverlaps[toH.target].unshift(overlaps[i-1]) //also add previous as makes sense..
-          //oldie >> euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
-          if(!euhOverlaps["withID"]){ //-use array for granularity!
-            euhOverlaps["withID"] = []
-          } 
-          euhOverlaps["withID"].push(toH.target) //prolly wouldnt have other normal overlap with same key...lool
-        } 
+      this.toggleActionBtns((toRet.length > 0),'byScore')
+      return {
+        overlaps:euhOverlaps,
+        canContinue:sizey > 0 ? false : true, //true,
+        added: toRet.length  //show how many added...could be misleading with overlaps!! but not shown in that case anyway!!
       }
 
-      //",JSON.parse(JSON.stringify(euhOverlaps)),JSON.parse(JSON.stringify(overlaps)))
-      return euhOverlaps
-      
     }
     scheduleOneEach(flag){//returns false || euhOverlaps
       //console.log('scheduleOneEach', flag)
@@ -799,7 +789,7 @@ export default class daySchedule {
       } else { //overwrite!
         //this.scheduledEvents = []
         //this.updateCurrentSchedule()
-        this.resetSchedule(true) //oneEach
+        this.resetSchedule() //oneEach
       
         //random...implicit that overwrite and no need to check 'notScheduled' ...
 
@@ -819,14 +809,16 @@ export default class daySchedule {
       }
 
       let euhOverlaps = this.addGoalsToSchedule(toAdd,this.isViewingToday())
-      
       let sizey = Object.keys(euhOverlaps).length
 
-        this.toggleActionBtns((toAdd.length > 0),'oneEach') //true //(toAdd.length < 0)
-        return {
-          overlaps:euhOverlaps,//null,
-          canContinue:sizey > 0 ? false : true,//true,
-        }
+      this.updateCurrentMoods()
+
+      this.toggleActionBtns((toAdd.length > 0),'oneEach') //true //(toAdd.length < 0)
+      return {
+        overlaps:euhOverlaps,//null,
+        canContinue:sizey > 0 ? false : true,//true,
+        added: toAdd.length  //show how many added...could be misleading with overlaps!! but aint shown anyway...
+      }
 
     }
     scheduleByMood(toAdd){
@@ -864,15 +856,17 @@ export default class daySchedule {
       let euhOverlaps = this.addGoalsToSchedule(toReload,this.isViewingToday())
 
       let sizey = Object.keys(euhOverlaps).length
-      if(sizey > 0) {
-        console.log(`scheduleByMood overlaps!! to ${toReload.length}. overlaps =${sizey}`) 
-      }
+      //if(sizey > 0) {
+      //  console.log(`scheduleByMood overlaps!! to ${toReload.length}. overlaps =${sizey}`) 
+      //}
 
-      this.toggleActionBtns((toReload.length > 0),'ByMood')
+      //no toggleBtns if overlaps
+      sizey > 0 ? console.log(`scheduleByMood overlaps!! Try reload= ${toReload.length} with overlaps =${sizey}`) : this.toggleActionBtns((toReload.length > 0),'ByMood')
 
       return {
         overlaps:euhOverlaps,
         canContinue:sizey > 0 ? false : true,//true,
+        added: toReload.length //might be redundant...
       }
     }
     scheduleDefaults(flag){
@@ -882,7 +876,7 @@ export default class daySchedule {
       if(flag == 'add'){
         dEvts = this.unscheduledDefaults()
       }else{
-        this.resetSchedule(true) //byDefaults
+        this.resetSchedule() //byDefaults
         dEvts = this.unscheduledDefaults() //this.getSubGoals()
       }
 
@@ -895,6 +889,8 @@ export default class daySchedule {
         console.log(`scheduleDefaults:: Overlaps!! for ${dEvts.length}...overlaps =${sizey}`)
       }
 
+      this.updateCurrentMoods() //just in case...with resetSchedule() above
+
       this.toggleActionBtns((dEvts.length > 0),'defaults') 
       //this.disableSaveSchedule = !(dEvts.length > 0) //false
       
@@ -904,6 +900,93 @@ export default class daySchedule {
         canContinue:sizey > 0 ? false : true,//true
       }
   
+    }
+    //massage overlap Object...for multiple added evts overlapping single||multiple scheduled.
+    massageOverlapObj(oLaps){ //transform  //beware of semantics!
+      let euhOverlaps = {} 
+
+      for (let key in oLaps) {
+        let obj = oLaps[key]
+
+        if(obj.length > 0){
+
+          let j = 0
+          do {
+            let oDets = obj[j]
+  
+            //instead of target> add by inConflict
+            // better overlap resolution later--See multiConflicts()
+            if(!euhOverlaps[oDets.inConflict]){
+              euhOverlaps[oDets.inConflict] = []
+            }
+            euhOverlaps[oDets.inConflict].push(oDets)
+  
+            //console.log(`${j}-massageOverlapObj for ${oDets.target} conflict with ${oDets.inConflict}`, euhOverlaps[oDets.inConflict].length) //oOth[j]
+            if(j>0){//--case where using inConflict is wrong 
+              //bon here better to use the obj.id as the evt being added!
+              //--See fixMultiConflicts() >> evt CAN overlap with two others....
+              //if(!euhOverlaps[obj.id]){ //keep in mind the obj.id is target
+              //  euhOverlaps[obj.id]= []
+              //}
+              //euhOverlaps[obj.id].push(oDets)
+  
+              //>could have multiple that are overlapping yes!
+              //console.log("WOAH WOAH, massageOverlapObj:: multiple overlaps with same obj!", obj,oDets)
+              //this.doLog("WOAH WOAH, massageOverlapObj",obj)
+              if (oDets.inConflict in euhOverlaps){delete euhOverlaps[oDets.inConflict] } //; console.log("WOAH deleting inConflict",oDets.inConflict)
+              if (obj[j-1].inConflict in euhOverlaps){delete euhOverlaps[obj[j-1].inConflict] } //console.log("WOAH deleting PREV inConflict",obj[j-1].inConflict);
+  
+              if(euhOverlaps[oDets.target]) { 
+                euhOverlaps[oDets.target].push(oDets);
+                console.log("WOAH WOAH,massageOverlapObj::obj.id already present! ERROR?",oDets.target); 
+              } else { euhOverlaps[oDets.target] = [oDets]} 
+              
+              euhOverlaps[oDets.target].unshift(obj[j-1]) //also add previous as makes sense..
+              //flag how to solve these conflicts later!!--use array for granularity!
+              //oldie >> euhOverlaps["withID"] = true
+              if(!euhOverlaps["withID"]){
+                euhOverlaps["withID"] = []
+              } 
+              euhOverlaps["withID"].push(oDets.target) //prolly wouldnt have other normal overlap with same key...lool
+            }    
+          } while (++j < obj.length)
+        }
+      }
+      //console.log('massageOverlapObj::RETURNING',JSON.parse(JSON.stringify(euhOverlaps)))
+
+      return euhOverlaps
+    }
+    //massage overlap Array..for single added evt overlapping multiple scheduled.
+    massageSingleOverlapArr(overlaps){
+     
+      let euhOverlaps={} 
+
+      for(let i = 0; i < overlaps.length; i++){
+        let toH = overlaps[i]
+        //console.log("massageOverlaps",JSON.parse(JSON.stringify(toH)))
+        if(euhOverlaps[toH?.inConflict]) { euhOverlaps[toH?.inConflict].push(toH) } else{ euhOverlaps[toH?.inConflict] = [toH]} 
+         
+        if(i > 0){//keep in mind the obj.id is target
+            
+          //console.log("WOAH WOAH,massageSingleOverlapArr..multiple overlaps with same target>>",overlaps[i].target)//>could have multiple default that are overlapping yes!
+            //ummm this where using inConflict is wrong as evt CAN overlap with two others....
+          if (toH.inConflict in euhOverlaps){delete euhOverlaps[toH.inConflict] } // console.log("WOAH deleting inConflict",toH.inConflict); 
+          if (overlaps[i-1].inConflict in euhOverlaps){delete euhOverlaps[overlaps[i-1].inConflict] } // console.log("WOAH deleting PREV inConflict",overlaps[i-1].inConflict); 
+
+          if(euhOverlaps[toH.target]) { euhOverlaps[toH.target].push(toH);console.log("WOAH obj.id already present?",toH.target); } else{ euhOverlaps[toH.target] = [toH]} 
+              
+          euhOverlaps[toH.target].unshift(overlaps[i-1]) //also add previous as makes sense..
+          //oldie >> euhOverlaps["withID"] = true //flag how to solve these conflicts later!!
+          if(!euhOverlaps["withID"]){ //-use array for granularity!
+            euhOverlaps["withID"] = []
+          } 
+          euhOverlaps["withID"].push(toH.target) //prolly wouldnt have other normal overlap with same key...lool
+        } 
+      }
+
+      //",JSON.parse(JSON.stringify(euhOverlaps)),JSON.parse(JSON.stringify(overlaps)))
+      return euhOverlaps
+      
     }
     saveNewGoal(timeStart,goalTitle, parentGoal, own, duration){
      // let timeStart = parseTimestamp(timeRange[0])
@@ -976,7 +1059,8 @@ export default class daySchedule {
           //can have too many tries...stop after while?!? toReview**
           tries++
           i = Math.floor(Math.random() * sizey)
-          if (tries > 7) {console.log("addParentGoal::TOO MANY TRIES..Break?",tries,i,sizey)} //; break
+          if (tries > 7) {console.log("addParentGoal::TOO MANY TRIES..Break?",tries,i)} //; break
+          //should maybe filter out those not used!!--todo**
         }
   
         let newy = AllColors[i]
@@ -1093,7 +1177,7 @@ export default class daySchedule {
 
         //force Add when single overlap
         if (isArray && euhOverlaps.length == 1){
-          console.log(`onAdHocEvent::Overlaps!!--FORCING`,newey,timey.time)
+          //console.log(`onAdHocEvent::Overlaps!!--FORCING`,newey,timey.time)
           if (doNotify){
             doNotify(`onAdHocEvent::OVERLAPS!! ${euhOverlaps.length}`)
           }
@@ -1160,18 +1244,17 @@ export default class daySchedule {
   
           if (doNotif){doNotif(`${sizey} Extra Overlaps handling (${overlappedEvtID}) '${draggy?.title}' as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`) }
           do {
-            console.log(`${i} CASCADING timeChange (${overlappedEvtID}) ${draggy?.title} at: ${overlappedEvtNew.time} now at: ${overlappedEvt.start.time}  till ${overlappedEvt.end.time}`, anyOtherOverlap[i]) 
+            console.log(`${i} CASCADING timeChange (${overlappedEvtID}) ${draggy?.title} at: ${overlappedEvtNew.time} now at: ${overlappedEvt.start.time} till ${overlappedEvt.end.time}`, anyOtherOverlap[i],overlappedEvt.for) 
             //should prolly skip when seeing own self?!?--toMonitor**
             //should def break or goes in an infinite loop!!--when seeing original evt...
             if(anyOtherOverlap[i].inConflict == tEvt.id){
-              console.log(`EUUUH...::recurChangeTime::self overlap?!?${overlappedEvtID} ...breaking!`, anyOtherOverlap[i]) 
-              break  //toSee**
+              console.log(`EUUUH...::recurChangeTime::self overlap?!?${overlappedEvtID} ...break`, anyOtherOverlap[i]) 
+              break  //not break causes too many recursions...toReview**
             }
             //skipAsk should be true as recursion implicitly force schedule change--instead of using passed in.
              //, doAdd flag default to false as no needed for add with cascading timeChange of scheduled evts
-            this.recurChangeTime(anyOtherOverlap[i].inConflict,draggy,overlappedEvtNew,false,doNotif)
+            this.recurChangeTime(anyOtherOverlap[i].inConflict,draggy,overlappedEvtNew,false,doNotif) 
             
-            //umm shouldnt use this.fixyOverlaps() instead of recursion self?!? --toTry**
           } while (++i < sizey)
         }
 
@@ -1327,7 +1410,7 @@ export default class daySchedule {
       //'from' flag can be switched for some btns that shouldnt change...redundant though--toRemove**
 
       this.disableSaveSchedule = !evtNumAdded //false
-      this.showReloadBtn = this.hasEventsForDate()
+      this.showReloadBtn = this.hasEventsForDate() && evtNumAdded
       this.showClearBtn = !this.isViewingPast() && evtNumAdded //true  //evtNumAdded == dEvts.length > 0
       
     }
@@ -1626,14 +1709,6 @@ export default class daySchedule {
         console.log(`ERROR ERROR::updateNoteScore could not find event ${id}?!?`) //this would be baaad! 
       }
     }
-    updateDetz(evt){ //just to update event tooltip...
-      let pTitle = this.parentGoalById(evt.parentGoal)?.title?.trim()
-      if (evt.jeSuis && evt.jeSuis.length > 0){
-        evt.details = `Of '${pTitle}' :: << ${evt.jeSuis.join(',')} >>`
-      } else {
-        evt.details = `Of '${pTitle}' :: ${whenFrmtTime(evt?.time)} -> ${evt?.duration}min -- ${evt?.inDefaults ? 'Dft:':':'}${evt?.canMove ? ':Mv:':':'}${evt?.isAlternative ? ':Alt':':'}`
-      }
-    }
     addMinsToEvt(evtID,mins,doNotify=null){
         const allGood = (evt,newDura,newEndy) => {
           let e = this.findEvent(evtID)
@@ -1675,7 +1750,7 @@ export default class daySchedule {
         let newEndy = addToDate(endy,{ minute: parseInt(mins)})
         let newDura = parseInt(mins) + evt.for
   
-        console.log(`addMinsToEvt::(${evtID}) add ${mins} from ${evt.for} to> ${newDura}`,endy.time,newEndy.time) 
+        //console.log(`addMinsToEvt::(${evtID}) add ${mins} from ${evt.for} to> ${newDura}`,endy.time,newEndy.time) 
   
         let anyOverlap =  this.hasOverlappingEvent(evtID, evt.start, newEndy) //newDura
         let s = anyOverlap.length
@@ -1685,7 +1760,7 @@ export default class daySchedule {
             overlaps:this.massageSingleOverlapArr(anyOverlap),
             canContinue:false
           }
-          if(doNotify){ doNotify(`addMinsToEvt::OVERLAPS of size ${s}`)}
+          
           if (s > 1){ //multiple---just return
             return ret
           }
@@ -1699,8 +1774,10 @@ export default class daySchedule {
           if(askUser){
             return ret
           }else{
+            if(doNotify){ doNotify(`addMinsToEvt::${s} OVERLAPS..Forcing`)}
             let e = this.findEvent(evtID)
-            this.recurChangeTime(anyOverlap[0].inConflict,{...e,duration:newDura},anyOverlap[0].targetStart,false) //for next conflict just auto-solve even if overlapped evt is in default!! Beware**
+            //for next conflict just auto-solve even if overlapped evt is in default!! Beware**
+            this.recurChangeTime(anyOverlap[0].inConflict,{...e,duration:newDura},anyOverlap[0].targetStart,false,doNotify) 
 
             //bon just go and return allGood() below....umm toReview** 
           }
