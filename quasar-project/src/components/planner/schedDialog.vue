@@ -11,7 +11,8 @@
         <q-card v-if="showPickyDialog">
           <div class="q-ma-md event-select">
             <select-event
-              :canBeScheduled="allUnscheduled"
+              :unscheduled="allUnscheduled"
+              :unscheduledParents="unscheduledPGoals"
               :toBalance="balance"
               @on-Pick-Event="onAddClicked"
               @do-Cancel="onCancelBtn"
@@ -65,6 +66,7 @@ export default {
       showPickDialog:ref(false),
       showAdHocDialog:ref(false),
       show:ref(true), //for default dialog show/hide//true by default...
+      unscheduledP:ref({}), //[] //filter by parents in selectEvent
     }
   },
   emits: [
@@ -91,6 +93,21 @@ export default {
         this.showAdHocDialog = value
       }
     },
+    unscheduledPGoals:{
+      get(){
+        //console.log(`unscheduledPGoals`,JSON.parse(JSON.stringify(this.unscheduledP)))
+        //umm try to turn into array here mayhaps?--not too expensive?
+        let ret = []
+        for (let key in this.unscheduledP){
+          ret.push(this.unscheduledP[key])
+        }
+        //console.log(`unscheduledPGoals`,JSON.parse(JSON.stringify(this.unscheduledP)),JSON.parse(JSON.stringify(ret)))
+        return ret //this.unscheduledP
+      },
+      //set(value){ //no need..
+      //  
+      //}
+    },
     allUnscheduled:{
         get(){
           //console.log(`allUnscheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
@@ -98,8 +115,13 @@ export default {
           this.canBeScheduled.forEach((obj) => { //not too expensive?!? meh...
             let a = this.parentGoals.find(item => item.id == obj.parentGoal)
             a ? obj.color = a.bgcolor : obj.color = ''
-            obj.pg = a?.title.trim() //useful for label
-            obj.ic = a?.icon //toSee if can use instead of 'pg' above... todo**
+            obj.pg = a?.title.trim() //useful for label--could move into this.unscheduledP ? toReview**
+            obj.ic = a?.icon //toSee if can use instead of 'pg' above..toReview**
+
+            //this.unscheduledP.push({id:a?.id,title:a?.title.trim()}) //toSee** if anything else..or could just push whole pGoal?
+            !this.unscheduledP[a?.id] ? this.unscheduledP[a?.id] = {id:a?.id,title:a?.title.trim()} : '' //console.log(`allUnscheduled..present!`,this.unscheduledP[a?.id])
+            //if(!this.unscheduledP[a?.id]){
+            //}
           })
 
           //console.log(`allUnscheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))

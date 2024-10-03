@@ -437,17 +437,17 @@ return e.button === 0
 }
 
 export default {
-name: 'altDayCalendar',
-components: {
-  NavigationBar: defineAsyncComponent(() => import('../../components/NavigationBar.vue')), 
-  QCalendarDay,//: defineAsyncComponent(() => import('@quasar/quasar-ui-qcalendar/src/index.js')), // with loadOnDemand, craps out...
-  GoalyEnd: defineAsyncComponent(() => import('../../components/planner/goalyEnd.vue')),
-  schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
-  dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
-  schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
-  mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
-},
-data () {
+  name: 'altDayCalendar',
+  components: {
+    NavigationBar: defineAsyncComponent(() => import('../../components/NavigationBar.vue')), 
+    QCalendarDay,//: defineAsyncComponent(() => import('@quasar/quasar-ui-qcalendar/src/index.js')), // with loadOnDemand, craps out...
+    GoalyEnd: defineAsyncComponent(() => import('../../components/planner/goalyEnd.vue')),
+    schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
+    dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
+    schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
+    mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
+  },
+  data () {
     let possibleRange = null //for adhoc scheduling...keep track of selected time range
 
     let intervalId = null
@@ -463,51 +463,51 @@ data () {
     const lastTarget = ref(null) //for drag/drop highlight...toTest** 
 
     return {
-        splitterPage: ref(35), // start--left side--before at 35%
-        splitterLegend:ref(40),
-        timeStartPos:ref(0), ///This is the one for actually showing current time and needs to be in return for proper update
+      splitterPage: ref(35), // start--left side--before at 35%
+      splitterLegend:ref(40),
+      timeStartPos:ref(0), ///This is the one for actually showing current time and needs to be in return for proper update
 
-        showTree: ref(false), //showing Legend Tree
-        treeGoals:ref([]), 
-        expanded:ref([]), //to hold expanding pGoal nodes...
+      showTree: ref(false), //showing Legend Tree
+      treeGoals:ref([]), 
+      expanded:ref([]), //to hold expanding pGoal nodes...
 
-        filter : ref([]),
-        filterRef : ref(null),
+      filter : ref([]),
+      filterRef : ref(null),
 
-        calendar: ref(null),
+      calendar: ref(null),
 
-        showEvtDialog: ref(false),
+      showEvtDialog: ref(false),
 
-        currentDate: ref(today()),
-        scoreOptions:ref([1,2,3,4,5,6,7,8]), //default score intervals
+      currentDate: ref(today()),
+      scoreOptions:ref([1,2,3,4,5,6,7,8]), //default score intervals
         
-        anchorTimestamp: ref(null), //start time for range
-        otherTimestamp: ref(null),   //end time for range...
-        mouseDown: ref(false),
-        mobile: ref(true),
+      anchorTimestamp: ref(null), //start time for range
+      otherTimestamp: ref(null),   //end time for range...
+      mouseDown: ref(false),
+      mobile: ref(true),
 
-        //daSchedule:ref(new daySchedule("euuh")), //gets created!
-        daSchedule:ref(null)
+          //daSchedule:ref(new daySchedule("euuh")), //gets created!
+      daSchedule:ref(null)
     }
-},
-beforeMount() {
+  },
+  beforeMount() {
     this.mobile = isMobile()
 
     this.daSchedule = new daySchedule(this.currentDate,this.mobile)
 
     this.constructTree()
-},
-mounted() {
-  this.adjustCurrentTime()
-  // adjust the time every minute
-  this.intervalId = setInterval(() => {
-      this.adjustCurrentTime()
-  }, 60000)
-},
-beforeUnmount() {
-  clearInterval(this.intervalId)
-},
-computed: {
+  },
+  mounted() {
+    this.adjustCurrentTime()
+    // adjust the time every minute
+    this.intervalId = setInterval(() => {
+        this.adjustCurrentTime()
+    }, 60000)
+  },
+  beforeUnmount() {
+    clearInterval(this.intervalId)
+  },
+  computed: {
     chosenScoreLabel() {
         //return this.chosenScore == null ? `By Score` : `Score <= ${this.chosenScore}`
         return this.daSchedule.chosenScoreLabel()
@@ -648,10 +648,10 @@ computed: {
         return false
     },
     eventsMap () {
-      return this.daSchedule.currentSchedEventsMap()
+      return this.daSchedule.currentSchedEventsMap()//scheduledEventsMap()
     },
  },
-methods:{
+  methods:{
     showEvtMobile(id){
       return this.daSchedule.showEvtNoteScoreMobile(id)
     },
@@ -1700,9 +1700,9 @@ methods:{
         const fetchGoalEvt = id => {
           return this.daSchedule.getSubGoalByID(id) //aConf.target
         }
-        const scrollToConflict = (noOv) => {
+        const scrollToConflict = (noOv,where) => {
           if(!noOv){
-            console.log(`fixConflicts::scrollToConflict ERROR >>empty time`,noOv)
+            console.log(`fixConflicts::scrollToConflict ERROR >>empty time withID=`+withID,where,noOv)
             return
           }
           this.scrollToTime(noOv, 'slow') // 'fast'?
@@ -1720,7 +1720,7 @@ methods:{
           return this.getSmallestScoreInterval(conflictEvts)    
         }        
         let onDismissy = (mess) => {
-          //console.log('onDismissy>> '+from,mess,choices)
+          console.log('onDismissy>> '+from,mess,toKeep.length)//choices)
           
           if (toKeep.length > 0) { //== conflicts.size
             //console.log('fixConflicts::onDismissy >> gonna REMOVE ',allEvts.length,JSON.parse(JSON.stringify(toKeep)))
@@ -1729,12 +1729,9 @@ methods:{
               withID ? removeWithId(toKeep,allEvts) : removeConflicts(toKeep,allEvts) 
             }, 0)
               
-          }else{
-            //ummm shouldnt get here? >>could now..toTest**
-            console.log('fixConflicts::onDismissy::SCROLLING!! >>'+mess,withID,toKeep.length)//,targetTimes,toAdd,currScheduled)
-            //could scroll to show resolution perhaps?
-            //this.scrollToTime(timey,'slow')
-            withID ? scrollToConflict(targetTimes.get(toAdd.id)) : scrollToConflict(targetTimes.get(currScheduled.id))
+          }else{//could scroll to show resolution perhaps?
+            //console.log('fixConflicts::onDismissy::SCROLLING!! >>'+mess,withID,toKeep.length)//,targetTimes,toAdd,currScheduled)
+            withID ? scrollToConflict(targetTimes.get(toAdd.id),"onDismissy") : scrollToConflict(targetTimes.get(currScheduled.id),"onDismissy")
 
             return
           }
@@ -1887,7 +1884,7 @@ methods:{
         const forceAdd = (allToAdd,conflicts) => {
           let extraO = [] 
           //console.log(`fixConflicts::forceAdd total:${conflictEvts.length}`)
-          this.doLog(`fixConflicts::forceAdd of ${allToAdd.length} withID: ${withID}`,allToAdd)
+          this.doLog(`fixConflicts::forceAdd of ${allToAdd.length} withID=${withID}`,"allConflicts= "+conflicts.length)
           conflicts.forEach((obj) => { //allToAdd
             //console.log(`manyToOneConflict::forceAdd at ${obj?.time} > ${obj?.title?.trim()}`,JSON.parse(JSON.stringify(obj)))
             if (allToAdd.find(item => item.id == obj.id)){
@@ -2020,10 +2017,10 @@ methods:{
           ////--or maybe add confirm dialog? 
           ////--or just confirm ask for multiple mais bon toSee**
           
-          console.log('fixConflicts::resolveChoice::SCROLLING?!? withID='+withID,opt, "canChooseOne:",canChooseOne)
+          //console.log('fixConflicts::resolveChoice::SCROLLING?!? withID='+withID,opt, "canChooseOne:",canChooseOne)
 
           //try scrolling >> bon still scrolls AFTER resolution smh --toReview**
-          withID ? scrollToConflict(targetTimes.get(toAdd.id)) : scrollToConflict(targetTimes.get(currScheduled.id))
+          withID ? scrollToConflict(targetTimes.get(toAdd.id),"resolveChoice") : scrollToConflict(targetTimes.get(currScheduled.id),"resolveChoice")
 
           if (opt =='opt3') { //pick Evt
             chooseOneEvt('default',allConflicts)
@@ -2110,9 +2107,9 @@ methods:{
       //const origS = conflicts.length //track original size and is == labely above 
      
       while (conflicts.length){
-        // //just to start from end array and potentially deal with conflicts above 'haut' event
-        //BUT now maybe can just .shift() to go by time ? toReview**
-        const aConf = conflicts.pop()
+        // .pop to start from end array and potentially deal with conflicts above 'haut' event
+        //BUT now maybe can just .shift() to go by time ? >>bof still goes in order from handleOverlaps()
+        const aConf = conflicts.pop() //oldie >> .pop()
 
         let aScheduled = findEvt((aConf.inConflict)) //this.daSchedule.findEvent(aConf.inConflict) //this.getScheduledEvent(aConf.inConflict)
         if (!aScheduled) {console.log("constructOptions...ERROR ERROR no evts found!!!",aConf);return}
@@ -2198,7 +2195,7 @@ methods:{
         //currScheduled >>allEvts[0]>> should be >> manyToAdd[0] ? toTest**
         //bad access via index which can be wrong!!toReview
       }
-      console.log(`fixConflicts::${canChooseOne? "ONE":"MULTIPLE"} CHOICE --handling>> `,labely.length, ovSize)
+      console.log(`fixConflicts::${canChooseOne? "ONE":"MULTIPLE"} CHOICE >> withID=${withID} --handling>> `,labely.length, ovSize)
       
 
       let defaultOpts = [] //oldie >> [{ label: 'Choose one event', value: 'opt3' }]
@@ -2259,7 +2256,7 @@ methods:{
 
       let mess = withID ? `Adding (${toAdd?.id}) '${toAdd?.title.trim()}' at ${whenFrmtTime(targetTimes.get(toAdd.id)?.time)} Conflicts with scheduled ${label} \n` : `Adding ${labely.join()} Conflicts with scheduled (${currScheduled?.id}) '${currScheduled?.title.trim()}' at ${whenFrmtTime(currScheduled?.time)}.\n`
       
-      let title = withID ? `${from} oneToMany Conflicts` : `${from} manyToOne Conflicts`
+      let title = withID ? `oneToMany Conflicts` : `manyToOne Conflicts` //${from} 
       
       this.radioChoiceDialog(title, //oldie >> 'Overlaps!!',
         mess,
@@ -2270,24 +2267,7 @@ methods:{
         },
         canChooseOne ? cancelChoice : null , //onCancel...null so that it's false for cancel btn! Cancel SHould keep scheduled!!
         function(){ //onDismiss.
-          onDismissy()
-
-
-          /*if (toKeep.length > 0) { //== conflicts.size
-            console.log('fixConflicts::onDismiss Main >> gonna REMOVE from total of >> ',allEvts.length)//,JSON.parse(JSON.stringify(toKeep)))
-              
-            setTimeout(() => {
-              withID ? removeWithId(toKeep,allEvts) : removeConflicts(toKeep,allEvts) 
-            }, 0)
-              
-          }else{
-            //for scrolling perhaps...toTest**
-            console.log('fixConflicts::onDismiss Main::SCROLLING? >>'+withID)//toKeep.length,targetTimes,toAdd,currScheduled)
-            //could scroll to show resolution perhaps?
-            //this.scrollToTime(timey,'slow')
-            withID ? scrollToConflict(targetTimes.get(toAdd.id)) : scrollToConflict(targetTimes.get(currScheduled.id))
-
-          }*/
+          onDismissy("Main!")
         }
       )
         
@@ -4018,7 +3998,7 @@ methods:{
         onDismiss:dismiss, //no need for ()
       })
     },
-}
+  }
 }
 
 </script>

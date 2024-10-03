@@ -8,8 +8,23 @@
             
             <div class="q-mx-md event-select">
               <q-select
+              v-model="toFilterBy" 
+              :options="unscheduledP"
+              class="q-gutter-md q-px-md"
+              option-value="id"
+              option-label="title"
+              popupContentClass="q-px-sm"
+              input-debounce="0"
+              behavior="menu">
+                <template v-slot:append><!--todo** properly align-->
+                  <q-icon v-if="toFilterBy" name="clear" size="14px"/>
+                </template>
+              </q-select>
+            </div>
+            <div v-if="this.selectedP" class="q-mx-md event-select">
+              <q-select
               v-model="toAdd" 
-              :options="allScheduled"
+              :options="allunScheduled"
               :class="classy()"
               option-value="id"
               option-label="title"
@@ -93,20 +108,22 @@
   export default {  //this be Options Vue notation
     name: 'selectEvent',
     props: {
-      canBeScheduled: Array,
+      unscheduled: Array,
+      unscheduledParents: Array, //Object, //harder to iterate over Object?--toTry**
       toBalance:Number,
       //doCancel: Function, // can execute function BUT better to emit...
     },
     data(){
       //const allEvts = ref(null)  //toSee when here? >>nope gotta be in return 
 
-      return {//no need for ref..prolly
+      return {
         doForce:false, //ref(false), //force schedule and skip asking confirmation from user...
-        toAddE:null,  //ref(null),
+        selectedE:null,  //ref(null),
         dura:null,  //toTest** changing duration
         useBalance:false,
-        allEvts: this.canBeScheduled,//bon start with this....//null //ref(null)
-        //empty:0 //smh >>no need as was hackish way to reset toAddE when not filtering!
+        allEvts: this.unscheduled,
+        unscheduledP:this.unscheduledParents,
+        selectedP:null //filter by parent...
       }
     },
     emits: [
@@ -114,26 +131,39 @@
       'doCancel'
     ],
     computed: {
-      allScheduled:{
-        get(){return this.allEvts}, //return this.canBeScheduled
+      toFilterBy:{
+        get(){return this.selectedP},
+        set(value){
+          //console.log('toFilterBy...setting',value)
+          this.selectedP = value
+          //this.allunScheduled = this.unscheduled.filter(v => v.parentGoal == value.id)  //or filter in get of allunScheduled() ? >>prolly subgoals as doesnt update!!
+        }
+      },
+      allunScheduled:{
+        get(){
+          if(this.selectedP){
+            return this.unscheduled.filter(v => v.parentGoal == this.selectedP.id) 
+          }
+          return this.allEvts
+        },
         //set?!? >>no need! >> 'twas before filtering...
         set(value){
-          //this.canBeScheduled = value  //umm ?? > nope error of mutating props....
+          //this.unscheduled = value  //umm ?? > nope error of mutating props....
           this.allEvts = value
         }
       },
       toAdd:{
-        get(){return this.toAddE},
+        get(){return this.selectedE},
         set(value){
           //console.log('toAdd...setting',value)
-          this.toAddE = value
+          this.selectedE = value
           this.dura = value?.duration || 0 //default 0 needed or complain and shows NA when user doing filtering
         }
       },
     },
     //onBeforeMount(){ //doesnt seem like it's needed....
     //  console.log('onBeforeMount')
-    //  this.allScheduled = this.canBeScheduled
+    //  this.allScheduled = this.unscheduled
     //},
     methods: {
       onAddClicked () {
@@ -149,12 +179,12 @@
           //if(val == ''){ //huh needed to reset toAdd >> but problem as start empty when there is already a selected toAdd smh >>fixed by using setModel()
             //console.log('empty'+val,this.toAdd)
             //this.empty++
-            //this.allScheduled = this.canBeScheduled
+            //this.allScheduled = this.unscheduled
             //this.toAdd = null 
             //return
           //}
           const needle = val.toLowerCase()
-          this.allScheduled = this.canBeScheduled.filter(v => v?.title.toLowerCase().indexOf(needle) > -1)
+          this.allunScheduled = this.unscheduled.filter(v => v?.title.toLowerCase().indexOf(needle) > -1)
         })
         //abort(() =>{ //bof dont seem like it can run...
         //  console.log('huh...abort?'+val,this.toAdd)
@@ -208,7 +238,7 @@
           <q-separator />
           <div class="q-ma-md event-select">
             <q-select
-            v-model="toAddE" 
+            v-model="selectedE" 
             :options="allScheduled"
             option-value="id"
             option-label="title"

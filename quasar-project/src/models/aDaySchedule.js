@@ -218,7 +218,23 @@ export default class daySchedule {
     hasEventsForDate() {
       return Repo.hasEventsForDate(this.currentDate)
     }
+    scheduledEventsMap(){ 
+      //to replace currentSchedEventsMap() below
+      //uses _dailyScheduled map >>which organizes by asc key
+      const mappyA = {}
+      this._dailyScheduled.forEach((value, key, map) => {
+        let d = value.date //value.date()  //invoke up to date date...toSee if updates for new days!
+        
+        if (!mappyA[ d ]) { // oldie >> value.date :: now >> d  and mappyA AINT map smh
+          mappyA[ d ] = []
+        }
+        
+        mappyA[ d ].push(value)
+      })
 
+      //console.log(`scheduledEventsMap>>`,mappyA)
+      return mappyA
+    }
     currentSchedEventsMap(){ // convert the events into an object keyed by date
      
       const mappyA = {}
@@ -230,7 +246,7 @@ export default class daySchedule {
         }
         
         mappyA[ d ].push(evt)
-        if (evt.days) { //never gets here...toReview
+        if (evt.days) { //never gets here...toReview/remove***
           console.log(`currentSchedEventsMap multiple days? event for ${evt.date}`, evt.days) //when this happens? could happen if add #days--except start from the event.date + #days---meh to see about useing
           let timestamp = parseTimestamp(evt.date)
           let days = evt.days
@@ -243,6 +259,7 @@ export default class daySchedule {
           } while (--days > 0)
         }
       })
+      //console.log(`currentSchedEventsMap`,mappyA) >> orded by add and time(earliest to later)
       
       return mappyA
     }
@@ -1210,7 +1227,7 @@ export default class daySchedule {
         if (dragTimeInterval >= 0 ) { // add of extra 10 prolly lead to more overlap! remove for too many evts?--toReview
           overlappedEvtNew= addToDate(targetTimestamp, { minute: parseInt(tEvt.duration) + 10 }) 
           let alternative = addToDate(targetTimestamp, { minute: parseInt(overlappedEvt.for) + 10 })//overlappedEvt.for might be too much...
-          console.log(`recurChangeTime::(${overlappedEvtID}) '${overlappedEvt?.title}' going FORWARD ${dName} for ${dragTimeInterval} due to evt:(${tEvt.id})${tEvt?.title?.trim()} at ${targetTimestamp.time} 
+          console.log(`recurChangeTime::START>>(${overlappedEvtID}) '${overlappedEvt?.title}' going FORWARD ${dName} for ${dragTimeInterval} due to evt:(${tEvt.id})${tEvt?.title?.trim()} at ${targetTimestamp.time} 
           \n doAdd?:${doAdd} >`, JSON.parse(JSON.stringify(overlappedEvtNew.time)), 'alt:',alternative.time)
           //should use the closer time...avoid multiple overlaps later..
           let diffy = diffTimestamp(alternative,overlappedEvtNew)
@@ -1227,7 +1244,7 @@ export default class daySchedule {
           overlappedEvtNew = addToDate(targetTimestamp, { minute: -(parseInt(overlappedEvt.for) + 10)})
           let alternative = addToDate(targetTimestamp, { minute: -(parseInt(tEvt.duration) + 10) }) //toSee if overlappedEvt.for isnt too much? nope seems proper for backward...prlly
           //let diffy = diffTimestamp(alternative,overlappedEvtNew) 
-          console.log(`recurChangeTime::(${overlappedEvtID}) '${overlappedEvt?.title}' going BACKWARD ${dName} for ${dragTimeInterval} due to evt:(${tEvt.id})${tEvt?.title?.trim()} at ${targetTimestamp.time}
+          console.log(`recurChangeTime::START>>(${overlappedEvtID}) '${overlappedEvt?.title}' going BACKWARD ${dName} for ${dragTimeInterval} due to evt:(${tEvt.id})${tEvt?.title?.trim()} at ${targetTimestamp.time}
           \n doAdd?:${doAdd}`, overlappedEvtNew.time, 'alt:'+alternative.time) //'diffy='+diffy
         }
   
@@ -1240,15 +1257,15 @@ export default class daySchedule {
           let draggy = this.findEvent(overlappedEvtID) //this.getScheduledEvent(overlappedEvtID)
   
           //this.doNotify(`Cascading time change while adding '${draggy?.title.trim()}' due to "${tEvt.title.trim()}"`, "warning",'top')
-          draggy ? console.log(`Cascading time change while ${doAdd ? "Adding":"Moving"} (${overlappedEvtID}) '${draggy?.title}' due to ${tEvt.id}-'${tEvt?.title?.trim()}'`) : console.log(`ERROR::recurChangeTime ${overlappedEvtID} not found`) //umm return?
+          draggy ? console.log(`Cascading time change moving (${overlappedEvtID})'${draggy?.title}' ${draggy?.time} due to ${doAdd ? "Adding":"Moving"} ${tEvt.id}-'${tEvt?.title?.trim()}'`) : console.log(`ERROR::recurChangeTime ${overlappedEvtID} not found`) //umm return?
   
-          if (doNotif){doNotif(`${sizey} Extra Overlaps handling (${overlappedEvtID}) '${draggy?.title}' as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`) }
+          if (doNotif){doNotif(`${sizey} Cascading Overlaps handling (${overlappedEvtID}) '${draggy?.title}' as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`) }
           do {
-            console.log(`${i} CASCADING timeChange (${overlappedEvtID}) ${draggy?.title} at: ${overlappedEvtNew.time} now at: ${overlappedEvt.start.time} till ${overlappedEvt.end.time}`, anyOtherOverlap[i],overlappedEvt.for) 
+            console.log(`CASCADING timeChange ${i} >> (${overlappedEvtID}) at: ${overlappedEvtNew.time} now at: ${overlappedEvt.start.time} till ${overlappedEvt.end.time}`,overlappedEvt.for) 
             //should prolly skip when seeing own self?!?--toMonitor**
             //should def break or goes in an infinite loop!!--when seeing original evt...
             if(anyOtherOverlap[i].inConflict == tEvt.id){
-              console.log(`EUUUH...::recurChangeTime::self overlap?!?${overlappedEvtID} ...break`, anyOtherOverlap[i]) 
+              console.log(`EUUUH...ERROR::recurChangeTime::self overlap?!?OVERLAPPED:${overlappedEvtID} ...break`, anyOtherOverlap[i].inConflict,tEvt.id) // anyOtherOverlap[i]
               break  //not break causes too many recursions...toReview**
             }
             //skipAsk should be true as recursion implicitly force schedule change--instead of using passed in.
@@ -1259,7 +1276,7 @@ export default class daySchedule {
         }
 
         this.changeEvtTime(overlappedEvt, overlappedEvtNew)
-        console.log(`recurChangeTime::OVERLAPPED (${overlappedEvtID}) '${overlappedEvt?.title}' >> ${dName} to ${overlappedEvtNew.time} >> DONE`)
+        console.log(`recurChangeTime::OVERLAPPED (${overlappedEvtID}) '${overlappedEvt?.title}' >> ${dName} to ${overlappedEvtNew.time} >> DONE!!`)
         
         //umm should stays the same here!!--for dragging up keep interval of 10 minutes? prolly better for separation?
         let draggedNewTime = targetTimestamp //(dragTimeInterval > 0 || goForward) ? addToDate(targetTimestamp, { minute: 0 })
@@ -1787,7 +1804,7 @@ export default class daySchedule {
     deleteEvtMood(id){ 
       if (this.usingMoods[id]){
         delete this.usingMoods[id]
-        console.log(`deleteEvtMood::>> `+id)
+        //console.log(`deleteEvtMood::>> `+id)
         return
       }
       //}else{
