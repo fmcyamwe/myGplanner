@@ -591,7 +591,7 @@ export default {
       //let aSet = new Set()
       let aMap = new Map()
       for (let key in cMoods) {
-        //aSet.add(cMoods[key].join()) //join for uniqueness when using Set...
+        //aSet.add(cMoods[key].join()) //join for uniqueness when using Set...mais bon...
         let moo = cMoods[key].join()
         aMap.set(key,moo)
         //aSet.add(moo)
@@ -609,9 +609,11 @@ export default {
         
       //show each mood's evt.background-color for easier association with scheduled evt!!
         let toRet = {}
-        for (let [entry, val] of aMap){
-          let e = this.daSchedule.getAllEvts().find(item => item.id == entry)
-          //console.log(`scheduleMoodsLabel::`,e?.bgcolor,e?.color)//,entry,val)
+        
+        for (let [entry, val] of aMap){ //possible not all evts added to schedule yet--overlaps!! toMonitor**
+          //let e = this.daSchedule.getAllEvts().get(parseInt(entry))  //item => item.id == entry
+          let e = this.daSchedule.findSchedEvent(parseInt(entry)) //need parseInt!! smh
+          //console.log(`scheduleMoodsLabel::`,e,entry,val)//e?.bgcolor,e?.color)//,entry,val)
           toRet[entry] = {
             m:val,
             color:e?.color,
@@ -648,7 +650,7 @@ export default {
         return false
     },
     eventsMap () {
-      return this.daSchedule.currentSchedEventsMap()//scheduledEventsMap()
+      return this.daSchedule.scheduledEventsMap() //currentSchedEventsMap()
     },
  },
   methods:{
@@ -792,7 +794,7 @@ export default {
         //return `Scheduled => ${this.scheduledEvents.length} out of ${total} \n`
           
         let e = this.daSchedule.getAllEvts()
-        return `Scheduled => ${e.length} out of ${total} \n`
+        return `Scheduled => ${e.size} out of ${total} \n`
       }
       
       return `Balance: ${this.daSchedule.getCurrentBalance() || 0 } \n`
@@ -855,7 +857,7 @@ export default {
       })
 
       if (toAddy.length > 0){
-        toAddy = toAddy.filter(x => !this.daSchedule.getAllEvts().find(item => item.id == x.id)) //filter out already scheduled
+        toAddy = toAddy.filter(x => !this.daSchedule.getAllEvts().has(x.id)) //x => !this.daSchedule.getAllEvts().find(item => item.id == x.id)  //filter out already scheduled
         let sizey = toAddy.length
         if(sizey > 0){
           let res = this.daSchedule.scheduleByMood(toAddy)
@@ -899,7 +901,7 @@ export default {
           return
         }
 
-      if (this.daSchedule.getAllEvts().length > 0) { //scheduledEvents.length
+      if (this.daSchedule.getAllEvts().size > 0) { //scheduledEvents.length
         let labels = [
           {label: `Add one Evt from Each parent Goals`,value: 'add'},
           {label: `Reset schedule and add one random Evt from Each parent Goals`,value: 'overwrite'}
@@ -943,7 +945,7 @@ export default {
           this.reset() //reloadSaved
         }
       
-      if (this.daSchedule.getAllEvts().length > 0 && !this.isViewingPast()){
+      if (this.daSchedule.getAllEvts().size > 0 && !this.isViewingPast()){
         let mess = hasEvents ? "Reload? saved schedule of: "+this.currentDate : "Overwrite current Evts?"
         this.confirmAction('',mess,"OK", doOverwrite, doCancel)
       } else {
@@ -992,7 +994,7 @@ export default {
         }
 
       
-      if (this.daSchedule.getAllEvts().length > 0){
+      if (this.daSchedule.getAllEvts().size > 0){
         let e = this.daSchedule.unscheduledDefaults()
         //console.log('onLoadDefaults::unscheduledDefaults', e?.length) //e
         
@@ -1045,7 +1047,7 @@ export default {
 
       let currentPrio = this.daSchedule.chosenPrio
       let options = this.daSchedule.byPrio  //some calculations for proper options >> i.e: no add option when already scheduled or no evt with prio
-      let currentSched = this.daSchedule.getAllEvts().length
+      let currentSched = this.daSchedule.getAllEvts().size
       if (currentSched > 0){
         let labels = [{label: `Filter out ${currentSched} scheduled for Evts with priority == ${currentPrio}`,value: 'filter' }]//cannot have value as false as empty string evaluates to it...smh!
         options?.toAdd?.length > 0 ? labels.push({label: `Add ${options?.toAdd?.length} Evts with priority == ${currentPrio}`,value: 'add'}) : '',
@@ -1103,7 +1105,7 @@ export default {
 
       let currentScore = this.daSchedule.chosenScore
       let options = this.daSchedule.byScore 
-      let currentSched = this.daSchedule.getAllEvts().length
+      let currentSched = this.daSchedule.getAllEvts().size
       if (currentSched > 0) {
         let labels = [{label: `Filter out ${currentSched} scheduled for Evts with Interval Score <= ${currentScore}`,value: 'filter'}] //cannot pass false as empty string evaluates to it...smh!
           
@@ -1171,7 +1173,7 @@ export default {
               "Change", //okBtn
               `Temp.Move`,//`Temp.${doAdd ? 'Add':'Move'}`, //altbtn //oldie >>"Temp.Move"
               function(d){c.changeEvtTime(draggedItem, targetDrop,d);clean()}, //onOk  //userChoice(d,evt,doAdd)
-              function(){console.log(`doDroppy::onCancel..>doing nothing for ${draggedItem.id})'${draggedItem.title.trim()}'`);clean()}, //;keepAsIs() //doUpdateEvt()  //shouldnt cancel/dismiss NOT schedule?!?
+              function(){clean()}, //console.log(`doDroppy::onCancel..>doing nothing for ${draggedItem.id})'${draggedItem.title.trim()}'`); 
               function(){console.log(`doDroppy::onDismiss..keep as is>> ${draggedItem.id})'${draggedItem.title.trim()}'`),clean()}//;keepAsIs(evt,doAdd)} //.scheduling at default time`);keepAsIs() 
               //onDismiss/...should prolly remove it actually!--or leave at default time?!?
               )
@@ -1185,8 +1187,8 @@ export default {
           this.doLog("doDroppy::CANNOT Drop",canDrop)//JSON.parse(JSON.stringify(canDrop)))
           
           //override flag null as better handled and transmitting from
-          //this.movedIntoConflict(canDrop.overlaps,null,'onDrop')
-          this.handleOverlaps(canDrop.overlaps,'onDrop')//oldie >>this.handleOverlaps(canDrop.overlaps,true,'onDrop')
+          //this.movedIntoConflict(canDrop.overlaps,null,'onDrop') // better for single overlaps...too many options... toReview**
+          this.handleOverlaps(canDrop.overlaps,'onDrop')
         }
       } else{
         console.log("doDroppy null ERROR?", targetDrop,this.targetDrop, draggedItem, this.selectedItem )
@@ -1323,7 +1325,7 @@ export default {
           return
         }
         const forceAddMins = (toChange,aConf) => {
-          let addTo = this.daSchedule.findEvent(aConf.target)
+          let addTo = this.daSchedule.findSchedEvent(aConf.target) //findEvent
           if (!addTo){console.log(`movedIntoConflict::forceAddMins>>NOT FOUND?!?`,aConf.target);return} //shouldnt happen
           
           let toAddy = this.daSchedule.getStoredRawEvt(aConf.target)
@@ -1340,7 +1342,7 @@ export default {
 
           this.daSchedule.recurChangeTime(toChange.id,addTo,aConf.targetStart,false,this.doNotify) 
 
-          this.daSchedule.saveDaySchedule()
+          this.doSaveSchedule() //this.daSchedule.saveDaySchedule()
           return
         }
         const forceAdd = (toChange, toAdd,conf) => {
@@ -1371,8 +1373,6 @@ export default {
           //this.scheduleMoodsLabel
           //this.daSchedule.toggleActionBtns(true,from)
           onDismissy("ForceAdd") //does above and potensh cleanup
-
-          //console.log(`handleOverlaps`,this.daSchedule.getAllEvts())
         }
         let onOkChoice = (og,c, toAdd,currScheduled,aConf) => {
           daChoice.push(c)
@@ -1577,7 +1577,7 @@ export default {
         const aConf = toH.pop() //toH.shift() to resolve in order? >>dont matter!
 
         let toAdd = this.daSchedule.getSubGoalByID(aConf.target)
-        let currScheduled = this.daSchedule.findEvent(aConf.inConflict) 
+        let currScheduled = this.daSchedule.findSchedEvent(aConf.inConflict)  //findEvent
 
         if (!currScheduled || !toAdd ){console.log("movedIntoConflict...ERROR ERROR no evts found!!!",aConf);return}
 
@@ -1601,11 +1601,11 @@ export default {
               //cancelChoice
               //this.daSchedule.toggleActionBtns(true,'view')
               aNotif(`Keeping as Is...`) //${currScheduled.title.trim()}'
-            },
-            function(){ //onDismiss--redundant...
+            })//,
+            //function(){ //onDismiss--redundant...
               //this.daSchedule.toggleActionBtns(true,from)//no need as auto save schedule
-              console.log(`movedIntoConflict >>onAddMins>> onDismiss`)
-            })
+            //  console.log(`movedIntoConflict >>onAddMins>> onDismiss`)
+            //})
         }else{ //normally onDrop....
           //console.log(`movedIntoConflict::`,from,"autoSolve:"+canAutoSolve)
           if(canAutoSolve){
@@ -1694,8 +1694,8 @@ export default {
       //withID flag to use logic from 'oneToManyConflict' instead of 'manyToOneConflict'
       //ovSize to skip extra click when have too many overlaps to fix(i.e: too many dialogs)
 
-        const findEvt = id => { //should use findSchedEvent() as faster?  toReview** 
-          return this.daSchedule.findEvent(id) //aConflict.inConflict
+        const findEvt = id => {
+          return this.daSchedule.findSchedEvent(id) //findEvent //aConflict.inConflict
         }
         const fetchGoalEvt = id => {
           return this.daSchedule.getSubGoalByID(id) //aConf.target
@@ -1796,7 +1796,7 @@ export default {
             }
           })
 
-          this.daSchedule.toggleActionBtns(haveChanges,from)
+          //this.daSchedule.toggleActionBtns(haveChanges,from) //|| ovSize > 2 for previous overlaps...but problematic..
           //this.scheduleMoodsLabel
 
           while(extraO.length) {// > 0 //shouldnt be more than one?..can end in loop when not using flag to skip overlap check!
@@ -1868,7 +1868,7 @@ export default {
               }
             })
             
-            this.daSchedule.toggleActionBtns(haveChanges,from) //toSee** when no changes mais bon...
+            //this.daSchedule.toggleActionBtns(haveChanges,from) //|| ovSize > 2 for previous overlaps >>but problematic...
             
             while(extraO.length) {
               const anExtra = extraO.pop()
@@ -1903,8 +1903,9 @@ export default {
               }
 
               let e = conflicts.find(x => x.id != obj.id)
-              let euhOverlaps = from == 'onDrop' ? this.daSchedule.addGoalsToSchedule([{...obj,time:timey.time}],false) : this.daSchedule.recurChangeTime(e.id,obj,timey, from != 'onDrop',longerNotif)
-              //let euhOverlaps = this.daSchedule.recurChangeTime(e.id,obj,timey,from != 'onDrop',longerNotif) //this.doNotify) //no add for onDrop  
+              //let euhOverlaps = from == 'onDrop' ? this.daSchedule.addGoalsToSchedule([{...obj,time:timey.time}],false) : this.daSchedule.recurChangeTime(e.id,obj,timey, from != 'onDrop',longerNotif)
+               //above dont work for onDrop and better to recurChange as cant add...
+              let euhOverlaps = this.daSchedule.recurChangeTime(e.id,obj,timey,from != 'onDrop',longerNotif)
               //let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...obj,time:timey.time}],from != 'onDrop') //true
               if(euhOverlaps && Object.keys(euhOverlaps).length > 0){ 
                 //this shouldnt happen with recurChangeTime() as no return...
@@ -2078,6 +2079,13 @@ export default {
           }
         }
         let cancelChoice = () =>{ //keep as is....
+          if (from == 'onDrop'){ //yup on drag/drop >>cancel should just revert to original..toMonitor
+            aNotif(`Umm...not moving then....`)
+            this.daSchedule.toggleActionBtns(false,'onDrop')//disable saveScheduleBtn
+            this.doCleanup() //needed
+            return //no adding toKeep for removing...
+          }
+
           if(from.indexOf('byMood') > -1){
             console.log("fixConflicts::cancelChoice >>Mood update "+from)
             //updateMoodLabel(toAdd.id) //update label smh
@@ -2085,7 +2093,7 @@ export default {
             //but better to do so in onDismiss
           }
           toKeep.push(currScheduled) //keeping scheduled only...
-         
+
           //aNotif(`Keeping scheduled '${currScheduled.title.trim()}'`)
         }
      
@@ -2253,8 +2261,9 @@ export default {
           //console.log(`fixConflicts::NO FORCE EVEN WITH surrounding? == ${hasSurr} from `+from,"one?"+canChooseOne,withID)
         //}
       }
-
-      let mess = withID ? `Adding (${toAdd?.id}) '${toAdd?.title.trim()}' at ${whenFrmtTime(targetTimes.get(toAdd.id)?.time)} Conflicts with scheduled ${label} \n` : `Adding ${labely.join()} Conflicts with scheduled (${currScheduled?.id}) '${currScheduled?.title.trim()}' at ${whenFrmtTime(currScheduled?.time)}.\n`
+      //Cancel to keep scheduled '${currScheduled.title.trim()}'
+      let cancel = `${canChooseOne && defaultOpts.length < 2 ? "Cancel to keep scheduled" :"" }` //toAdd**  Keep as is for onDrop
+      let mess = withID ? `Adding (${toAdd?.id}) '${toAdd?.title.trim()}' at ${whenFrmtTime(targetTimes.get(toAdd.id)?.time)} Conflicts with scheduled ${label} \n ${cancel}` : `Adding ${labely.join()} Conflicts with scheduled (${currScheduled?.id}) '${currScheduled?.title.trim()}' at ${whenFrmtTime(currScheduled?.time)}. \n ${cancel}`
       
       let title = withID ? `oneToMany Conflicts` : `manyToOne Conflicts` //${from} 
       
@@ -2849,12 +2858,12 @@ export default {
         addE.duration = newDura  //Beware >> does change original unscheduled evt's duration when removed after add!!
       }
         
-      let res = this.daSchedule.onPickEvent(addE,this.targetDrop.timestamp,doForce,useBalance,this.doNotify)
+      let res = this.daSchedule.onPickEvent(addE,this.targetDrop.timestamp,doForce,useBalance,this.doNotifyTimeout)
       
       if(!res.canContinue){ //&& !anyOverlap.overlaps
-        console.log("onPickEvent::OVERLAPS!"+useBalance,JSON.parse(JSON.stringify(res)))
+        //console.log("onPickEvent::OVERLAPS!"+useBalance,JSON.parse(JSON.stringify(res)))
         if(res.overlaps && Object.keys(res.overlaps).length > 0){
-          if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "warning",'top')}
+          if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "negative",'top')}
 
           this.handleOverlaps(res.overlaps,'onPickEvt')//onPickEvt
         }
@@ -2939,7 +2948,7 @@ export default {
     onEndNow(id){
         const doRemove = () =>{
           //console.log(`onEndNow::removing and saving!`,id)
-          let evt = this.daSchedule.findEvent(id) //findSchedEvent
+          let evt = this.daSchedule.findSchedEvent(id)
           this.daSchedule.removeScheduledEvt(evt)
          
           this.daSchedule.saveDaySchedule() //save automatically esti!
@@ -2980,7 +2989,7 @@ export default {
 
       if(!res.canContinue){ //&& !anyOverlap.overlaps
         if(res.overlaps && Object.keys(res.overlaps).length > 0){
-          console.log("onAddMins::OVERLAPS!!"+mins,res) 
+          //console.log("onAddMins::OVERLAPS!!"+mins,res) 
 
           this.doNotify(`Bumped into some Evts`, "warning",'top')
           return this.movedIntoConflict(res.overlaps,true,"onAddMins",mins)
@@ -2989,8 +2998,6 @@ export default {
           this.doNotify(`Add ERROR:(`, "negative",'bottom')
         }
       }
-      //this.daSchedule.saveDaySchedule() //save? nah ...
-      //this.daSchedule.toggleActionBtns(true,'onAddMins')
     },
     removeEvtInSchedule(evt,addBalance=true){ //addBalance flag when deleting passed 
       let doSave = false //just for moods.../default no need to save...
@@ -3001,7 +3008,7 @@ export default {
           
           if (doSave || addBalance){ //autoSave
             //this.doNotify("removeEvtInSchedule..autoSave for: "+evt.title)
-            console.log("removeEvtInSchedule::SAVE for: "+evt.title,doSave,addBalance)
+            //console.log("removeEvtInSchedule::SAVE for: "+evt.title,doSave,addBalance)
 
             if(addBalance){
               ////could use wrong balance if evt.duration != default? >> seems ok
@@ -3010,7 +3017,7 @@ export default {
               this.doNotify(`Balance change after removing '${evt.title}'`,"warning",'top')
             }
 
-            this.daSchedule.saveDaySchedule()
+            this.doSaveSchedule() //this.daSchedule.saveDaySchedule()
             return
           }
 
@@ -3073,6 +3080,7 @@ export default {
       function(){console.log('Cancelled remove')}) 
       
     },
+    /*
     getEvtLabel(anEvt,atTime = null){ 
       //flag to not add time as can be misleading when it's the original evt time but evt getting added at different time
       let prt = this.daSchedule.parentGoalById(anEvt.parentGoal)
@@ -3084,7 +3092,7 @@ export default {
       //addTime ? l = l + `@ ${whenFrmtTime(anEvt?.time)} ++ ${anEvt?.duration} mins` : l = l +  `for ${anEvt?.duration} mins`
       return { label: l, value: anEvt.id } //`Of '${prt?.title.trim()}' "${anEvt.title.trim()}" (${anEvt.score}) @ ${whenFrmtTime(anEvt?.time)} ++ ${anEvt?.duration} mins`
           //return { label: anEvt.title.trim() + " for " + anEvt.duration + 'min. With score '+ '('+ anEvt.score + ')' +' At '+ anEvt.time , value: anEvt.id } // color: 'secondary'
-    },
+    },*/
     betterEvtLabel(anEvt,how,atTime = null){ ////rework of getEvtLabel() above >>closer to evtLabels() of movedIntoConflict() for score/prio case
       const prioLabel = (evt,addPrio) => {
         if (evt?.parentGoal){
@@ -3174,7 +3182,7 @@ export default {
         //umm this looks at current day schedule...
         //should look into next day as well?!?--toReview***
         const filterOutScheduled = evts => { 
-          return evts.filter(x => !this.daSchedule.getAllEvts().find(item => item.id == x.id)) //this.actualEvts
+          return evts.filter(x => !this.daSchedule.getAllEvts().has(x.id)) //this.actualEvts
         }
 
         const addInFutur = (eArr) => { // dialogs make it impo! to move into daySchedule class smh
@@ -3458,7 +3466,7 @@ export default {
     onDrop(e, type, scope){
       //console.log('onDrop',e, type, scope)
 
-      let d = this.daSchedule.findEvent(this.selectedItem.id) //findSchedEvent
+      let d = this.daSchedule.findSchedEvent(this.selectedItem.id) //kinda redundant!!
       
       if (!d) {console.log("onDrop ERROR", d,this.selectedItem ); return} //shouldnt happen!
 
@@ -3880,7 +3888,7 @@ export default {
         cancel: onCancel ? true : false, //false, //or check if onCancel != null
         persistent: true, //have to choose!--see about passing in flag!!
         message: mess,
-        seamless:true, //>>WORKS!! can interact with page below and also have underneath page background!!
+        seamless:true, //>>WORKS!! can interact with page below and also have underneath page background!!--bon could be problem if user click underneath thooo--toReview**
         options: {
           type: 'radio',
           model: selectedM, //oldie >>'', //can select nothing if left blank>>handled below >>never use boolean for values as false is same as empty string smh

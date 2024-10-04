@@ -15,9 +15,10 @@
               option-label="title"
               popupContentClass="q-px-sm"
               input-debounce="0"
+              label="Filter by Parent Goal"
               behavior="menu">
-                <template v-slot:append><!--todo** properly align-->
-                  <q-icon v-if="toFilterBy" name="clear" size="14px"/>
+                <template v-slot:default><!--umm default seems better-->
+                  <q-icon v-if="toFilterBy" name="clear" size="14px" @click="clear"/>
                 </template>
               </q-select>
             </div>
@@ -134,9 +135,10 @@
       toFilterBy:{
         get(){return this.selectedP},
         set(value){
-          //console.log('toFilterBy...setting',value)
           this.selectedP = value
-          //this.allunScheduled = this.unscheduled.filter(v => v.parentGoal == value.id)  //or filter in get of allunScheduled() ? >>prolly subgoals as doesnt update!!
+          
+          this.toAdd ? this.toAdd = null : '' //clear for new parent! //console.log('toAdd...NO stuff')
+          //this.allunScheduled = this.unscheduled.filter(v => v.parentGoal == value.id)  //or filter in get of allunScheduled() ? >>prolly subgoals as doesnt update here!!
         }
       },
       allunScheduled:{
@@ -166,6 +168,10 @@
     //  this.allScheduled = this.unscheduled
     //},
     methods: {
+      clear(){
+        this.toFilterBy = null
+        this.toAdd = null //to hide others...
+      },
       onAddClicked () {
         //console.log('huh picking event', this.toAdd,this.doForce,this.useBalance,this.dura)
         this.$emit('onPickEvent',this.toAdd,this.doForce,this.useBalance,this.dura)

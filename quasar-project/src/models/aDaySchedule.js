@@ -47,7 +47,6 @@ export default class daySchedule {
   
       this.savedRawEvts = []
 
-      this.actualEvts = []  //bon to use prolly...
 
       this.usingMoods = {} //:ref({}),  //ref(null)
 
@@ -71,14 +70,10 @@ export default class daySchedule {
     }
 
     getAllEvts(){
-      return this.actualEvts
+      return this._dailyScheduled
     }
-
     showEvtNoteScoreMobile(id){
-      //if (this.mobile){  //umm no need for this check methink
-        return this.mobileEnableScore[id] && this.showMobileDialog[id]
-      //}
-      //return false //prolly?...
+      return this.mobileEnableScore[id] && this.showMobileDialog[id]
     }
     toggleEvtNoteScoreMobile(id){ 
       //console.log('toggleEvtNoteScoreMobile >>',id)
@@ -164,7 +159,6 @@ export default class daySchedule {
       return this.usingMoods
     }
     getSubGoalByID(id){ 
-      //todo invoke the Repo.getSubGoalByID() instead***
       let all = this.getSubGoals()
       //console.log('getSubGoalByID >>All',typeof(id),id,all)
       let numId = parseInt(id)//OH freaking type check!!smh--id should always be a number!!
@@ -180,11 +174,8 @@ export default class daySchedule {
     }
     getStoredRawEvt(id){
       if (id in this.savedRawEvts){
-        //console.log('getStoredRawEvt--FOUND',id,this.savedRawEvts[id])
         return this.savedRawEvts[id]
       }
-      
-      //console.log('getStoredRawEvt--NOT in',id)
       return null
     }
     getAltEvts(){
@@ -208,17 +199,10 @@ export default class daySchedule {
       //return this._dailyScheduled.get(id);
     }
 
-    findEvent(id) {
-      for(let i = 0; i< this.actualEvts.length;i++){
-        if (this.actualEvts[i].id === id) return this.actualEvts[i]  //OH freaking type check!!smh--id should always be a number!!
-      }
-      return null
-    }
-
     hasEventsForDate() {
       return Repo.hasEventsForDate(this.currentDate)
     }
-    scheduledEventsMap(){ 
+    scheduledEventsMap(){  // convert the events into an object keyed by date
       //to replace currentSchedEventsMap() below
       //uses _dailyScheduled map >>which organizes by asc key
       const mappyA = {}
@@ -235,7 +219,7 @@ export default class daySchedule {
       //console.log(`scheduledEventsMap>>`,mappyA)
       return mappyA
     }
-    currentSchedEventsMap(){ // convert the events into an object keyed by date
+    /*currentSchedEventsMap(){//redundant--toRemove
      
       const mappyA = {}
       this.actualEvts.forEach((evt) => { //(value, key, map) => {
@@ -262,7 +246,7 @@ export default class daySchedule {
       //console.log(`currentSchedEventsMap`,mappyA) >> orded by add and time(earliest to later)
       
       return mappyA
-    }
+    }*/
     schedEvtWithProps(evt,startAt,EndAt){
       if (!evt.getPGoal()) {console.log(`schedEvtWithProps:: ERROR no parentGoal`,evt.data);return}
 
@@ -302,10 +286,8 @@ export default class daySchedule {
       if (ret.jeSuis && ret.jeSuis.length > 0){
         detz += hasMoods ? ` <>Mood:'${hasMoods}' >>${ret.jeSuis.join(',')}` : ` << ${ret.jeSuis.join(',')} >>`
         //ret.details = `Of '${pGoal.title.trim()}' :: << ${ret.jeSuis.join(',')} >>`
-      }//else {
-        //ret.details = 
-      //}
-      ret.details = detz  //bon better?
+      }
+      ret.details = detz 
 
       if (evt.hasNote()){
         //console.log(`schedEvtWithProps:: HASNOTES`,raw.notes,raw,ret)
@@ -330,15 +312,14 @@ export default class daySchedule {
         start:startTime,
         end:endTime,
         icon:pGoal.icon  //to show icon..toSee**
-      }) //{...sav,date:aDate}, data())
+      })
       
       if (evtGoal.jeSuis && evtGoal.jeSuis.length > 0){
         clone.details = `Of '${pGoal.title.trim()}' :: << ${evtGoal.jeSuis.join(',')} >>`
       } else {
         clone.details = `Of '${pGoal.title.trim()}' :: ${whenFrmtTime(evtGoal?.time)} -> ${evtGoal?.duration}min -- ${evtGoal?.inDefaults ? 'Dft:':':'}${evtGoal?.canMove ? ':Mv:':':'}${evtGoal?.isAlternative ? ':Alt':':'}`
       }
-      //clone.sortTime = startTime  //still needed?!? >>meh done afterwards
- 
+     
       if ('byMood' in evtGoal){ //add moods!--shouldnt have any!! ERROR
         console.log(`doProppy::BYMOOD found!! ERROR?!?`, JSON.parse(JSON.stringify(evtGoal)))
         this.usingMoods[clone.id] = evtGoal.byMood
@@ -346,8 +327,10 @@ export default class daySchedule {
       
       return clone
     }
-    updateDetz(evt){ //just to update event tooltip...
+    updateDetz(evt){
       let pTitle = this.parentGoalById(evt.parentGoal)?.title?.trim()
+
+      //this.doLog(`updateDetz`+evt.id+" "+pTitle,evt)
 
       let detz = `Of '${pTitle}' :: ${whenFrmtTime(evt?.time)} -> ${evt?.duration}min -- ${evt?.inDefaults ? 'Dft:':':'}${evt?.canMove ? ':Mv:':':'}${evt?.isAlternative ? ':Alt':':'}`
 
@@ -357,11 +340,7 @@ export default class daySchedule {
       }
       evt.details = detz
 
-      /*if (evt.jeSuis && evt.jeSuis.length > 0){
-        evt.details = `Of '${pTitle}' :: << ${evt.jeSuis.join(',')} >>`
-      } else {
-        evt.details = `Of '${pTitle}' :: ${whenFrmtTime(evt?.time)} -> ${evt?.duration}min -- ${evt?.inDefaults ? 'Dft:':':'}${evt?.canMove ? ':Mv:':':'}${evt?.isAlternative ? ':Alt':':'}`
-      }*/
+      return evt
     }
     //for generic add when it's reload by score/prio/defaults...
     addGoalsToSchedule(toAdd,checkOverlap){
@@ -396,20 +375,20 @@ export default class daySchedule {
           }
         }
 
-        //or call another method to add+scoreEdit check? tbd**
         let eProp = useProp ? this.schedEvtWithProps(evt,startTime,endTime) : this.doProppy(evt,this.currentDate)
         eProp.sortTime = startTime
-        this.actualEvts.push(eProp)
+        //this.actualEvts.push(eProp)
         let add = {...eProp,
           for: eProp.duration,
           start: startTime,
           end: endTime,
         }
-        if (useProp){ //just to do here to not pollute actualEvts....
-          //console.log(`addToSchedule-PROP`+evt.id,evt?.score,evt.atScore)
-          evt.atScore ? add.atScore = evt.atScore : "" //console.log(`addToSchedule--NULL score`,evt.id)
+
+        //if (useProp){ //just to do here to not pollute actualEvts >>still needed?!?--bof prolly not
+        //  console.log(`addToSchedule--PROP?!?`+evt.id,evt?.score,evt.atScore)
+        //  evt.atScore ? add.atScore = evt.atScore : "" //console.log(`addToSchedule--NULL score`,evt.id)
           //add.atScore = evt.atScore //|| null ////could be different with savedProps..
-        }
+        //}
         this._dailyScheduled.set(eProp.id, add)
         
         this._endTimesSet.add(endTime.time)
@@ -501,7 +480,7 @@ export default class daySchedule {
     resetSchedule(skipMoods=false){
       //console.log('resetSchedule >>',skipMoods)
       this.savedRawEvts = []
-      this.actualEvts = []
+      //this.actualEvts = []
       this._dailyScheduled = new Map()
       this._endTimesSet = new Set()
       this._startTimesSet = new Set()
@@ -510,7 +489,7 @@ export default class daySchedule {
         this.usingMoods = {}
       }
 
-      //this.chosenScore = null //maybe not these here!--moved in resetChosen()
+      //this.chosenScore = null //-moved in resetChosen()
       //this.chosenPrio = null
       
       this.showReloadBtn = false
@@ -521,11 +500,11 @@ export default class daySchedule {
       //this.resetGoalEvts(true)
       let allG= this.getSubGoals()
       //this.allEvents.filter
-      return allG.filter(evt => evt?.inDefaults && evt?.time != '' && !this.actualEvts.find(x => x.id == evt.id))
+      return allG.filter(evt => evt?.inDefaults && evt?.time != '' && !this._dailyScheduled.has(evt.id)) //!this.actualEvts.find(x => x.id == evt.id))
     }
     unscheduled(){
       let allG= this.getSubGoals() ///// these dont work >> !this.scheduledEvents.includes(x)  //this.scheduledEvents.indexOf(x) !== -1
-      return allG.filter(x => !this.actualEvts.find(item => item.id == x.id))
+      return allG.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)
 
     }
     subGoalsOfParent(id) { //see if used lots otrwise bring inline
@@ -541,7 +520,7 @@ export default class daySchedule {
     calculatePrioEvts(){
       //let add = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio).filter(x => !this.actualEvts.find(item => item.id == x.id)) //huh second filter work!!
       let reset = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio) //reset with allEvts
-      let add = reset.filter(x => !this.actualEvts.find(item => item.id == x.id)) //add those not scheduled
+      let add = reset.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)) //add those not scheduled
       this.byPrio={
         prio:this.chosenPrio,
         toAdd:add,  //.length? >>nah used later 
@@ -563,39 +542,37 @@ export default class daySchedule {
     scheduleSamePrio(flag){
       
         const filterCurrent =() => {
-          return this.actualEvts.filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
+          let toRet = []
+          this._dailyScheduled.forEach((value, key, map)=> {
+            if(this.parentGoalById(value.parentGoal)?.priority == this.chosenPrio){
+              toRet.push(value)
+            }
+          })
+          return toRet //this.actualEvts.filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
         }
 
         const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculatePrioEvts() --toMonitor**
           console.log(`scheduleSamePrio::RECALCULATE?!?`,flag,this.chosenPrio, JSON.parse(JSON.stringify(this.byPrio)))
           let toRet = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
-          return flag == 'reset' ? toRet : toRet.filter(x => !this.actualEvts.find(item => item.id == x.id))
+          return flag == 'reset' ? toRet : toRet.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)
         }
       
       let toRet = []
 
       //console.log(`scheduleSamePrio`, this.byPrio, flag) //JSON.parse(JSON.stringify(this.byScore)))
 
+      //filter && overwrite replaces
+      //add concats...
       if(flag == 'filter'){
         toRet = filterCurrent()
         this.resetSchedule() //byPrio
       } else { //flag == 'reset' || flag == 'add'
-        //let allEvts = this.deepCopy(this.storedSubGoals)
-        
-        /*// use this.byPrio above instead of recalculating!!
-        let allEvts = this.getSubGoals()
-        for (let evt of allEvts) {
-          let e = this.parentGoalById(evt.parentGoal)
-          if (e?.priority == this.chosenPrio){
-            toRet.push(evt)
-          }
-        }*/
 
-       if(this.byPrio){
-        flag == 'add' ? toRet = this.byPrio.toAdd : toRet = this.byPrio.reset //; this.resetSchedule()
-       }else{ //have to recalculate...which shouldnt happen!
-        toRet = recalculate(flag)
-       }
+        if(this.byPrio){
+          flag == 'add' ? toRet = this.byPrio.toAdd : toRet = this.byPrio.reset //; this.resetSchedule()
+        }else{ //have to recalculate...which shouldnt happen!
+          toRet = recalculate(flag)
+        }
           
         /*if(flag == 'add'){ //just add to schedule
           // filter out events that are already scheduled..not too expensive?
@@ -619,8 +596,6 @@ export default class daySchedule {
         }
       }
 
-      //filter && overwrite replaces
-      //add concats...
       let euhOverlaps = this.addGoalsToSchedule(toRet,this.isViewingToday())
       let sizey = Object.keys(euhOverlaps).length
 
@@ -631,13 +606,13 @@ export default class daySchedule {
       return {
         overlaps:euhOverlaps,
         canContinue:sizey > 0 ? false : true,//true,
-        added: toRet.length  //show how many added...could be misleading with overlaps!!
+        added: toRet.length  //show how many added...
       }
       
     }
     calculateScoreEvts(){
       let reset = Repo.goalsUpToScore(this.chosenScore)
-      let add = reset.filter(x => !this.actualEvts.find(item => item.id == x.id))
+      let add = reset.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)
 
       this.byScore={  //huh no complaint putting this here and can access later
         score:this.chosenScore, //redundant but just to confirm still same later mayhaps...
@@ -661,10 +636,10 @@ export default class daySchedule {
       
         const filterCurrent = () => {
           let toReload = []
-          this.actualEvts.forEach((item) => {
-            let daScore = parseScore(item.score)
+          this._dailyScheduled.forEach((value, key, map) => { //(item) this.actualEvts
+            let daScore = parseScore(value.score)
             if (daScore > -1 && daScore <= this.chosenScore) {
-              toReload.push(item)
+              toReload.push(value)
             }//else{console.log('filterCurrent::parseScore?skippin',daScore, item,this.usingMoods[item.id])}
           })
           return toReload
@@ -672,20 +647,19 @@ export default class daySchedule {
         const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculateScoreEvts() --toMonitor**
           console.log(`scheduleByScore::RECALCULATE?!?`,flag,this.chosenScore, JSON.parse(JSON.stringify(this.byScore)))
           let toRet = Repo.goalsUpToScore(this.chosenScore)
-          return flag == 'reset' ? toRet : toRet.filter(x => !this.actualEvts.find(item => item.id == x.id))
+          return flag == 'reset' ? toRet : toRet.filter(x => !this._dailyScheduled.has(x.id)) //this.actualEvts.find
         }
 
       let toRet = []
-
       //console.log(`scheduleByScore`, this.byScore, flag) //JSON.parse(JSON.stringify(this.byScore)))
       
+      //filter && overwrite replaces
+      //add concats 
       if(flag == 'filter'){
         toRet = filterCurrent()
         this.resetSchedule() //byScore
       } else { //'reset' || 'add'
-        //const colis = Repo.goalsUpToScore(this.chosenScore)//deepCopy? no need
-        //console.log(`scheduleByScore SCORE`, JSON.parse(JSON.stringify(colis))) //, typeof colis
-
+       
         if(this.byScore){
           flag == 'add' ?  toRet = this.byScore.toAdd : toRet = this.byScore.reset //; this.resetSchedule() //umm it does execute after..huh 
         }else{ //have to recalculate...which shouldnt happen!
@@ -693,27 +667,18 @@ export default class daySchedule {
         }
         flag != 'add' ? this.resetSchedule() : console.log(`scheduleByScore::No resetSchedule`,flag,toRet.length) //should keep moods still for reset flag! 
 
-        /*if(flag == 'add'){// filter out events that are already scheduled..not too expensive?
-          toRet =  colis.filter(x => !this.actualEvts.find(item => item.id == x.id)) 
-        } else{ //for reset schedule....
-          toRet = colis
-          this.resetSchedule(true) //byScore
-        }*/
       }
       //console.log(`scheduleByScore::AFTER >>${flag} from current = ${this.actualEvts.length} to some evts = ${toRet.length}`,JSON.parse(JSON.stringify(toRet)))
       
       if (toRet.length < 1) {
-        //console.log(`Empty for Score <= ${this.chosenScore} :(`)
-        
         this.toggleActionBtns(false,'byScore')
         return {
           overlaps:null,
-          canContinue:false, //for doNotify //this.doNotify(`Empty for Priority == ${this.chosenPrio} :(`, "warning",'bottom')
+          canContinue:false, //for doNotify
         }
       }
 
-      //filter && overwrite replaces
-      //add concats //add to schedule!...
+      //add to schedule!...
       let euhOverlaps = this.addGoalsToSchedule(toRet,this.isViewingToday())
       let sizey = Object.keys(euhOverlaps).length
       
@@ -753,7 +718,7 @@ export default class daySchedule {
               }else { //add one that aint scheduled already!!
                 //oldie >> subs[0] >> take first one...could be scheduled so check below...
                 let tries = 0 //in case no infinite loop for one elt or something....prolly
-                while (this.actualEvts.some(e => subs[i].id == e.id)) {
+                while (this._dailyScheduled.has(subs[i].id)) { //this.actualEvts.some(e => subs[i].id == e.id)
                   tries++
                   i = Math.floor(Math.random() * subs.length)
                   console.log(`selectOneFromP::index ${i} scheduled...new random> At try> `+tries,subs.length)
@@ -843,22 +808,13 @@ export default class daySchedule {
   
       for(let i = 0; i < toAdd.length; i++){
         
-        //this.usingMoods.push(toAdd[i]) //array.push or below?!?>>below seems better?
-        
-        //this.usingMoods[toAdd[i].id]=toAdd[i]?.mood //>>moved below
-        //toReload.push(this.getLocalEvt(toAdd[i].id))
-
         let local = this.getSubGoalByID(toAdd[i].id) //this.getLocalEvt(toAdd[i].id)
         //console.log(`scheduleByMood>>>local>>`,local)
         if (local && local.time != ''){
           //console.log(`scheduleByMood>>>local>>`,toAdd[i],local)
           toReload.push(local)
           this.usingMoods[toAdd[i].id]=toAdd[i]?.mood  //umm add already here?!? hard to undo in case of overlaps smh---toTest**
-        }//else {
-          //console.log(`scheduleByMood>>>no time eh >>`+ local?.title) //could be error?!? toMonitor**
-          //this.doNotify(`Evts '${local?.title}' has no set time for scheduling, Manually Add them.`, "warning",'top')
-         
-        //}
+        }
       }
 
       if (toReload.length < 1) {
@@ -873,10 +829,7 @@ export default class daySchedule {
       let euhOverlaps = this.addGoalsToSchedule(toReload,this.isViewingToday())
 
       let sizey = Object.keys(euhOverlaps).length
-      //if(sizey > 0) {
-      //  console.log(`scheduleByMood overlaps!! to ${toReload.length}. overlaps =${sizey}`) 
-      //}
-
+     
       //no toggleBtns if overlaps
       sizey > 0 ? console.log(`scheduleByMood overlaps!! Try reload= ${toReload.length} with overlaps =${sizey}`) : this.toggleActionBtns((toReload.length > 0),'ByMood')
 
@@ -1015,17 +968,17 @@ export default class daySchedule {
       //below redundant when set the interval...smh
       //let duration = Math.floor((diffTimestamp(timeStart, timeEnd)/1000)/60)  //(diffy / 60000)
 
-      console.log(`saveNewGoal:${goalTitle} :${own}: from ${timeStart.time}.Duration:${duration}`,parentGoal)
-      
-      //let subID = null 
+      //console.log(`saveNewGoal:${goalTitle} :${own}: from ${timeStart.time}.Duration:${duration}`,parentGoal)
+
       if(own == "self"){ //add it as self >> create parent goal with this as subgoal
-        let pId = this.addParentGoal(goalTitle, goalTitle, "purple-10", 2) //default color and priority
+        let pId = this.addParentGoal(goalTitle, goalTitle, "red-14", 2) //default color and priority
         if (pId) {
           //console.log("SELF parent Goal created",pId)
           return Repo.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) //canMove and notInDefaults. isAlternative when duration<30
         } else {
-          console.log("ERROR? no pID", pId)//could be for first first parentGoal
-          return null //..return?
+          console.log("ERROR? no pID", pId)//could be for first first parentGoal--OR when 0!!! smh
+          return pId === 0 ? Repo.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) : null
+          //return null 
         }
       } else { //just add it to Misc parentGoal(that have all one-off kind of stuff)
         if (parentGoal){//add it to parentGoal
@@ -1035,11 +988,15 @@ export default class daySchedule {
         } else { //any Misc parentGoal available?
           let pMisc = Repo.getMiscGoal() //==getGoalByTitle("Misc")
           if(!pMisc){
-            let iD = this.addParentGoal("Misc", "Miscellaneous", "grey-10", 2) //Repo.addParentGoal("Misc", "Miscellaneous", "grey-10", 2)
-            if (iD) {
-              //console.log("NEW Misc pGoal created",iD)
-              return Repo.addSubGoal(iD,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) 
+            let pId = this.addParentGoal("Misc", "Miscellaneous", "grey-10", 2) //Repo.addParentGoal("Misc", "Miscellaneous", "grey-10", 2)
+            if (pId) {
+              //console.log("NEW Misc pGoal created",pId)
+              return Repo.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) 
               //canMove and notInDefaults.isAlternative when duration<30
+            }else {
+              console.log("ERROR? no pID", pId)//could be 0!!! smh--could be baaad? toMonitor**
+              return pId === 0 ? Repo.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) : null
+              //return null 
             }
           } else {
             //console.log("Woo!! Misc pGoal already exists!", pMisc.id) //
@@ -1047,33 +1004,41 @@ export default class daySchedule {
           }
         }
       }
-      //return null //subID..can return fast smh..
     }
     //default color and priority 
     //randomly reassign color though!
-    addParentGoal(title, details,color = "red-14", priority = 2){
+    addParentGoal(title, details,color, priority = 2){
       
       let currentArr = []
   
-      //to select random color..
       this.parentGoalsMap().forEach( (value, key, map) => { //extract already taken colors
         let bC = value.bgcolor 
         currentArr.push(bC) //OR even push in an array...
       })
   
       let AllColors = pGColors()
+      let available = AllColors.filter(item => !currentArr.find(c => c == item))
   
-      let sizey = currentArr.length //Object.keys(currentColors).length >> //if (sizey > 1){
-    
-      if(sizey > 1){
-        //while (currentArr.some(item => !pGColors.find(c => c == item))) {? //>>dont make sense as pGColors is superset!! 
-  
+      //let sizey = currentArr.length
+
+      //console.log(`addParentGoal::bgcolor>>available`,sizey,available)
+      //let newy = null
+      if (available.length > 1) {
+        let i = Math.floor(Math.random() * available.length)
+        let newy = available[i]
+        console.log(`addParentGoal::bgcolor..index ${i} from ${color} to:`,newy)
+        color = newy ? newy : color
+      }else{
+        console.log(`addParentGoal::NONE available`,available,AllColors) //could happen--keep default
+      }
+      /*if(sizey > 1){
+       
         //choose random index of new color..from all those not already taken
         let i = sizey
         let tries = 0
         while (currentArr.some(clr => AllColors[i] == clr)) { //while index is found in current colors...have a new index
           //console.log("addParentGoal::Taken color...new random",i,"existing:: "+AllColors[i])
-          //can have too many tries...stop after while?!? toReview**
+          //can have too many tries...stop after while >> still takes too long to return!
           tries++
           i = Math.floor(Math.random() * sizey)
           if (tries > 7) {console.log("addParentGoal::TOO MANY TRIES..Break?",tries,i)} //; break
@@ -1085,7 +1050,7 @@ export default class daySchedule {
         //console.log(`bgcolor..NEW:`,JSON.parse(JSON.stringify(newy)),JSON.parse(JSON.stringify(newC)))
         console.log(`addParentGoal::bgcolor..index ${i} from ${color} to:`,newy)  
         color = newy ? newy : color
-      }
+      }*/
   
       return Repo.addParentGoal(title, details, color, priority)
           
@@ -1133,10 +1098,12 @@ export default class daySchedule {
           return ret
         }
 
-        if (doNotify){doNotify(`onPickEvent::OVERLAPS!! ${s}`) }//huh works!!
+        if (doNotify){doNotify(`onPickEvent:: ${s} OVERLAPS! Forcing...`,'info') }//huh works!!
+        let i = 0
+        do {
+          this.recurChangeTime(anyOverlap[i].inConflict,addE,timey,true,doNotify)
+        } while (++i < s)
 
-        this.recurChangeTime(anyOverlap[0].inConflict,addE,timey,true,doNotify)
-        
         if (useBalance){
           this.removeFromBalance(addE?.duration)
         }
@@ -1160,7 +1127,9 @@ export default class daySchedule {
 
           //just save!
           this.saveDaySchedule() //: this.toggleActionBtns(true,'onAdHoc')
-
+          if (doNotify){
+            doNotify(`onAdHoc...Saving Schedule`,'info') //toSee...
+          }
           return {
             overlaps:null,
             canContinue:true,
@@ -1176,36 +1145,37 @@ export default class daySchedule {
       }
 
       let euhOverlaps = this.addToSchedule(newey,true)
-
-      //let sizey = Object.keys(euhOverlaps).length
-      //if(sizey > 0) {
       let isArray = Array.isArray(euhOverlaps)
       if(!euhOverlaps || isArray){
         console.log(`onAdHocEvent::Overlaps!!`,JSON.parse(JSON.stringify(euhOverlaps))) 
-      
+        
         let ret = {
           overlaps: !euhOverlaps ? null : this.massageSingleOverlapArr(euhOverlaps),  //umm bad to check false--toReview***
           canContinue:false,
         }
 
-        if (isArray && euhOverlaps.length > 1){
+        let s = euhOverlaps.length
+        if (isArray && s > 1){
           return ret
         }
 
         //force Add when single overlap
-        if (isArray && euhOverlaps.length == 1){
+        if (isArray && s == 1){
           //console.log(`onAdHocEvent::Overlaps!!--FORCING`,newey,timey.time)
           if (doNotify){
-            doNotify(`onAdHocEvent::OVERLAPS!! ${euhOverlaps.length}`)
+            doNotify(`onAdHocEvent:: ${s} OVERLAPS! Forcing...`,'info')
           }
-          this.recurChangeTime(euhOverlaps[0].inConflict,newey,timey,true,doNotify)
+          let i = 0
+          do {
+            this.recurChangeTime(euhOverlaps[i].inConflict,newey,timey,true,doNotify)
+          }while (++i < s)
+
           return allGood(newey)
         }
         return ret  //just in case--should?**
       }
 
       return allGood(newey)
-
     }
     recurChangeTime(overlappedEvtID, tEvt, targetTimestamp,doAdd = false,doNotif=null) {
       let overlappedEvt = this.findSchedEvent(overlappedEvtID)
@@ -1254,12 +1224,13 @@ export default class daySchedule {
           console.log(`WARNING WARNING::Extra Overlaps of ${sizey} for OVERLAPPED ${overlappedEvtID} at ${overlappedEvtNew.time}`, anyOtherOverlap)
           let i = 0
           
-          let draggy = this.findEvent(overlappedEvtID) //this.getScheduledEvent(overlappedEvtID)
+          //let draggy = this.findEvent(overlappedEvtID) //this.getScheduledEvent(overlappedEvtID)
   
           //this.doNotify(`Cascading time change while adding '${draggy?.title.trim()}' due to "${tEvt.title.trim()}"`, "warning",'top')
-          draggy ? console.log(`Cascading time change moving (${overlappedEvtID})'${draggy?.title}' ${draggy?.time} due to ${doAdd ? "Adding":"Moving"} ${tEvt.id}-'${tEvt?.title?.trim()}'`) : console.log(`ERROR::recurChangeTime ${overlappedEvtID} not found`) //umm return?
+          //draggy ? 
+          console.log(`Cascading time change moving (${overlappedEvtID})'${overlappedEvt?.title}' ${overlappedEvt?.time} due to ${doAdd ? "Adding":"Moving"} ${tEvt.id}-'${tEvt?.title?.trim()}'`) //: console.log(`ERROR::recurChangeTime ${overlappedEvtID} not found`) //umm return?
   
-          if (doNotif){doNotif(`${sizey} Cascading Overlaps handling (${overlappedEvtID}) '${draggy?.title}' as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`) }
+          if (doNotif){doNotif(`${sizey} Cascading Overlaps handling (${overlappedEvtID}) '${overlappedEvt?.title}' as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`) }
           do {
             console.log(`CASCADING timeChange ${i} >> (${overlappedEvtID}) at: ${overlappedEvtNew.time} now at: ${overlappedEvt.start.time} till ${overlappedEvt.end.time}`,overlappedEvt.for) 
             //should prolly skip when seeing own self?!?--toMonitor**
@@ -1270,7 +1241,7 @@ export default class daySchedule {
             }
             //skipAsk should be true as recursion implicitly force schedule change--instead of using passed in.
              //, doAdd flag default to false as no needed for add with cascading timeChange of scheduled evts
-            this.recurChangeTime(anyOtherOverlap[i].inConflict,draggy,overlappedEvtNew,false,doNotif) 
+            this.recurChangeTime(anyOtherOverlap[i].inConflict,overlappedEvt,overlappedEvtNew,false,doNotif) 
             
           } while (++i < sizey)
         }
@@ -1498,16 +1469,16 @@ export default class daySchedule {
     }
     doUpdateSchedule(draggedItem,targetDrop){
       let s = this.findSchedEvent(draggedItem.id)
-      let d = this.findEvent(draggedItem.id) //from  this.actualEvts
+      //let d = this.findEvent(draggedItem.id) //from  this.actualEvts
 
-      if (!s || !d){
-        console.log("doUpdateSchedule-ERROR NOT found",draggedItem.id,s,d)
+      if (!s){ //|| !d
+        console.log("doUpdateSchedule-ERROR NOT found",draggedItem.id,s)
         return
       }
       //console.log(`doUpdateSchedule::Dura`,s.for, d.duration,s.duration,s?.atScore)
       
-      let newStart = addToDate(parsed(d.date), { minute: parseTime(targetDrop.time) })
-      let endTime = addToDate(newStart, { minute: d.duration}) //should be d.duration as up to date with adHoc
+      let newStart = addToDate(parsed(s.date), { minute: parseTime(targetDrop.time) }) //d.date
+      let endTime = addToDate(newStart, { minute: s.duration}) //should be d.duration as up to date with adHoc
 
       let hadEnd = this._endTimesSet.delete(s.end.time)//(oldEnd.time)
       if (hadEnd){
@@ -1523,17 +1494,16 @@ export default class daySchedule {
         //this could happen? yes....
       }
 
-      this._dailyScheduled.set(draggedItem.id, {...s,
-        for: d.duration,
-        start: newStart,
-        end: endTime,
+      s.time = targetDrop.time  //d
+      s.sortTime = newStart
+      let newy = this.updateDetz({...s,time:targetDrop.time,start: newStart,end: endTime})
+      this._dailyScheduled.set(draggedItem.id, newy)
+        //{...s,
+        //for: s.duration, //oldie>> d.duration //no need prolly
+        //start: newStart,
+        //end: endTime,
         //atScore: eProp.score ? toSee** if s still has it....
-      })
-
-      d.time = targetDrop.time  //works?!? >>yup 
-      d.sortTime = newStart
-
-      this.updateDetz(d) //toTest** if update details...
+      //})
 
       this.enableNoteScoreEdit(draggedItem.id,newStart,endTime)
     }
@@ -1602,7 +1572,8 @@ export default class daySchedule {
       let starty = evt.start
       let endy = evt.end
 
-      this._dailyScheduled.set(evtID, {...evt, for:duration, duration:duration, end:now}) //duration:duration
+      let newy = this.updateDetz({...evt, for:duration, duration:duration, end:now})
+      this._dailyScheduled.set(evtID,newy)
       
       if(!this._endTimesSet.delete(endy.time)){ //should not happen..prolly
         console.log(`ERROR endTimesSet item does not exist?!?`,evt, this._endTimesSet)
@@ -1610,11 +1581,6 @@ export default class daySchedule {
 
       this._endTimesSet.add(now.time)
 
-      let e = this.findEvent(evtID)
-      e.duration = duration //gotta set new duration
-      
-      this.updateDetz(e)
-     
       this.enableNoteScoreEdit(evtID, starty,now) //not much different than below but meh--just shows score edit immediately
       //this.updateEvtMinsEndNowBtns(evtID, starty,now)
 
@@ -1623,9 +1589,9 @@ export default class daySchedule {
 
       return //undefined for not triggering confirm dialog
     }
-    //after endNow btn...kinda convoluted..toReview**
-    // maybe use same logic as in enableNoteScoreEdit()--could just use it instead too!!!
-    updateEvtMinsEndNowBtns(evtID, startTime,endTime){
+
+    /*
+    updateEvtMinsEndNowBtns(evtID, startTime,endTime){ //after endNow btn >> too convoluted... using enableNoteScoreEdit
 
       const now = parseDate(new Date())
 
@@ -1662,7 +1628,7 @@ export default class daySchedule {
       }else{
         console.log(`ERROR?!:${evtID} has no start/end?.`) //shouldnt happen?--toMonitor**
       }
-    }
+    }*/
     canEndNow(evtID){
       let evt =  this.findSchedEvent(evtID)
       //let evtty =  this.findEvent(evtID)
@@ -1709,15 +1675,15 @@ export default class daySchedule {
           ev.atScore = newScore //when saving schedule later...toSee
         }
 
-        let h = this.findEvent(id) //send changes down to child component...
-        if (h){
-          h.score = newScore
-        }else{console.log('onSaveScore ERROR not found',h, id) }  //very baaad!--should return***
+        //let h = this.findEvent(id) //send changes down to child component...
+        //if (h){
+          ev.score = newScore //bon update score
+        //}else{console.log('onSaveScore ERROR not found',h, id) }  //very baaad!--should return***
         
         if(note !==''){ //should check that notes havent changed too?--meh
           //console.log(`updateNoteScore::note ${id}from ${oldy} to ${newScore} with note>>`,note)
           ev.notes = note
-          h.notes = note //to update inner child
+          //h.notes = note //to update inner child
          
         }
 
@@ -1728,17 +1694,12 @@ export default class daySchedule {
     }
     addMinsToEvt(evtID,mins,doNotify=null){
         const allGood = (evt,newDura,newEndy) => {
-          let e = this.findEvent(evtID)
+          
           let oldEndy = evt.end
-          if (!e) {
-            console.log(`addMinsToEvt::ERROR not found?!?`,evt,evtID,newDura,newEndy) //shouldnt happen!--unless type check--toMonitor**
-            return //return obj prolly--todo**
-          }
-          e.duration = newDura
          
-          this.updateDetz(e)
- 
-          this._dailyScheduled.set(evtID, {...evt,for:newDura, end:newEndy}) //for prop update //duration:newDura,
+          let newy = this.updateDetz({...evt,for:newDura,duration:newDura, end:newEndy}) 
+          
+          this._dailyScheduled.set(evtID, newy)
           
           if(!this._endTimesSet.delete(oldEndy.time)){ //make sure as should not happen
             console.log(`ERROR endTimesSet item does not exist?!?`+oldEndy.time,evt, this._endTimesSet)
@@ -1781,20 +1742,20 @@ export default class daySchedule {
           if (s > 1){ //multiple---just return
             return ret
           }
-          let inConflict = this.findEvent(anyOverlap[0].inConflict)
+          let inConflict = this.findSchedEvent(anyOverlap[0].inConflict) //findEvent
           if (!inConflict) {
-            console.log(`addMinsToEvt::ERROR conflict evt not found?!?`+s,anyOverlap[0].inConflict) //shouldnt happen!--unless type check--toMonitor**
+            console.log(`addMinsToEvt::ERROR inConflict evt not found?!?`+s,anyOverlap[0].inConflict) //shouldnt happen!--unless type check--toMonitor**
             return ret
           }
           let askUser = inConflict?.inDefaults || !inConflict?.canMove
-          console.log(`addMinsToEvt::OVERLAPS>>askUser`,"default? "+inConflict?.inDefaults, "!canMove? "+!inConflict?.canMove,askUser,anyOverlap[0].targetStart.time)
+          //console.log(`addMinsToEvt::OVERLAPS>>askUser`,"default? "+inConflict?.inDefaults, "!canMove? "+!inConflict?.canMove,askUser,anyOverlap[0].targetStart.time)
           if(askUser){
             return ret
           }else{
             if(doNotify){ doNotify(`addMinsToEvt::${s} OVERLAPS..Forcing`)}
-            let e = this.findEvent(evtID)
+            //let e = this.findEvent(evtID)
             //for next conflict just auto-solve even if overlapped evt is in default!! Beware**
-            this.recurChangeTime(anyOverlap[0].inConflict,{...e,duration:newDura},anyOverlap[0].targetStart,false,doNotify) 
+            this.recurChangeTime(anyOverlap[0].inConflict,{...evt,duration:newDura},anyOverlap[0].targetStart,false,doNotify) 
 
             //bon just go and return allGood() below....umm toReview** 
           }
@@ -1804,40 +1765,39 @@ export default class daySchedule {
     deleteEvtMood(id){ 
       if (this.usingMoods[id]){
         delete this.usingMoods[id]
-        //console.log(`deleteEvtMood::>> `+id)
+        console.log(`deleteEvtMood::>> `+id)
         return
       }
-      //}else{
-        //console.log(`deleteEvtMood>>NO mood by `+id)
-      //}
       return
     }
     updateCurrentMoods(){
       for (let key in this.usingMoods){
-        if (!this.actualEvts.find(item => item.id == key)){
+        if (!this._dailyScheduled.has(parseInt(key))){ //this.actualEvts.find
           this.deleteEvtMood(key)
         }
       }
     }
-    removeScheduledEvt(evt){//,rMood=false){  //rMood flag to also delete any this.usingMoods... redundant
-      //console.log('removeScheduledEvt..',evt)
+    removeScheduledEvt(evt){//,rMood=false)
 
-      let currentSize = this.getAllEvts().length //this.actualEvts.length
+      //let currentSize = this.getAllEvts().size
     
       if (!evt){console.log("ERROR doRemove, NO evt to delete?!?", evt);return}
 
-      let i = 0
+      //let i = 0
       //let found = false 
-      for( i; i < currentSize; i++){
-        if (this.actualEvts[i].id == evt.id) {
-          this.actualEvts.splice(i, 1)
+      //for( i; i < currentSize; i++){
+        //if (this.actualEvts[i].id == evt.id) {
+          //this.actualEvts.splice(i, 1)
           //console.log("REMOVED event spliced!", evt) //to see if has start/end. and not have to get/erase below...
           
           let toDel = null
           if(this._dailyScheduled.has(evt.id)){
             toDel = this._dailyScheduled.get(evt.id)
             this._dailyScheduled.delete(evt.id)
-          }else{console.log("removeScheduledEvt ::> dailyScheduled has no such evt?@? ERROR", evt)}
+          }else{
+            console.log("removeScheduledEvt ::> dailyScheduled has no such evt?@? ERROR", evt)
+            return
+          }
 
           if(toDel){ //also update scheduleSets
             let hadStart = this._startTimesSet.delete(toDel.start.time)
@@ -1852,9 +1812,9 @@ export default class daySchedule {
             //}
             this.deleteEvtMood(evt.id)
           }
-          break
-        }
-      }
+          //break
+        //}
+      //}
     }
     addToBalance(evt){ //add to minus balance the duration of evt
       let balance = this.getCurrentBalance()

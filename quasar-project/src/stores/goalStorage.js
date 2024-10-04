@@ -103,7 +103,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let current = this.getMainGoals
         if(!current){
             console.log("umm no mainGoals...adding")
-            $q.localStorage.set('mainGoals', JSON.stringify([{ //unshift
+            $q.localStorage.set('mainGoals', JSON.stringify([{
                 id: 0,
                 title: goal.trim(),
                 details: details,
@@ -123,7 +123,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             newID = Math.floor(Math.random() * (newID*2)) //oldie >> 1000
             //console.log("an item had the same id...using random", newID)
         }
-        current.push({ //oldie >> .unshift
+        current.unshift({ //unshift better in case id 0 was deleted!
             id: newID,
             title: goal.trim(),
             details: details,
@@ -189,7 +189,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             //console.log("an subgoal item had the same id...using random", newID)
         }
 
-        current.push({ //push to add at end?  >>oldie .unshift
+        current.unshift({
             id: newID,
             parentGoal:pGoal,
             title: title.trim(),
