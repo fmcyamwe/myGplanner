@@ -1,0 +1,63 @@
+<template>
+  <q-btn
+  color=""
+  align="evenly"
+  elevated
+  dense
+  no-wrap
+  @click.prevent="onClicked"
+  :disable="isDisabled"
+  no-caps
+  >
+    <div>{{textLabel}}</div>
+    <q-tooltip v-if="isDisabled">No Evts to Schedule...</q-tooltip> 
+            <!--<q-tooltip>{{geee}}</q-tooltip> huh can have tooltip!!
+            
+            -->
+  </q-btn>
+</template>
+
+<script>
+import { defineComponent } from 'vue'
+  export default defineComponent ({  //this be Options Vue notation
+    name: 'schedBtn',
+    props: {
+      textLabel: String,
+      isDisabled:{
+        type: Boolean,
+        default: false
+        ////required: true,
+      }
+    },
+    emits: [
+      'doBtnAction'
+    ],
+    methods: {
+      onClicked () {
+        this.$emit('doBtnAction') //.prevent added on click -->
+      }
+    }
+})
+</script>
+<style lang="sass" scoped>
+.radio-select
+  display: flex
+  justify-content: center
+  margin:0 auto
+  width: 100%
+  padding-inline:30px
+</style>
+
+      
+    <!--<div class="q-calendar__ellipsis"> this css class was fucking up look-->
+
+        <!-- original
+            <q-btn
+            class="q-mt-xl"
+            color=""
+            text-color="blue"
+            elevated
+            label="Defaults"
+            @click="onLoadDefault"
+            no-caps
+          />-->

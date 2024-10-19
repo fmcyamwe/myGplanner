@@ -1,0 +1,7 @@
+scratch_files/
+quasar-project/dist/
+quasar-project/src-capacitor/*
+
+/quasar-project/dist
+/quasar-project/src-capacitor
+.vscode/*
