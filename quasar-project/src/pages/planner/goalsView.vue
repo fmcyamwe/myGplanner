@@ -250,7 +250,16 @@
                         </div>
 
                         <div v-if="showSubG" class="q-gutter-sm">
-                            <q-input v-model="time" filled type="time" hint="Scheduled time" />
+                            <q-input 
+                            v-model="time"
+                            filled
+                            outlined
+                            type="time"
+                            clearable
+                            hint="Default Schedule time"
+                            class="q-mx-md center"
+                            style="max-width: 50%;"
+                             />
                             
                             <br>
                               <div class="atLeft"> 
@@ -849,8 +858,8 @@ export default {
                 }
             } else { //subgoal
                 if (time.value == ''){
-                    errorNotify(`Schedule Time not set`)
-                    return
+                    warnNotify(`Schedule Time not set...Will need manual Scheduling!!`)
+                //    return
                 }
                 editSubGoal()
                 expanded.value[pId?.id] = false //just so that it can be updated!
@@ -883,8 +892,8 @@ export default {
                 store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
             } else {
                 if (time.value == ''){
-                    errorNotify(`Schedule Time not set`)
-                    return
+                    warnNotify(`Schedule Time not set...Will need manual Scheduling!!`)
+                //    return
                 }
                 if(pGoal.value){
                     let pId = pGoal.value
@@ -1192,12 +1201,21 @@ export default {
 
         }
 
-        function errorNotify(mess,position='top',icon=null,color='negative'){
+        function errorNotify(mess){ //position='top',icon=null,color='negative'
+            doNotify(mess,'top','report_problem','negative')
+        }
+        function warnNotify(mess){
+            doNotify(mess,'top','warning','info')
+        }
+        function doNotify(mess,position='top',icon=null,color='negative'){ //
             $q.notify({
-                color: color, //'negative',
+                color: color,
                 position: position,
                 message: mess,
+                multiLine: true,
+                //caption:mess, //meh small**
                 icon:  icon == null ? 'report_problem' : icon
+                //type?
             })
         }
 
