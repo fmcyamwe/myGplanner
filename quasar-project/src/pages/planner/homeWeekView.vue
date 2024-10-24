@@ -31,13 +31,13 @@
                 :interval-count="48"
                 :interval-height="mostEvts * 3"
                 @change="onChange"
-                @click-date="onClickDate"
-                @click-time="onClickTime"
+                @click-head-day="onClickHeadDay"
+                ><!--redundant handlers
                 @click-interval="onClickInterval"
                 @click-head-intervals="onClickHeadIntervals"
-                @click-head-day="onClickHeadDay"
-                > <!--way to calculate interval-height and set it dynamically to see all events properly>> if too many add more height space...-->
-
+                @click-date="onClickDate"
+                @click-time="onClickTime"
+                -->
                 <template #head-day-event="{ scope: { timestamp } }">
                   <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
                     <template
@@ -107,6 +107,7 @@
 
           <div v-if="treeGoals.length > 0" class="q-pa-md bg-grey-12" style="max-width: 400px"> <!-- class="row justify-center" -->
             <div class="row justify-center"> Goals & Goal Events </div>
+            <!--<div class="row justify-center caption"> Hover for Moods... </div>-->
             <q-separator />
             <!--<q-space/> have to be inside qComponent-->
             <br>
@@ -210,9 +211,9 @@ export default {
       store:useGoalStore(),
       calendar: ref(null),
       currentDate: ref(today()),
-      events: [], //should rename this...
-      mostEvts:5, //huh just to set the interval-height for proper spacing..default or things are squished badly when empty
-      treeGoals:ref([]), //umm ref does anything?!?
+      events: [],
+      mostEvts:5, //huh just to set the interval-height for proper spacing..default 5 or things are squished badly when empty
+      treeGoals:ref([]),
       expanded:ref([]), //to hold expanding parentGoals...
       showTree:ref(false),
       moods:ref({})
@@ -248,23 +249,22 @@ export default {
         return this.store.getAllDates
     },
     parentGoalsMap() {
-        const map = new Map()
-        let mG = this.store.getMainGoals
-        if (!mG){
-            console.log('parentGoalsMap is empty or null', mG)
-            return map
-        }
-
-        mG.forEach(obj => { 
-            map.set(obj.id, obj);
-        })
-        //console.log('parentGoalsMap', map) //JSON.stringify(e)
+      const map = new Map()
+      let mG = this.store.getMainGoals
+      if (!mG){
+        console.log('parentGoalsMap is empty or null', mG)
         return map
-    },
+      }
 
-    storedEvents(){  //rename properly** todo
-        return this.store.getSubGoals
+      mG.forEach(obj => { 
+        map.set(obj.id, obj);
+      })
+      //console.log('parentGoalsMap', map) //JSON.stringify(e)
+      return map
     },
+    //storedEvents(){ //redundant
+    //  return this.store.getSubGoals
+    //},
     eventsMap () {// convert the events into a map of lists keyed by date
       const map = {}
       this.events.forEach(event => {
@@ -296,8 +296,8 @@ export default {
   },
   methods: {
     classyColor(proppy){//bg-{color} or text-{color} in class
-    //console.log("classyColor",JSON.parse(JSON.stringify(proppy.details))) 
-    return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
+      //console.log("classyColor",JSON.parse(JSON.stringify(proppy.details))) 
+      return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
     },
     loadEvts(){
       let pMap = this.parentGoalsMap
@@ -363,7 +363,7 @@ export default {
     },
     getEvents (dt) {// get all events for the specified date
 
-      let sorty = (a, b) => {//sort by earlier timestamp!--too much?
+      let sorty = (a, b) => {//sort by earlier timestamp!
         let timeDiff = diffTimestamp(a.sortTime,b.sortTime) 
         if (timeDiff > 0) return -1
         if (timeDiff == 0) return 0 
@@ -392,7 +392,8 @@ export default {
           events[ 1 ].side = 'full'
         }
       }
-      //console.log(`getEvents ${dt}`, events.length) //number of evts scheduled on this day...can use to calc largest interval height
+      //console.log(`getEvents ${dt}`, events.length) //number of evts scheduled on this day...
+      //can use to calculate largest interval height and set it dynamically to see all events properly >> if too many add more height space..
       if (events.length > this.mostEvts){
         //console.log(`getEvents hiiigh ${dt}`,events.length)
         this.mostEvts = events.length
@@ -400,25 +401,27 @@ export default {
       return events.sort(sorty)
     },
     badgeClasses (event, type) {
-        return applyClasses(event, type)
+      return applyClasses(event, type)
     },
     badgeStyles (event, type, timeStartPos = undefined, timeDurationHeight = undefined) {
-        return applyStyles(event, type, timeStartPos, timeDurationHeight)
+      return applyStyles(event, type, timeStartPos, timeDurationHeight)
     },
     scrollToEvent (event) {
-    this.$refs.calendar.scrollToTime(event.time, 350)
+      this.$refs.calendar.scrollToTime(event.time, 350)
     },
     onToday () {
       this.$refs.calendar.moveToToday()
     },
     onPrev () {
       //console.log('onPrev', this.currentDate)
-      this.doReset = true
       this.$refs.calendar.prev()
     },
     onNext () {
-      //this.doReset = true  //umm should do it here too right? 
       this.$refs.calendar.next()
+    },
+    /*onClickInterval (data) {//The interval area
+      console.log('onClickInterval', data)
+      //events.value.unshift(`click:interval: ${JSON.stringify(data)}`)
     },
     onClickDate (data) { //The date button in format YYYY-MM-DD
       console.log('onClickDate', data)
@@ -428,36 +431,32 @@ export default {
       console.log('onClickTime', data)
       //events.value.unshift(`click:time: ${JSON.stringify(data)}`)
     },
-    onClickInterval (data) {//The interval area
-      console.log('onClickInterval', data)
-      //events.value.unshift(`click:interval: ${JSON.stringify(data)}`)
-    },
     onClickHeadIntervals (data) { //The header area above the intervals
       console.log('onClickHeadIntervals', data)
-      //events.value.unshift(`click:interval:header: ${JSON.stringify(data)}`)
-    },
+    },*/
     onClickHeadDay ({ scope, event }) { //date header where the date is....
       let d = scope.timestamp.date
       let hasM = this.moods[d]
-      //console.log('onClickHeadDay',d,hasM) 
+      let dayEvts = this.eventsMap[d]?.length ?? 0
+      //console.log('onClickHeadDay',d,hasM,dayEvts) 
       if (hasM){  //toSee if can do it better as tooltip!
         this.$q.notify({
         color: 'positive',
         position: 'top',
-        message: `Scheduled with moods: ${hasM.join()}`, //need ',' separator?
+        message: `${dayEvts} Scheduled with Moods: ${hasM.join()}`, //need ',' separator?
         icon: 'tag_faces', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+        multiLine:true  //for max-width....
         //group?: boolean | string | number;
         //timeout?: number; // time to display (in milliseconds)>>default is 5000
-        //multiLine:true ? //for max-width....
       })
-      }else{
-        this.$q.notify({ //no moods
+      }else{//no moods
+        this.$q.notify({ 
         color: 'white', //color of whole dialog //default to black
         textColor: 'black', //message text color //default to white
         position: 'top',
-        message: `NO mood!!`,
-        icon: 'sentiment_neutral',
-        iconColor: "red",
+        message: dayEvts > 0 ? `${dayEvts} Scheduled without Any Mood!` : `Empty and NO mood!!`,
+        icon: dayEvts > 0 ? 'mood' : 'sentiment_neutral',//${dayEvts}
+        iconColor: dayEvts > 0 ? 'positive' : "red",
         multiLine:true  //to have max-width
       })}
     },
