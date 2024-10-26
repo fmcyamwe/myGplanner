@@ -1,35 +1,34 @@
 <!--mostly for calendar planner-->
 <template>
-  <div class="row justify-center">
-    <div class="q-pa-md q-gutter-sm row">
-      <q-btn
-        no-caps
-        class="button"
-        style="margin: 2px;"
-        @click="$emit('prev')"
-      >
+  <div class="q-pa-sm q-gutter-sm row justify-center smally">
+    <q-btn
+    no-caps
+    class="button items-center"
+    style="margin: 2px;"
+    @click="$emit('prev')">
         &lt; Prev
-      </q-btn>
-      <q-separator vertical/>
-      <q-btn
-        no-caps
-        class="button justify-center items-center"
-        style="margin: 2px;"
-        @click="$emit('today')"
-      >
+    </q-btn>
+    <q-separator vertical/>
+    <q-btn
+    no-caps
+    class="button items-center"
+    style="margin: 2px;"
+    @click="$emit('today')">
         Today
-      </q-btn>
-      <q-separator vertical/>
-      <q-btn
-        no-caps
-        class="button"
-        style="margin: 2px;"
-        @click="$emit('next')"
-      >
+    </q-btn>
+    <q-separator vertical/>
+    <q-btn
+    no-caps
+    class="button items-center"
+    style="margin: 2px;"
+    @click="$emit('next')">
         Next &gt;
-
-      </q-btn> 
-      <q-separator />
-    </div>
+    </q-btn>
   </div>
 </template>
+
+<style lang="sass" scoped>
+@media (max-width: 500px)
+  .smally
+    transform: scale(.75)
+</style>

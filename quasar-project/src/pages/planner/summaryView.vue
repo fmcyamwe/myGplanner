@@ -175,25 +175,6 @@
           </div>
         </div>
       </q-slide-transition>
-      <!--<q-tab-panels
-        v-model="panel"
-        animated
-        swipeable
-        infinite
-        class="bg-purple text-white shadow-2 rounded-borders"
-      >
-        <q-tab-panel v-for="(value, key) in daOptions" :name="key" :key="key">
-          <div class="text-h6">{{key}}</div>
-          {{ value[0].title }}
-          <q-timeline color="secondary">
-            <q-timeline-entry heading body="Timeline heading" />
-            <q-timeline-entry v-for="e in value" :key="e.on" :title="e.title"
-            :subtitle="e.on">
-              {{ e.note }} -- {{e.score}}
-            </q-timeline-entry>
-          </q-timeline>
-        </q-tab-panel>
-      </q-tab-panels> -->
 
       <q-carousel
       v-if="Object.keys(daOptions).length > 0"
@@ -203,15 +184,19 @@
       swipeable
       animated
       control-color="white"
-      padding
       infinite
       arrows
-      class="bg-primary text-white shadow-2 rounded-borders">
+      navigation
+      class="bg-primary text-white shadow-2 rounded-borders"
+      style="width: 100%;">
         <q-carousel-slide v-for="(value, key) in daOptions" :name="key" :key="key">
-          <!--<q-icon name="style" size="56px" /> class="q-mt-md text-center" class="column items-center"-->
-          <div>
+          <!--<q-icon name="style" size="56px" /> class="q-mt-md text-center" class="column items-center"  style="max-width: 800px;" style="width: 100%;"-->
+          <div class="q-pa-sm q-pb-md">
             <q-timeline :class="timelineColor(value[0].color)"><!--color="secondary" :title="e.score+'{{ fdf }}'" -->
-              <q-timeline-entry heading :body="value[0].title" /><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
+              <q-timeline-entry heading>
+              <!--:body="value[0].title"--><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
+              <span class="q-px-sm myHeading"> {{ value[0].title }} </span>
+              </q-timeline-entry>
               <q-timeline-entry v-for="e in value" :key="e.on" :title="e.score"
               :subtitle="e.on">
                 {{ e.note }}
@@ -230,7 +215,7 @@ import {
   today,
   isBetweenDates,
   parsed,
-  parseDate,
+  //parseDate,
   //padNumber,
   getMonthNames
 } from '@quasar/quasar-ui-qcalendar/src/QCalendarTask.js'
@@ -238,6 +223,7 @@ import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarTask.sass'
 import { defineComponent,ref } from 'vue'
+import { isMobile } from '../util/isMobile'
 import NavigationBar from '../../components/NavigationBar.vue'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
@@ -251,6 +237,7 @@ export default defineComponent({
   data () {
     return {
       calendar: ref(null),
+      mobile: ref(true),
       selectedDate: today(),
       selectedMonth:'',
       allMonths : getMonthNames('long', 'en-US'), //'short', 'en-US'
@@ -297,21 +284,23 @@ export default defineComponent({
         return `Goaly in ${this.selectedMonth}`
       },
     },
-    mounted() { ////to scroll to current date...no bueno :(
+    /*mounted() { ////to scroll to current date...no bueno :(
       
-      console.log("weeee mounted...")
+      //console.log("weeee mounted...")
       //toTry** see if could with below
         //const now = parseDate(new Date())
         //this.currentDate = now.date 
         //this.currentTime = now.time //'00:52'
         //this.timeStartPos = this.$refs?.calendar?.timeStartPos(now.time, false)  
       
-    },
+    },*/
     beforeMount () {
       // adjust all the dates for the current month
       //const date = new Date()
       //const year = date.getFullYear()
       //const month = padNumber((date.getMonth() + 1), 2)
+
+      this.mobile = isMobile()
 
       let e = this.store.fetchAllTaskSummary()//testTasks()
 
@@ -382,8 +371,8 @@ export default defineComponent({
       classyColor(proppy){//bg-{color} or text-{color} in class
         return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
       },
-      timelineColor(item){ //text-black
-         return item != '' ? `bg-${item} text-white shadow-2 rounded-borders` : `bg-black text-white shadow-2 rounded-borders`
+      timelineColor(item){ //text-black aTimeline
+         return item != '' ? `bg-${item} text-white shadow-2 rounded-borders q-px-md` : `bg-black text-white shadow-2 rounded-borders q-px-md`
       },
       getLoggedSummary (date) {
         let total = 0
@@ -597,12 +586,6 @@ export default defineComponent({
 .bg-purple
   background: purple
 
-@media (max-width: 500px)
-  .key
-    display: none
-</style>
-
-<style lang="sass">
 .task__weekday--style
   font-size: 0.8em
   font-weight: 600
@@ -611,4 +594,19 @@ export default defineComponent({
 .task__footer--day__style
   font-size: 0.8em
   font-weight: 600
+
+.aTimeline
+  align-items: center
+  justify-content: center
+  width: 100%
+
+.myHeading
+  text-align: center
+  font-size: 0.8em
+
+@media (max-width: 500px)
+  .myHeading
+    font-size: 0.5em
+  .key
+    display: none
 </style>

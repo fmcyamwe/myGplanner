@@ -3,240 +3,265 @@
       <div class="subcontent">
             <q-splitter
               v-model="splitterPage"
-              :limits="[30, 70]"
+              :limits="splitterLimits"
             >
                 <template v-slot:before><!-- Scheduling buttons and Legend Tree in a Horiz. splitter-->
-                    <q-splitter
+                  <q-splitter
                     v-model="splitterLegend"
                     horizontal
                     :limits="[20, 80]"
                     style="height: 100%"
                     >
                         <template v-slot:before> <!--Scheduling buttons -->
-                            <div v-if="treeGoals.length > 0" class="q-pa-sm bg-grey-12"> <!--style="max-width: 400px"-->
-                                <div class="q-pa-sm row justify-center">
-                                  {{labelScheduled().sched}} 
-                                </div>
-                                <div v-if="labelScheduled().noTime" class="q-pa-sm row justify-center labely">
-                                  {{labelScheduled().noTime}} Evts Need manual addition!
-                                </div>
-                                <div class="row justify-center"> 
-                                  <q-badge color="secondary" multi-line>
-                                    {{labelBalance()}} mins
-                                  </q-badge>
-                                </div>
-                                <q-separator />
-                            </div>
-                            <div class="q-px-md boxy">
-                                <div v-if="scheduleProps.showReloadBtn"> 
-                                    <sched-btn
-                                    text-label="Reload"
-                                    class="sched-btn"
-                                    text-color="green"
-                                    @do-btn-action="onReloadSaved"
-                                    /><!-- "daSchedule.getProps().showReloadBtn"-->
-                                </div>
+                          <scheduleDayLabel
+                          :doShow="treeGoals.length > 0"
+                          :balanceLabel="labelBalance()"
+                          :scheduleLabel="labelScheduled()"
+                          />
 
-                                <div v-if="scheduleProps.showClearBtn">
-                                  <sched-btn
-                                  text-label="Clear"
-                                  class="sched-btn"
-                                  text-color="lime-5"
-                                  @do-btn-action="onClearDay"
-                                  /><!--daSchedule.getProps().showClearBtn-->
-                                </div>
-                                <div v-if="doShowActionBtns"> <!--"daSchedule.getProps().showLoadDefaults"-->
-                                  <sched-btn
-                                  :textLabel="defaultBtnLabel"
-                                  :isDisabled="isDefaultBtnEnabled"
-                                  class="sched-btn"
-                                  text-color="blue"
-                                  @do-btn-action="onLoadDefault"
-                                  />
-                                </div>
-                
-                                <div v-if="doShowActionBtns"><!--"daSchedule.getProps().showScoreBtn"-->
-                                  <drop-dwn-btn
-                                  class="sched-drop-btn"
-                                  text-color="teal"
-                                  :disableBtn="scheduleProps.disableScoreBtn"
-                                  :optionLabel="chosenScoreLabel"
-                                  :daOptions="scoreOptions"
-                                  @do-reload="doReloadWithScore"
-                                  @choose-option="onChoosenScore"
-                                  />
-                                </div>
-                                <div v-if="doShowActionBtns"><!--"daSchedule.getProps().showPrioBtn"-->
-                                  <drop-dwn-btn
-                                  class="sched-drop-btn"
-                                  text-color="teal"
-                                  :disableBtn="scheduleProps.disablePrioBtn"
-                                  :optionLabel="chosenPrioLabel"
-                                  :daOptions="allMainGPrio()"
-                                  @do-reload="doReloadWithPrio"
-                                  @choose-option="onChoosenPrio"
-                                  /><!-- :disableBtn="daSchedule.getProps().disablePrioBtn" -->
-                                </div>
-                                <div v-if="doShowActionBtns"><!--"daSchedule.getProps().showOneEachBtn"-->
-                                  <sched-btn
-                                  text-label="One Each"
-                                  class="sched-btn"
-                                  text-color="brown"
-                                  @do-btn-action="onScheduleOneEach"
-                                  />
-                                </div>
-                                <div v-if="doShowActionBtns"><!--"daSchedule.getProps().showOneEachBtn"-->
-                                  <sched-btn v-if="!showTree"
-                                  :text-label="!showTree ? 'By Moods' : 'HideTree'"
-                                  class="sched-btn"
-                                  text-color="purple"
-                                  @do-btn-action="showTree = !showTree"
-                                  /><!-- "By Moods"-->
-                                </div>
-                            </div>
+                          <actionBtns
+                            :scoreOptions="scoreOptions"
+                            :allMainGPrio="allMainGPrio()"
+                            :defaultBtnLabel="defaultBtnLabel"
+                            :onScoreBtnLabel="chosenScoreLabel"
+                            :onPrioBtnLabel="chosenPrioLabel"
+                            :showReloadBtn="scheduleProps.showReloadBtn"
+                            :showClearBtn="scheduleProps.showClearBtn"
+                            :showActionBtns="doShowActionBtns"
+                            :showTree="showTree"
+                            :inMobile="mobile"
+                            :isDefaultBtnEnabled="isDefaultBtnEnabled"
+                            :isScoreBtnDisabled="scheduleProps.disableScoreBtn"
+                            :isPrioBtnDisabled="scheduleProps.disablePrioBtn"
+                            @on-reload-saved="onReloadSaved"
+                            @on-clear-day="onClearDay"
+                            @on-load-defaults="onLoadDefault"
+                            @do-reload-with-score="doReloadWithScore"
+                            @do-reload-with-prio="doReloadWithPrio"
+                            @on-choosen-score="onChoosenScore"
+                            @on-choosen-prio="onChoosenPrio"
+                            @on-schedule-one-each="onScheduleOneEach"
+                            @do-hide-tree="() => showTree = !showTree"
+                          /><!--@increase-by="(n) => count += n" />-->
+                           
                             <div class="row justify-center">
-                                <q-btn
-                                class="q-mt-md"
-                                :text-color="saveScheduleDisabled ? 'grey' : 'blue' "
-                                elevated
-                                push
-                                align="evenly"
-                                label="SaveSchedule"
-                                :disable="saveScheduleDisabled"
-                                @click="doSaveSchedule"
-                                no-caps
-                                />
-                                <q-btn v-if="showTree || isViewingPast()"
-                                class="q-mt-md"
-                                text-color="green"
-                                elevated
-                                push
-                                align="evenly"
-                                :label="showTree ? 'HideTree' : 'ShowTree'"
-                                @click="() =>{ showTree ? resetFilter(): '' ; showTree = !showTree}"
-                                no-caps
-                                /><!--  expandAll>>no can do :(...-->
+                              <sched-btn
+                              text-label="SaveSchedule"
+                              class="q-mt-md"
+                              :text-color="saveScheduleDisabled ? 'grey' : 'blue'"
+                              :disable="saveScheduleDisabled"
+                              @do-btn-action="doSaveSchedule"
+                              push
+                              :dense="false"
+                              /><!--huh could use sched-btn for saveSchedule && ShowTree! AND could pass in fallthrough props + not using isDisabled prop to hide tooltip!!-->
+
+                              <sched-btn v-if="showTree || isViewingPast()"
+                              :text-label="showTree ? 'HideTree' : 'ShowTree'"
+                              class="q-mt-md"
+                              text-color="green"
+                              @do-btn-action="() =>{ showTree ? resetFilter(): '' ; showTree = !showTree}"
+                              push
+                              :dense="false"
+                              />
                               </div> 
                               <br>
                         </template>
                         <template v-slot:after> <!--legend tree + jeSuis-->
+                          <!--<q-space/> have to be inside qComponent  class="q-gutter-md"-->
+                          <div v-if="showTreeForm" class="q-gutter-md q-pa-sm bg-grey-12">
+                            <q-item-label overline header lines="3">
+                              Filter by Mood / Expand & Hover for Moods
+                            </q-item-label>
+                            <q-select
+                            :label="isViewingPast() ? 'Disabled In Past :(' : 'je-suis'"
+                            hint="Keyword >> Enter"
+                            hide-hint
+                            ref="filterRef"
+                            v-model="filter"
+                            use-input
+                            use-chips
+                            multiple
+                            :disable="isViewingPast()"
+                            hide-dropdown-icon
+                            input-debounce="0"
+                            new-value-mode="add-unique"
+                            class="q-gutter-sm"
+                            >
+                              <template v-slot:selected-item="scope">
+                                <q-chip
+                                removable
+                                dense
+                                @remove="scope.removeAtIndex(scope.index)"
+                                :tabindex="scope.tabindex"
+                                text-color="black"
+                                class="q-ma-none"
+                                style="width:80px"
+                                >
+                                  {{ scope.opt }}
+                                </q-chip>
+                              </template>
+                              <template v-slot:append>
+                                <q-icon v-if="filter.length > 0 " name="clear" class="cursor-pointer" @click="resetFilter" />
+                              </template>
+                            </q-select>
                             
-                            <!--<div v-if="treeGoals.length > 0" class="q-pa-sm bg-grey-12" style="max-width: 400px">-->
-                              <!--moved up
-                                <div class="q-pa-sm row justify-center">
-                                  {{labelScheduled().sched}} 
+                            <q-tree
+                            :nodes="treeGoals"
+                            node-key="label"
+                            :filter="filterString"
+                            :filter-method="myFilterMethod"
+                            v-model:expanded="expanded"
+                            no-connectors
+                            dense
+                            >
+                            <!-- 'default-expand-all' but too much 
+                              also set on first render so cant hack with below to expand after filtering >>
+                             :default-expand-all="filter.length > 0"-->
+                             <!--  expandAll>>no can do :(...-->
+                              <template v-slot:default-header="prop">
+                                <div :class="classyColor(prop.node)">
+                                  <q-icon v-if="!prop.node.isChildren" :name="prop.expanded ? 'expand_less' : 'expand_more'" size="28px" right/>
+                                  <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+                                  <q-icon :name="prop.node.icon" />
                                 </div>
-                                <div v-if="labelScheduled().noTime" class="q-pa-sm row justify-center labely">
-                                  {{labelScheduled().noTime}} 
+                              </template>
+                              <template v-slot:default-body="prop">
+                                <div v-if="prop.node.isChildren"
+                                :draggable="true"
+                                style="cursor: grab;"
+                                @dragstart.stop="(e) => onDragStart(e, 'tree-item', prop.node)"
+                                >
+                                  <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+                                  <q-tooltip v-if="prop.node.moods.length > 0">{{ "Moods::> " +prop.node.moods.join(',') }}</q-tooltip>
                                 </div>
-                                <div class="row justify-center"> 
-                                  <q-badge color="secondary" multi-line>
-                                    {{labelBalance()}} mins
-                                  </q-badge>
-                                </div>
-                                <q-separator />
-                                <br>-->
-                                <!--<q-space/> have to be inside qComponent  class="q-gutter-md"-->
-                                <div v-if="showTreeForm" class="q-gutter-md q-pa-sm bg-grey-12">
-                                  <q-item-label overline header lines="3">
-                                    Filter by Mood / Expand & Hover for Moods
-                                  </q-item-label>
-                                  <q-select
-                                  :label="isViewingPast() ? 'Disabled In Past :(' : 'je-suis'"
-                                  hint="Keyword >> Enter"
-                                  hide-hint
-                                  ref="filterRef"
-                                  v-model="filter"
-                                  use-input
-                                  use-chips
-                                  multiple
-                                  :disable="isViewingPast()"
-                                  hide-dropdown-icon
-                                  input-debounce="0"
-                                  new-value-mode="add-unique"
-                                  class="q-gutter-sm"
-                                  >
-                                    <template v-slot:selected-item="scope">
-                                      <q-chip
-                                        removable
-                                        dense
-                                        @remove="scope.removeAtIndex(scope.index)"
-                                        :tabindex="scope.tabindex"
-                                        text-color="black"
-                                        class="q-ma-none"
-                                        style="width:80px"
-                                      >
-                                        {{ scope.opt }}
-                                      </q-chip>
-                                    </template>
-                                    <template v-slot:append>
-                                      <q-icon v-if="filter.length > 0 " name="clear" class="cursor-pointer" @click="resetFilter" />
-                                    </template>
-                                  </q-select>
-
-                                 <q-tree
-                                  :nodes="treeGoals"
-                                  node-key="label"
-                                  :filter="filterString"
-                                  :filter-method="myFilterMethod"
-                                  v-model:expanded="expanded"
-                                  no-connectors
-                                  dense
-                                  >
-                                  <!-- 'default-expand-all' but too much 
-                                   also set on first render so cant hack with below to expand after filtering >>
-                                   :default-expand-all="filter.length > 0"
-                                   -->
-                                  <template v-slot:default-header="prop">
-                                    <div :class="classyColor(prop.node)">
-                                      <q-icon v-if="!prop.node.isChildren" :name="prop.expanded ? 'expand_less' : 'expand_more'" size="28px" right/>
-                                      <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
-                                      <q-icon :name="prop.node.icon" />
-                                    </div>
-                                  </template>
-                                  <template v-slot:default-body="prop">
-                                    <div v-if="prop.node.isChildren"> <!--onclick="klikaj('rad1')" test for maaaybe drag/drop or select..toSee-->
-                                      <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
-                                      <q-tooltip v-if="prop.node.moods.length > 0">{{ "Moods::> " +prop.node.moods.join(',') }}</q-tooltip>
-                                    </div>
-                                    <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
-                                  </template>
-                                 </q-tree>
-                                 <br>
-                                 <sched-btn v-if="filter.length > 0"
-                                  text-label="Add Mood Evts"
-                                  class="q-mt-xl sched-btn"
-                                  text-color="red"
-                                  @do-btn-action="onMoodAdd"
-                                  /><!--should also not show when no matching nodes but hard to determine? see matchingMoodNodes-->
-                                </div>
-                                
-                                <!-- onMoodAdd was here <div v-if="filter.length > 0" class="q-pa-md q-gutter-sm bg-grey-12" style="max-width: 400px"></div>--> 
-                                  
-                            <!--</div>-->                    
+                                <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+                              </template>
+                            </q-tree>
+                            <br>
+                            <sched-btn v-if="filter.length > 0"
+                              text-label="Add Mood Evts"
+                              class="q-mt-xl sched-btn"
+                              text-color="red"
+                              @do-btn-action="onMoodAdd"
+                            /><!--should also not show when no matching nodes but hard to determine? see matchingMoodNodes-->
+                          </div>              
                         </template>
-                    </q-splitter>
-                    <div class="instru"><!--class="q-ma-xl column items-center instru"-->
-                      <q-toggle 
-                      v-model="showInstru"
-                      :label="showInstru ? 'Hide Instructions' : 'Show Instructions'"
-                      color="teal" 
-                      class="q-pa-md q-mx-xl"
-                      align="center"/>
+                  </q-splitter>
+                  
+                  <div class="instru"><!--class="q-ma-xl column items-center instru"-->
+                    <q-toggle 
+                    v-model="showInstru"
+                    :label="showInstru ? 'Hide Instructions' : 'Show Instructions'"
+                    color="teal" 
+                    class="q-pa-md q-mx-xl"
+                    align="center"/>
 
-                      <da-instructions v-if="showInstru"
-                      :showRemInstru="showRemInstru"
-                      :showSchedInstru="showSchedInstru"
-                      /><!--:showInstructions="showInstru" -->
-                    
-                    </div>
+                    <da-instructions v-if="showInstru"
+                    :showRemInstru="showRemInstru"
+                    :showSchedInstru="showSchedInstru"
+                    /><!--:showInstructions="showInstru" -->
+                  </div>
                 </template>
-
-                <template v-slot:separator>
+              
+                <template v-slot:separator v-if="!mobile"><!--huh suprised v-if works-->
                     <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" style="position: relative; top: 70%;"/> <!--nudge this down by 70 percent...huh-->
                 </template>
-
+                <!--<q-avatar v-if="mobile" color="primary" class="q-px-md" text-color="white" size="40px" icon="legend_toggle || question_mark" style="position: relative; top: 70%;"/>-->
+                
                 <template v-slot:after><!-- Calendar and dialogs...-->
+                  <div class="q-pa-md relative-position forMobile"><!--q-pa-md relative-position style="height: 280px; max-height: 80vh"-->
+                    <q-btn
+                      v-morph:btn:mygroup:300.resize="morphGroupModel"
+                      class="absolute-top-left q-mx-md"
+                      fab
+                      color="primary"
+                      size="md"
+                      icon="legend_toggle"
+                      align="evenly"
+                      @click="nextMorph"
+                    /><!--:disable="draggingFab" v-touch-pan.prevent.mouse="moveFab"  >>need q-page-sticky-->
+                    <!--<q-fab></q-fab> use q-fab? also make first qCard show faster? -->
+                    <q-card
+                      v-morph:card1:mygroup:500.resize="morphGroupModel"
+                      class="absolute-top-left q-ma-md bg-grey"
+                      style="width: 50%; border-top-left-radius: 2em"
+                    >
+                      
+                        <scheduleDayLabel
+                        :doShow="treeGoals.length > 0"
+                        :balanceLabel="labelBalance()"
+                        :scheduleLabel="labelScheduled()"
+                        />
+                      
+
+                      <!--<q-card-section>
+                        Please fill the details for a new user.
+                      </q-card-section>-->
+                      <q-card-actions align="center">
+                        <sched-btn
+                        text-label="SaveSchedule"
+                        class="q-mt-md"
+                        text-color="white"
+                        @do-btn-action="() => {doSaveSchedule(); morphClose() }"
+                        push
+                        :dense="false"
+                        />
+                        <!--:text-color="saveScheduleDisabled ? 'grey' : 'blue'" 
+                        :disable="saveScheduleDisabled" >> shouldnt disable here...
+                        -->
+                      </q-card-actions>
+                     
+                      <q-card-actions align="right"><!--label="Next"-->
+                        <q-btn flat no-caps no-wrap @click="morphClose" icon="thumb_up" color="red"/>
+                        <q-btn flat @click="nextMorph" no-caps no-wrap>Actions &gt;</q-btn>
+                      </q-card-actions>
+                    </q-card>
+                    <q-card
+                      v-morph:card2:mygroup:500.tween="morphGroupModel"
+                      class="absolute-top-left q-ma-md"
+                      style="width: 70%; border-top-left-radius: 2em"
+                    >
+                      <!--<q-card-section class="text-h6">
+                        Finalize registration
+                      </q-card-section>-->
+
+                      <div class="text-center text-subtitle2 q-mt-sm">
+                        Reload By
+                      </div>
+                      <q-separator color="red" inset/>
+                      <q-card-section>  
+                        <actionBtns
+                          :scoreOptions="scoreOptions"
+                          :allMainGPrio="allMainGPrio()"
+                          :defaultBtnLabel="defaultBtnLabel"
+                          :onScoreBtnLabel="chosenScoreLabel"
+                          :onPrioBtnLabel="chosenPrioLabel"
+                          :showReloadBtn="scheduleProps.showReloadBtn"
+                          :showClearBtn="scheduleProps.showClearBtn"
+                          :showActionBtns="doShowActionBtns"
+                          :showTree="showTree"
+                          :inMobile="mobile"
+                          :isDefaultBtnEnabled="isDefaultBtnEnabled"
+                          :isScoreBtnDisabled="scheduleProps.disableScoreBtn"
+                          :isPrioBtnDisabled="scheduleProps.disablePrioBtn"
+                          @on-reload-saved="() => {onReloadSaved(); morphClose()}"
+                          @on-clear-day="() => {onClearDay(); morphClose() }"
+                          @on-load-defaults="() => {onLoadDefault(); morphClose()}"
+                          @do-reload-with-score="() => {doReloadWithScore(); morphClose()}"
+                          @do-reload-with-prio="() => {doReloadWithPrio(); morphClose()}"
+                          @on-choosen-score="onChoosenScore"
+                          @on-choosen-prio="onChoosenPrio"
+                          @on-schedule-one-each="() => {onScheduleOneEach(); morphClose()}"
+                          @do-hide-tree="() => showTree = !showTree"
+                        />
+                    </q-card-section>
+                    
+                      <q-card-actions align="right">
+                        <q-btn flat no-caps no-wrap @click="prevMorph"> &lt; Prev </q-btn>
+                        <q-btn flat label="Close" no-caps no-wrap @click="nextMorph" />
+                      </q-card-actions>
+                    </q-card>
+                  </div>
                     <navigation-bar
                     @today="onToday"
                     @prev="onPrev"
@@ -253,7 +278,7 @@
                           {{ value.m }}
                         </q-badge>
                     </div>
-
+                    
                     <div class="row justify-center">
                         <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 600px;">
                           <q-calendar-day
@@ -296,7 +321,7 @@
                                     style="width: 100%; cursor: grab; height: 12px; font-size: 10px; margin: 5px;"
                                     class="heady"
                                     @dragstart.stop="(e) => onDragStart(e, 'header-item', event)"
-                                    @touchstart="(e) => onTouchHStart(e, event)"
+                                    @touchstart="(e) => onTouchHStart(e, 'header-item',event)"
                                     @touchmove="(e) => onTouchHEvt(e,event)"
                                     @touchend="(e) => onTouchHEvt(e, event)"
                                     >
@@ -367,14 +392,11 @@
                                     @drop="(e) => onDrop(e, 'goal-item', scope)"
                                     @dragenter="(e) => onDragEnter(e, 'goal-item', scope)"
                                     @dragover="(e) => onDragOver(e, 'goal-item', scope)"
-                                    @touchstart="(e) => onTouchStart(e, event)"
+                                    @touchstart="(e) => onTouchStart(e, 'goal-item',event)"
                                     @touchmove="(e) => onTouchEvt(e,event)"
                                     @touchend="(e) => onTouchEvt(e, event)"
                                     >
-                                    <!-- 
-                                      v-touch-hold:400:12:15.mouse="(e) => handleHold(e, event)" 
-                                        on goaly-end or div above makes no diff!! but seem to log errors more in div
-                                      
+                                    <!--
                                       <div class="title q-calendar__ellipsis"> -->
                                       <!--{{ event.title }}
                                       <q-tooltip>{{ event.time + ' - ' + event.details + ' :'+ event.score }}</q-tooltip> -->
@@ -396,7 +418,7 @@
                                         @add-mins="onAddMins"
                                         @delete-now="removeEvtInSchedule(event)"
                                         v-touch-hold:400:12:15="(e) => onTouchHold(e, event)"
-                                      />
+                                      /><!-- v-touch-hold >> on goaly-end or div above makes no diff >> BUT seem to log errors more in div-->
 
                                       <!--<div v-if="daSchedule.hasStarted[event.id]" 
                                       class="addmins-line"
@@ -427,7 +449,7 @@
                           </q-calendar-day>
                         </div>
                     </div> 
-                    <br>          
+                    <br>      
                 </template>
             </q-splitter>
 
@@ -467,7 +489,7 @@ import { isMobile } from '../util/isMobile'
 import { applyClasses, applyStyles, whenFrmtTime,parseScore,deepCopy } from '../util/utiFunc'
 import { useQuasar } from 'quasar'  //Platform
 import daySchedule  from '../../models/aDaySchedule.js'
-import scheduleBy from '../../components/planner/scheduleByDialog.vue'
+import scheduleBy from '../../components/planner/scheduleByDialog.vue' //also craps out when in demand?
 
 function isLeftClick (e) {
 return e.button === 0
@@ -481,10 +503,11 @@ export default {
     GoalyEnd: defineAsyncComponent(() => import('../../components/planner/goalyEnd.vue')),
     daInstructions: defineAsyncComponent(() => import('../../components/planner/instructions.vue')),
     schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
-    dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
+    //dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
     schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
     mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
-    //scheduleByDialog: defineAsyncComponent(() => import('../../components/planner/scheduleByDialog.vue')), //umm better to have it already maybe?
+    actionBtns: defineAsyncComponent(() => import('../../components/planner/actionBtns.vue')),
+    scheduleDayLabel: defineAsyncComponent(() => import('../../components/planner/dayLabels.vue')),
   },
   data () {
     let possibleRange = null //for adhoc scheduling...keep track of selected time range
@@ -492,14 +515,16 @@ export default {
     let intervalId = null
     const $q = useQuasar()
 
-    const currentTime = ref(null) //needed?!? toReview***
+    const currentTime = ref(null)
 
     const selectedItem = ref(null)  //draggedItem //whether (touch/drag)
     const targetDrop = ref(null)
 
     const touchedItem = ref(null) //for touch mobile elt
 
-    const lastTarget = ref(null) //for drag/drop highlight...toTest** 
+    const lastTarget = ref(null) //for drag/drop highlight.
+
+    //const fabPos = ref([ 18, 18 ]) //test for mobile draggable actnBtn
 
     return {
       splitterPage: ref(35), // start--left side--before at 35%
@@ -514,6 +539,15 @@ export default {
       filterRef : ref(null),
       //matchingMoodNodes : ref(0), //for filtered nodes...meh hard to reset...
 
+      nextMorphStep : ref({
+        btn: 'card1',
+        card1: 'card2',
+        card2: 'btn'
+      }),
+      morphGroupModel: ref('btn'),
+      draggingFab:ref(false),
+      fabPos: ref([ 18, 18 ]), //test for mobile draggable actnBtn >>better here
+
       calendar: ref(null),
 
       showEvtDialog: ref(false),
@@ -526,14 +560,13 @@ export default {
       mouseDown: ref(false),
       mobile: ref(true),
 
-          //daSchedule:ref(new daySchedule("euuh")), //gets created!
       daSchedule:ref(null),
       showInstru:ref(false) //toReview** if shouldnt check something else
     }
   },
   beforeMount() {
     this.mobile = isMobile()
-
+    this.mobile ? this.splitterPage = 0 : ''
     this.daSchedule = new daySchedule(this.currentDate,this.mobile)
 
     this.constructTree()
@@ -558,9 +591,16 @@ export default {
         return this.daSchedule.chosenPrioLabel()
     },
     style () {
-        return {
-            top: this.timeStartPos + 'px'
-        }
+      return {
+        top: this.timeStartPos + 'px'
+      }
+    },
+    //splitterPagey(){ //bon done in mount as warning of read-only...
+    //  return this.mobile ? 0 : this.splitterPage
+    //},
+    splitterLimits(){
+      //console.log("splitterLimits...",this.mobile)
+      return this.mobile ? [0, 100] : [30, 70]
     },
     showSchedInstru(){
       return this.getDateEvents(this.currentDate).length < 1 //&& !this.isViewingPast()
@@ -601,34 +641,7 @@ export default {
       return this.daSchedule.getCurrentBalance()
     },
     canbeScheduled(){
-
       return this.daSchedule.availableEvtsToSchedule()
-
-      /*let diff = this.daSchedule.unscheduled()
-      //console.log('canbeScheduled difference is', JSON.parse(JSON.stringify(difference)), JSON.parse(JSON.stringify(e)))
-
-      //oldie >> id...prolly better to use parentGoal for grouping instead of id as subG can be added/removed.
-      //--mais bon could end up with subGs out of order of creation...meh
-      //ALSO with randomize id generation,latest might not have higher id than earlier goal!!
-      let sorty = (a, b) => { 
-        if (a.parentGoal > b.parentGoal) return 1; 
-        if (a.parentGoal == b.parentGoal) return 0; 
-        if (a.parentGoal < b.parentGoal) return -1;
-      }
-
-      if (diff.length == 0) { 
-        let e = this.daSchedule.getSubGoals() //deepcopy? >>no need it seems...
-        e.sort(sorty)
-        //console.log('canbeScheduled no difference', difference.length, e.length)
-        return e
-      }
-
-      diff.sort(sorty)
-
-      //console.log('canbeScheduled ',JSON.parse(JSON.stringify(diff)),JSON.parse(JSON.stringify(this.daSchedule.allPGoals())))
-
-      return diff*/
-      
     },
     scheduleMoodsLabel(){
       //let ret = null //''
@@ -649,7 +662,7 @@ export default {
       }
       
       //let i = 0
-      //for (let value of aSet){ //umm redundant? toSee**
+      //for (let value of aSet){ //umm redundant? toReview
       //  i < 1 ? ret = value : ret = ret + ', '+ value 
       //  i++ 
       //}
@@ -704,6 +717,24 @@ export default {
     },
   },
   methods:{
+    moveFab (ev) {
+      console.log("moveFab...",ev,this.draggingFab,this.fabPos)
+      this.draggingFab = ev.isFirst !== true && ev.isFinal !== true
+
+        this.fabPos = [
+          this.fabPos[ 0 ] - ev.delta.x,
+          this.fabPos[ 1 ] - ev.delta.y
+        ]
+    },
+    prevMorph(){
+      this.morphGroupModel = this.nextMorphStep['btn'] //works!
+    },
+    nextMorph() {
+      this.morphGroupModel = this.nextMorphStep[ this.morphGroupModel]
+    },
+    morphClose() { //after actionBtn click >> should be same as using >> this.morphGroupModel ...prolly 
+      this.morphGroupModel = this.nextMorphStep['card2']
+    },
     showEvtMobile(id){
       return this.daSchedule.showEvtNoteScoreMobile(id)
     },
@@ -792,7 +823,7 @@ export default {
     constructTree(){
       this.treeGoals = this.daSchedule.fetchGoalsTree()
     },
-    resetGoalEvts(){
+    resetGoalEvts(){ //redundant--toRemove** prolly
         return this.daSchedule.getSubGoals()
     },
     allMainGPrio(){
@@ -851,6 +882,9 @@ export default {
     },
     isViewingPast(){
       return this.daSchedule.isViewingPast()
+    },
+    isViewingToday(){
+      return this.daSchedule.isViewingToday()
     },
     onMoodAdd(){
       //console.log(`onMoodAdd>>>`, this.filterString) 
@@ -934,13 +968,13 @@ export default {
 
         //confirmChoiceDialog
         this.scheduleByDialog('Schedule One of Each',//'Warning!!', //Reload 
-        `Current: ${this.currentDate} already have scheduled Events...`,
+        'One Random Evt per Parent Goal', //`Current: ${this.currentDate} already have scheduled Events...`
         labels,
         '',
         doAction, //onOk
         doCancel)
       } else{ //nothing scheduled--just overwrite
-        doAction({choice:'reset', skipOCheck:!this.daSchedule.isViewingToday()}) //overwrite
+        doAction({choice:'reset', skipOCheck:!this.isViewingToday()}) //overwrite
       }
     },
     onReloadSaved(){
@@ -1023,15 +1057,15 @@ export default {
   
 
         //confirmChoiceDialog
-        this.scheduleByDialog('Schedule Defaults', //Warning!!'
-        `Current: ${this.currentDate} already have scheduled Events...`,
+        this.scheduleByDialog('Schedule Default Evts', //Warning!!'
+        '', //`Current: ${this.currentDate} already have scheduled Events...`
         labels, 
         '',
         function(d){doOk(d)}, 
         function(){console.log('onLoadDefaults::Aborting')})//doCancel() to access >> this.currentDate
       
       } else {
-        doOk({choice:'reset', skipOCheck:!this.daSchedule.isViewingToday()}) //reset
+        doOk({choice:'reset', skipOCheck:!this.isViewingToday()}) //reset
       }
     },
     onChoosenPrio(e){
@@ -1072,14 +1106,14 @@ export default {
 
       let options = this.daSchedule.byPrio  //some calculations for proper options >> i.e: no add option when already scheduled or no evt with chosenPrio found
       let currentSched = this.daSchedule.getScheduledEvts().size
-      let mess = `Reload Schedule by Parent's Priority == ${currentPrio}`
-      let labels = [] //defaultScheduleByOpts()
+      let mess = `By Goal's Parent Priority == ${currentPrio}`
+      let labels = []
 
       if(!options){ //shouldnt happen?!?
         console.log("doReloadWithPrio::ERROR? >> no options",options)
         labels = this.defaultScheduleByOpts()
 
-        this.scheduleByDialog('',
+        this.scheduleByDialog('Schedule by Priority',
         mess,
         labels,
         '',
@@ -1093,22 +1127,29 @@ export default {
       let showFilter = options?.filter?.length > 0 && options?.filter?.length != currentSched
       showFilter ? labels.push({label: `Filter out of ${currentSched} scheduled to ${options?.filter?.length} Evts`,value: 'filter' }) : '' //console.log("doReloadWithPrio::FILTER option skipped",options?.filter?.length,currentSched)  //with priority == ${currentPrio} //no false value as empty string evaluates to it...smh!  
       options?.toAdd?.length > 0 ? labels.push({label: `Add ${options?.toAdd?.length} Evts to current schedule`,value: 'add'}) : '' //whose priority == ${currentPrio}
-      labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) //whose priority == ${currentPrio}  //oldie >> 'overwrite'
-          
+      options?.reset?.length > 0 ? labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) : '' //whose priority == ${currentPrio}  //oldie >> 'overwrite'
+      
+      //when No Evts as all options above are 0 >> no need to continue.
+      if (!labels.length > 0){
+        //this.doLog("doReloadWithPrio::No options!! currentSched= "+currentSched,options)
+        this.doNotify(`No Evts with Priority == ${currentPrio} :(`, "warning",'top')
+        return
+      }
+
       if (currentSched > 0){
-        this.scheduleByDialog('',
+        this.scheduleByDialog('Reload by Priority',
           mess, //`With Parent Goal's priority == `+currentPrio,
           labels,
           '',
           doAction,
           doCancel)
       } else {
-        options?.toAdd?.length > 7 ? this.scheduleByDialog('',
+        options?.toAdd?.length > 7 ? this.scheduleByDialog('Schedule by Priority',
           mess, //`With Parent Goal's priority == `+currentPrio,
           labels,
           '',
           doAction,
-          doCancel) :  doAction({choice:'reset', skipOCheck:!this.daSchedule.isViewingToday()})//nothing scheduled> just 'reset'
+          doCancel) :  doAction({choice:'reset', skipOCheck:!this.isViewingToday()})//nothing scheduled> just 'reset'
       }
         
         //not allow reclick without changing prio again...
@@ -1332,13 +1373,13 @@ export default {
          
           //console.log("scheduleByScore:: ",opt) //,options
 
-          //bon onScheduleByScore() not even needed?!? smh 
-          ///>>yup with latest changes...nice tho..
+          //bon this.onScheduleByScore() not even needed!! >>yup with latest changes...nice tho..
+          
           //opt.choice != 'add' ? this.daSchedule.resetSchedule() : '' //resetSchedule for filter || reset
 
           //opt.choice == 'add' ?  this.onScheduleByScore(options?.toAdd,opt.oCheck) : opt.choice == 'reset' ? this.onScheduleByScore(options?.reset,opt.oCheck) : this.onScheduleByScore(options?.filter,opt.oCheck)
 
-          let res = this.daSchedule.scheduleByScore(opt.choice,opt.skipOCheck) //flag
+          let res = this.daSchedule.scheduleByScore(opt.choice,opt.skipOCheck)
           
           if(!res.canContinue){ //&& !anyOverlap.overlaps
             //console.log("scheduleByScore::OVERLAPS?",JSON.parse(JSON.stringify(res)))
@@ -1358,14 +1399,14 @@ export default {
 
       let options = this.daSchedule.byScore
       let currentSched = this.daSchedule.getScheduledEvts().size
-      let mess = `Reload Schedule by Interval Score <= ${currentScore}`//`With Goal Evts of Interval Score <= ${currentScore}`
-      let labels = [] //defaultScheduleByOpts()
+      let mess = `Goals with Interval Score <= ${currentScore}`//`With Goal Evts of Interval Score <= ${currentScore}`
+      let labels = []
       
       if(!options){ //shouldnt happen?!?
         console.log("doReloadWithScore::ERROR? >> no options",options)
         labels = this.defaultScheduleByOpts()
 
-        this.scheduleByDialog('',
+        this.scheduleByDialog('Schedule by Score',
         mess,
         labels,  //ugly word break when labels too long...also reason for empty title
         '',
@@ -1377,15 +1418,22 @@ export default {
 
       //skip filter when result in no changes
       let showFilter = options?.filter?.length > 0 && options?.filter?.length != currentSched
-      showFilter ? labels.push({label: `Filter out of ${currentSched} scheduled to ${options?.filter?.length} Evts`,value: 'filter'}) : '' //console.log("doReloadWithScore::FILTER option skipped",options?.filter?.length,currentSched)  //for Interval Score <= ${currentScore}
+      showFilter ? labels.push({label: `Filter out of ${currentSched} scheduled to ${options?.filter?.length} Evts`,value: 'filter'}) : '' //console.log("doReloadWithScore::FILTER option skipped",options?.filter?.length,options?.reset?.length,currentSched)  //for Interval Score <= ${currentScore}
       options?.toAdd?.length > 0 ? labels.push({label: `Add ${options?.toAdd?.length} Evts to current schedule.`,value: 'add'}) : '' //whose Interval Score <= ${currentScore}
-      labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) // whose Interval Score <= ${currentScore} //oldie>> overwrite
-        
+      options?.reset?.length > 0 ? labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) : '' // whose Interval Score <= ${currentScore} //oldie>> overwrite
+      
+      //when No Evts as all options above are 0 >> no need to continue.
+      if (!labels.length > 0){
+        //this.doLog("doReloadWithScore::No options!! currentSched= "+currentSched,options)
+        this.doNotify(`No Evts with Interval Score <= ${currentScore} :(`, "warning")
+        return
+      }
+
       if (currentSched > 0) {
         //let labels = [] //defaultScheduleByOpts()
 
         //oldie >> confirmChoiceDialog
-        this.scheduleByDialog('',//Reload Schedule by Score //oldie >>"Schedule change...",
+        this.scheduleByDialog('Reload by Score',
         mess, //'Goals with Interval Score <= '+currentScore, 
         labels,  //ugly word break when labels too long...also reason for empty title
         '',
@@ -1393,12 +1441,12 @@ export default {
         doCancel)
 
       } else{ //no scheduled--just overwrite--still offer for too many add..especially skipOCheck when in future...
-        options?.toAdd?.length > 10 ? this.scheduleByDialog('',
+        options?.toAdd?.length > 10 ? this.scheduleByDialog('Schedule by Score',
         mess,
         labels,  //ugly word break when labels too long...also reason for empty title
         '',
         doAction,
-        doCancel) : doAction({choice:'reset', skipOCheck:!this.daSchedule.isViewingToday()}) //'reset'
+        doCancel) : doAction({choice:'reset', skipOCheck:!this.isViewingToday()}) //'reset'
       }
 
       //no reclick without changing score again...todo>>use toggle() function?
@@ -1411,14 +1459,38 @@ export default {
 
       let mess = `Schedule saved for ${this.currentDate}`
       noTimes ? mess+= ` \nExcept for ${noTimes} without time!` : ''
-      this.doNotify(mess, noTimes ? "info" : "positive") //, "top"
+      this.doNotify(mess, noTimes ? "info" : "positive")
       this.resetFilter() //meh
     },
+    addNewToSchedule(targetDrop, item){
+      console.log("addNewToSchedule: ",targetDrop, item)
+      //have to check that not present already before add..
+      let d = this.daSchedule.findSchedEvent(item.id)
+      if (d) {
+        this.doNotify(`${d?.title} is already scheduled`)
+        this.doCleanup()
+        this.reset() //addNewToSchedule
+        return
+      }
+
+      //let canDrop = this.daSchedule.canDropEvent(targetDrop, item) //meh pointless...just add
+      let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...item,time:targetDrop.time}],this.isViewingToday())
+      if (euhOverlaps.length > 0){
+        //console.log(`addNewToSchedule::Overlaps!!`,euhOverlaps)
+        return this.handleOverlaps(euhOverlaps,'addNew')
+      }
+      
+      this.doNotify(`${item?.title} Added!..doSave eh`,"positive")
+      this.daSchedule.toggleActionBtns(true,'onDrop')
+      this.doCleanup()
+      
+    },
     doDroppy(targetDrop, draggedItem){
-      //console.log("doDroppy: "+from,targetDrop, draggedItem)//.duration,draggedItem.time)
+      //console.log("doDroppy: ",targetDrop, draggedItem)
 
       if(targetDrop && draggedItem){
-        let isClose = this.daSchedule.tooClose(targetDrop, draggedItem.duration)
+        let dragged = draggedItem.evt
+        let isClose = this.daSchedule.tooClose(targetDrop, dragged.duration) //
         if(isClose){
           console.log("doDroppy::tooClose to>>",isClose) //could happen when dropping next to scheduled...
           if(isClose === true){
@@ -1428,35 +1500,38 @@ export default {
           }
         }
 
-        let canDrop =  this.daSchedule.canDropEvent(targetDrop, draggedItem)
-        let orig = this.daSchedule.getOriginalEvtTime(draggedItem.id)
-        //console.log("doDroppy: ",draggedItem.time,orig) //also skip ask if originalTime is different? >>meh
+        if (draggedItem.type == 'tree-item'){
+          return this.addNewToSchedule(targetDrop, dragged)
+        }
+
+        let canDrop =  this.daSchedule.canDropEvent(targetDrop, dragged)
         
         if (canDrop.canContinue){ //&& canDrop.overlaps == null){
-          let confirmAsk = draggedItem?.inDefaults || !draggedItem?.canMove
-          let skipNoTime = !orig || draggedItem?.time == ''
+          let confirmAsk = dragged?.inDefaults || !dragged?.canMove
+          let orig = this.daSchedule.getOriginalEvtTime(dragged.id) //also skip ask if originalTime is different? >>meh
+          let skipNoTime = !orig || dragged?.time == ''
           //console.log("doDroppy: ",draggedItem.time,orig,!skipNoTime, confirmAsk)
           if (confirmAsk && !skipNoTime){
-            let pre = draggedItem?.inDefaults ? "Default at " : "Cannot Move from " 
-            let mess = [`Evt "${draggedItem.title.trim()}" ${pre} ${whenFrmtTime(orig)}.`, // draggedItem.time>>misleading time >>have to use orig
+            let pre = dragged?.inDefaults ? "Default at " : "Cannot Move from " 
+            let mess = [`Evt "${dragged.title.trim()}" ${pre} ${whenFrmtTime(orig)}.`, // draggedItem.time>>misleading time >>have to use orig
             `\nAlso Save Evt default time to ${whenFrmtTime(targetDrop.time)}?`,
             //"\nCancel or Dismiss to undo!", //\n\u2800\n
-            `\nCancel or No selection to keep at ${whenFrmtTime(draggedItem.time)}`
+            `\nCancel or No selection to keep at ${whenFrmtTime(dragged.time)}`
             ].join('\n')
 
             const c = this.daSchedule  //huh works for below to keep context!!
             const clean = this.doCleanup
-            this.confirmTimeChange(`${draggedItem?.inDefaults ? "Changing Default Evt's time" : "Evt's Cannot move"}`,
+            this.confirmTimeChange(`${dragged?.inDefaults ? "Changing Default Evt's time" : "Evt's Cannot move"}`,
               mess, 
               "Change", //okBtn
               `Temp.Move`,//`Temp.${doAdd ? 'Add':'Move'}`, //altbtn //oldie >>"Temp.Move"
-              function(d){c.changeEvtTime(draggedItem, targetDrop,d);c.toggleActionBtns(true,'doDroppy'),clean()}, //onOk  //userChoice(d,evt,doAdd)
+              function(d){c.changeEvtTime(dragged, targetDrop,d);c.toggleActionBtns(true,'doDroppy'),clean()}, //onOk  //userChoice(d,evt,doAdd)
               function(){clean()}, //onCancel...
-              function(){console.log(`doDroppy::onDismiss..keep as is>> ${draggedItem.id})'${draggedItem.title.trim()}'`); clean()}
+              function(){console.log(`doDroppy::onDismiss..keep as is>> ${dragged.id})'${dragged.title.trim()}'`); clean()}
               //onDismiss/...should prolly remove it actually!--or leave at default time?!?
               )
           }else{ //skip asking user...
-            this.daSchedule.changeEvtTime(draggedItem, targetDrop,false)
+            this.daSchedule.changeEvtTime(dragged, targetDrop,false)
             this.daSchedule.toggleActionBtns(true,'doDroppy')
             this.doCleanup()  //as interval below still have same color that shows up when moved again...should move below to always do**
           }
@@ -1469,7 +1544,7 @@ export default {
           this.handleOverlaps(canDrop.overlaps,'onDrop')
         }
       } else{
-        console.log("doDroppy null ERROR?", targetDrop,this.targetDrop, draggedItem, this.selectedItem )
+        console.log("doDroppy null ERROR?", targetDrop,this.targetDrop, draggedItem, this.selectedItem)
         return
       }
     },
@@ -2048,8 +2123,8 @@ export default {
               hasOneToMany ? removeWithId(toKeep,allEvts) : removeConflicts(toKeep,allEvts)
 
             }, 0)
-              
           }
+          this.doCleanup() //meh just in case
         }
         let removeWithId = (toKeepArr, allConflicts) => { //oneToManyConflict smh
           console.log(`fixConflicts::removeWithID with toKeep=${toKeepArr.length} `,nextOvTime?.time)//,JSON.parse(JSON.stringify(allConflicts))) //out of total:${allConflicts.length}
@@ -2173,7 +2248,7 @@ export default {
 
                 //false to not check overlaps as scheduled could be removed >>might still overlap with others tho...
                 // prolly better to check how many are added?!? >>still problematic as currScheduled might not be removed yet!!
-                let euhOverlaps = from == 'onDrop' ? this.daSchedule.doUpdateSchedule(value,timey) || {} : this.daSchedule.addGoalsToSchedule([{...value,time:timey.time}],this.daSchedule.isViewingToday()) //toKeepArr.length < 2 ? true : false
+                let euhOverlaps = from == 'onDrop' ? this.daSchedule.doUpdateSchedule(value,timey) || {} : this.daSchedule.addGoalsToSchedule([{...value,time:timey.time}],this.isViewingToday()) //toKeepArr.length < 2 ? true : false
                 //let euhOverlaps = this.daSchedule.recurChangeTime(currScheduled.id,value,timey, true) //from != 'onDrop'
                   if(euhOverlaps && Object.keys(euhOverlaps).length > 0) {
                     extraO.push(euhOverlaps)
@@ -2867,7 +2942,7 @@ export default {
         return
       }
 
-      if (!this.daSchedule.isViewingToday() && !this.mobile){//in futur >>no need confirming with user when inDesktop!
+      if (!this.isViewingToday() && !this.mobile){//in futur >>no need confirming with user when inDesktop!
         doSave = this.daSchedule.getCurrentMoods()[evt.id] // this.usingMoods[evt.id] //oldie >>false  //should auto-save and flag to update labeling....
         console.log('Removing future evt')
         aRemove() //(false)
@@ -3014,7 +3089,7 @@ export default {
       let futureDatey = now.date
 
       let title = evt.title //for notes
-      let isToday = this.daSchedule.isViewingToday() //proper startDay in addInFutur
+      let isToday = this.isViewingToday() //proper startDay in addInFutur
        
         //umm this looks at current day schedule...
         //should look into next day as well?!?--toReview***
@@ -3259,31 +3334,24 @@ export default {
         }
       }
     },
-    //onDragHStart(e, type, item){ //seems better in div
-      
-      //let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-      //console.log('onDragHStart',e,type, item, e.target,e.target.classList)
-      //this.selectedItem = item
-
-      //e.target.classList.add("my-header-drag")
-      //.element:target { background: yellow; } >>dont work nor .focus
-      //e.preventDefault()        
-      //return true
-    //},
-    //onMouseOver(e){ //nope dont fire on badge nor div...even when remove @?
-    //  console.log('onMouseOver',e)
-    //},
     onDragStart(e, type, item) {
       //console.log('onDragStart',e,type, item)
-        
+      //this.doLog('onDragStart '+type, item) 
       if(this.isViewingPast()){
         this.doNotify("Editing past is no no!")
         e.preventDefault()        
         return
       }
 
-      //keep track of moved...also save for 'header-item' type...save type?
-      this.selectedItem = item
+      if(type == 'tree-item'){
+        let it = this.daSchedule.getSubGoalByID(item.id)
+        console.log('onDragyStart::TreeItem '+type, JSON.parse(JSON.stringify(item)),JSON.parse(JSON.stringify(it))) //this.doLog
+        this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
+        return
+      }
+
+      //keep track of moved...
+      this.selectedItem = {evt:item, type:type}
      
     },
     //onDragHEnter(e, type, scope){ //scope is undefined
@@ -3305,7 +3373,10 @@ export default {
         }else{
           let target = e.target
           //console.log('onDragEnter>>TARGET',this.targetDrop?.timestamp?.time,scope.timestamp.time,this.selectedItem)//,target.style,target)
-          target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //oldie >> 'pink'
+          //if(this.selectedItem.bgcolor.includes("-")){ target.classList.add(`bg-${this.selectedItem.bgcolor?.toLocaleLowerCase()}`) } else{ target.style.background = this.selectedItem.bgcolor }
+          //target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //'bg-'+this.selectedItem.bgcolor >>doesnt work for style >>does as css class! above line works but passed over intervals keep color and removing from classlist would be hassle...
+          let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
+          target.style.background = color.includes("-") ? 'grey' : color
           this.lastTarget = target
         }
       
@@ -3330,6 +3401,7 @@ export default {
       let target = e.target
       //console.log('onDragLeave',this.targetDrop?.timestamp?.time,target.style.background)//,target.style,target)
       target.style.background = ''
+      //remove("my-header-drag")
 
       return false  //what if true?!? >>methink false in order to preventDefault and not handled by browser...
     },
@@ -3348,9 +3420,9 @@ export default {
     onDrop(e, type, scope){
       //console.log('onDrop',e, type, scope)
 
-      let d = this.daSchedule.findSchedEvent(this.selectedItem.id) //kinda redundant!!
-      
-      if (!d) {console.log("onDrop ERROR", d,this.selectedItem ); return} //shouldnt happen!
+      //below redundant when dragging from treeLegend
+      //let d = this.daSchedule.findSchedEvent(this.selectedItem.id)
+      //if (!d) {console.log("onDrop ERROR", d,this.selectedItem ); return}
 
       let targetTimey = null
 
@@ -3463,20 +3535,28 @@ export default {
       this.removeEvtInSchedule(event,false) 
       e.preventDefault() //to disable popupEdit...dont work smh event with using setTimeout above
     },
-    onTouchHStart(e, item){
+    onTouchHStart(e, type, item){ //todo** use onTouchStart below....
       //console.log('onTouchHStart', e,item,e.target) 
-      this.selectedItem = item
+      if(type == 'tree-item'){
+        let it = this.daSchedule.getSubGoalByID(item.id)
+        console.log('onTouchHStart::TreeItem '+type, JSON.parse(JSON.stringify(item)),JSON.parse(JSON.stringify(it))) //this.doLog
+        this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
+        e.preventDefault()
+        return true
+      }
+
+      this.selectedItem = {evt:item, type:type}
 
       e.target.classList.add("my-header-drag")
       e.preventDefault()
       return true
     },
-    onTouchStart(e, item){
-      console.log('onTouchStart', e,item)
+    onTouchStart(e, type, item){
+      //console.log('onTouchStart', e,type, item)
       if(e.type == "touchstart"){ //fires once!
       
         //this.draggedItem = item
-        this.selectedItem = item
+        this.selectedItem = {evt:item, type:type}
         let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
         //let f = target.closest('.my-event')
@@ -3488,7 +3568,7 @@ export default {
         } else {
           //console.log("onTouchStart:WOOOAH inner touch?",target.parentNode,this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id]) 
           //could happen if it's inner elt...so go up
-          let f = target.closest('.my-event')
+          //let f = target.closest('.my-event')
           target = target.parentNode
           if(target.parentNode.classList.contains("my-event")){
             //console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
@@ -3507,11 +3587,11 @@ export default {
         return true //true?
       }
     
-      console.log("onTouchStart::ERROR...UNKNOWN",e) //shouldnt happen as rest handled via handleTouchEvt()
+      console.log("onTouchStart::ERROR...UNKNOWN",e) //shouldnt happen as other handlers via handleTouchEvt()
 
       return
     },
-    onTouchHEvt(e, item){
+    onTouchHEvt(e, item){ //huh no need for item...toRemove**
       //console.log('onTouchHEvt', e,item)
       if(e.type == "touchmove"){
         let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
@@ -3525,13 +3605,14 @@ export default {
             if (isSame && changedBy == 0){
               //console.log('onTouchHEvt::touchmove>>TARGETSAME', target,s,isSame, changedBy)
               return //add true? toSee**
-            } 
+            }
+            let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
             if(!this.lastTarget){
               this.lastTarget = target
-              target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
+              target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ? 'grey' : this.selectedItem.evt.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
             }else{
               this.lastTarget.style.background = '' //remove from old
-              target.style.background = this.selectedItem.bgcolor.includes("-") ?'grey' : this.selectedItem.bgcolor //todo***--add guardrails if not present..mayhaps
+              target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ?'grey' : this.selectedItem.evt.bgcolor
               this.lastTarget = target 
             }
           }
@@ -3549,7 +3630,6 @@ export default {
           let s = this.getLabelTime(target.ariaLabel)
           //console.log('onTouchHEvt::touchend>>TARGET', target,s,this.lastTarget)
          
-          //then droppy...
           this.targetDrop = s
           
           this.doDroppy(this.targetDrop, this.selectedItem)
@@ -3573,30 +3653,6 @@ export default {
     onTouchEvt(e, item){
       //console.log('onTouchEvt', e,item)
 
-        const getTimey = (ariaLabel) => {
-          let str = ariaLabel.split(' ')
-          let tr = str[str.length-2] //12:30
-          let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-
-          if(str[str.length-1] == 'PM'){ //for adding 12hrs to account when time is in PM 
-            //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-            if (s.hour == 12){//EXCEPT for noon!
-              //console.log("getTimeyyyyy:",s)
-              return s
-            }
-            
-            return addToDate(parsed(this.currentDate), { hour: 12, minute: parseTime(tr)})
-          }else { 
-            if (s.hour == 12){////reset to 0 for midnight hour smh
-              //let r = addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) }) 
-              //console.log("getTimeyyyyy:",parseTime(tr),s,r)
-              return addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) })  //r
-            }
-          }
-
-          return s
-        }
-
         let resetClass = (t) =>{
           let f = t.closest('.my-event')
           if (f.classList.contains("my-event-drag")) {
@@ -3608,8 +3664,8 @@ export default {
 
       if (!this.selectedItem){ //should be populated** 
         console.log("onTouchEvt NULL Item >>ERROR?!? "+e.type,this.selectedItem,this.touchedItem)
-        item = this.selectedItem //redundant prolly
-        //should return?!? prolly?
+        //item = this.selectedItem //redundant prolly
+        return
       }
 
       if(this.isViewingPast()){ //present check only for move/end --
@@ -3643,12 +3699,13 @@ export default {
             }
 
             //console.log("touchmove::INTERVAL changed!!",isSame,s.time,this.targetDrop?.time,changedBy,this.lastTarget,target,this.selectedItem.color,this.selectedItem.color.includes("-"))
+            let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
             if(!this.lastTarget){
               this.lastTarget = target
-              target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
+              target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ? 'grey' : this.selectedItem.evt.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
             }else{
               this.lastTarget.style.background = '' //remove from old
-              target.style.background = this.selectedItem.bgcolor.includes("-") ?'grey' : this.selectedItem.bgcolor //todo***--add guardrails if not present..mayhaps
+              target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ?'grey' : this.selectedItem.evt.bgcolor 
               this.lastTarget = target 
             }
           }
@@ -3980,7 +4037,8 @@ export default {
         //persistent:      
         // position: 'bottom',
         //noBackdropDismiss  //should add this when user have to make choice
-        message: message
+        message: message,
+        multiLine: true,
       }).onOk(() => {
           executeOk()
       }).onCancel(() => {
@@ -4146,7 +4204,7 @@ export default {
 .my-event-drag
   outline: 1px dashed #213
   opacity: 0.7
-  cursor: move
+  z-index: 9
   transform: rotateY(45deg) translateZ(1em)
   transition: transform 100ms linear
 
@@ -4157,7 +4215,13 @@ export default {
   transform: scale(1.5)
   transition: transform 100ms linear
 
+.forMobile
+  display: none
+
 @media (max-width: 500px)
   .instru
     display: none
+  .forMobile
+    display: block
+    z-index: 9
 </style>

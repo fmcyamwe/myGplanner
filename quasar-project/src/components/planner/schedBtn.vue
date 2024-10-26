@@ -23,7 +23,7 @@ import { defineComponent } from 'vue'
     name: 'schedBtn',
     props: {
       textLabel: String,
-      isDisabled:{
+      isDisabled:{ //not passing in this flag and using disable prop hides tooltip!
         type: Boolean,
         default: false
         ////required: true,
@@ -60,4 +60,29 @@ import { defineComponent } from 'vue'
             label="Defaults"
             @click="onLoadDefault"
             no-caps
-          />-->
+          />
+
+          //other examples
+          <q-btn
+          class="q-mt-md"
+          :text-color="saveScheduleDisabled ? 'grey' : 'blue' "
+          elevated
+          push
+          align="evenly"                      
+          label="SaveSchedule"                                
+          :disable="saveScheduleDisabled"                      
+          @click="doSaveSchedule"                      
+          no-caps
+          />
+
+          <q-btn v-if="showTree || isViewingPast()"
+          class="q-mt-md"
+          text-color="green"                      
+          elevated                      
+          push                      
+          align="evenly"                      
+          :label="showTree ? 'HideTree' : 'ShowTree'"                      
+          @click="() =>{ showTree ? resetFilter(): '' ; showTree = !showTree}"
+          no-caps
+          />
+      -->

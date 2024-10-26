@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pa-md">
+  <div class="q-pa-sm">
     <q-card>
       <q-card-section>
         <div class="text-h4 title">New Ad hoc Event</div> 
@@ -14,10 +14,10 @@
         label="Title"
         lazy-rules
         item-aligned
-        :rules="[ val => val && val.length > 0 || 'Please type a goal']"
+        :rules="[ val => val && val.length > 1 || 'Please type a goal']"
         />
         <div class="radio-select">
-          <q-radio class="q-mx-md" v-model="own" val="misc" label="Misc" />
+          <q-radio class="q-mx-xs" v-model="own" val="misc" label="Misc" />
           <q-radio class="q-mx-md" v-model="own" val="self" label="By Self" />
         </div>
       
@@ -155,8 +155,14 @@ import { whenFrmtTime} from '../../pages/util/utiFunc'
   text-align: center
 .title
   white-space: nowrap
+  text-align:center
 @media (max-width: 500px)
   .title
-    transform: scale(.75, .75)
-    white-space: nowrap
+    white-space: break-spaces
+    text-align: center
+  .radio-select
+    display: flex
+    flex-direction: row
+    justify-content: center
+    margin: 0 auto
 </style>

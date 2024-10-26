@@ -2,16 +2,6 @@
   <q-layout view="lHh Lpr lFf">
     <q-header elevated>
       <q-toolbar>
-        <!--<q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          class="q-gutter-md"
-          @click="toggleLeftDrawer"
-        /> -->
-
         <q-toolbar-title class="g-planner">
           My G. Planner
         </q-toolbar-title>
@@ -70,13 +60,12 @@ const linksList = [
     caption: 'Summary',
     icon: 'summarize', //self_improvement ?
     link: '/summary', //'https://quasar.dev'
-    //clicky: 
-  }
+  },
   //{
-  //  title: 'Alt',
-  //  caption: 'Alty',
+  //  title: 'Testy',
+  //  caption: 'Testy',
   //  icon: 'event_upcoming',
-  //  link: '/testAlt', //'https://quasar.dev'
+  //  link: '/testy',
   //}
 ]
 
@@ -88,20 +77,8 @@ export default defineComponent({
   },
 
   setup () {
-    //const leftDrawerOpen = ref(false)
-    
-    //function clicky() { //to close drawer on navigation, otherwise it stays open on the new page!
-     
-    //  leftDrawerOpen.value = !leftDrawerOpen.value
-    //}
-
     return {
       essentialLinks: linksList,
-      //clicky,
-      //leftDrawerOpen,
-      //toggleLeftDrawer () {
-      //  leftDrawerOpen.value = !leftDrawerOpen.value
-      //}
     }
   }
 })

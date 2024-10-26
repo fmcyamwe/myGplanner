@@ -1,7 +1,7 @@
 <template>
-<main class="page page--table q-pa-md" > <!--no need for </q-page> ? toSee-->
+<q-page padding> <!-- oldie <main class="page page--table q-pa-md" -->
     <q-pull-to-refresh @refresh="refresh">
-        <div class="q-gutter-md" style="max-width: 600px"> <!--style="max-width: 400px"  class="bg-grey-2 text-grey-7"-->
+        <div class="q-mx-auto" style="width: fit-content"> <!--style="max-width: 400px"  class="bg-grey-2 text-grey-7"-->
             <q-tabs
                 v-model="tab"
                 dense
@@ -165,14 +165,14 @@
                 </q-tab-panel>
                 
                 <q-tab-panel name="Goal">
-                    <q-form @submit="onSubmit" class="q-gutter-md form" >
+                    <q-form @submit="onSubmit" class="form"> <!--q-gutter-md-->
                         <div class="q-gutter-sm">
                             <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
                             
                             <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
                         </div>
 
-                        <q-input class="q-gutter-md"
+                        <q-input class="q-mx-auto"
                             filled
                             v-model="goalTitle"
                             label="A Goal"
@@ -257,9 +257,8 @@
                             type="time"
                             clearable
                             hint="Default Schedule time"
-                            class="q-mx-md center"
-                            style="max-width: 50%;"
-                             />
+                            class="q-mx-auto"
+                            />
                             
                             <br>
                               <div class="atLeft"> 
@@ -278,7 +277,7 @@
                                 />
                               </div>
                               
-                              <div class="atRight q-mr-md">
+                              <div class="atRight"> <!--q-mr-md-->
                                 <q-toggle
                                 v-model="canMove"
                                 label="Can Move"
@@ -517,8 +516,7 @@
             </div>
         
     </q-pull-to-refresh>
-    
-</main>
+</q-page>
 </template>
 <script>
 //import draggable from 'vuedraggable'
@@ -1276,6 +1274,11 @@ export default {
 }
 .atRight {
     float:right
+}
+@media (max-width: 500px){
+.atRight {
+    float:none;
+    }
 }
  
 </style>

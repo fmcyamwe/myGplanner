@@ -1,5 +1,5 @@
 <template>
-    <q-page> <!-- class="flex flex-center"-->
+    <q-page padding> <!-- class="flex flex-center"-->
       <!--<q-splitter
       v-model="splitterModel"
       :limits="[50, 100]"
@@ -7,7 +7,7 @@
     >  //limits here mean that :before slot doesnt get less than 50%-->
 
     <!--<template v-slot:before> -->
-      <div class="q-pa-md">
+      <div class="q-px-md">
         <navigation-bar
             @today="onToday"
             @prev="onPrev"

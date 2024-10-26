@@ -35,13 +35,13 @@
           <!--<q-space/>toSee look with space...nothing here-->
         </q-card>
 
-        <q-card v-else> <!--totest....-->
+        <q-card v-else class="q-mx-auto"> <!-- style="width: 100%;"-->
           <q-card-section>
-            <div class="text-h6">Ad hoc or Existing event</div>
+            <div class="text-h6 choice">Ad hoc or Existing event</div>
           </q-card-section>
           <q-card-actions align="center">
-            <q-btn flat label="Add hoc" color="primary" @click="onChooseAdHoc"/>
-            <q-btn flat label="Existing" color="primary" @click="onChooseExisting"/>
+            <q-btn push label="Ad hoc" no-wrap no-caps color="primary" align="evenly" @click="onChooseAdHoc"/>
+            <q-btn push label="Existing" no-wrap no-caps color="primary" align="evenly" @click="onChooseExisting"/>
           </q-card-actions>        
         </q-card>
     </q-dialog>
@@ -197,6 +197,18 @@ export default {
   margin:0 auto
   width: 100%
   padding-inline:30px
+.choice
+  justify-content: center
+  align-items: center
+  text-align: center
+  margin:0 auto
+
+@media (max-width: 500px)
+  .choicey
+    font-size: 0.8em
+  .forMobile
+    display: block
+    z-index: 9
 </style>
 
 <!-- original stuff

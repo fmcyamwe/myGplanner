@@ -893,17 +893,7 @@ export default class daySchedule {
       }
     }
     scheduleSamePrio(flag,skipOvCheck = false){
-      
-        const filterCurrent =() => { //redundant as moved in filterSchedToCurrentPrio()
-          let toRet = []
-          this._dailyScheduled.forEach((value, key, map)=> {
-            if(this.parentGoalById(value.parentGoal)?.priority == this.chosenPrio){
-              toRet.push(value)
-            }
-          })
-          return toRet //this.actualEvts.filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
-        }
-
+     
         const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculatePrioEvts() --toMonitor**
           console.log(`scheduleSamePrio::RECALCULATE?!?`,flag,this.chosenPrio, this.byPrio)
           let toRet = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
@@ -1001,16 +991,6 @@ export default class daySchedule {
     }
     scheduleByScore(flag,skipOvCheck = false){
       
-        const filterCurrent = () => { //redundant as moved into filterSchedToCurrentScore
-          let toReload = []
-          this._dailyScheduled.forEach((value, key, map) => { //(item) this.actualEvts
-            let daScore = parseScore(value.score)
-            if (daScore > -1 && daScore <= this.chosenScore) {
-              toReload.push(value)
-            }//else{console.log('filterCurrent::parseScore?skippin',daScore, item,this.usingMoods[item.id])}
-          })
-          return toReload
-        }
         const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculateScoreEvts() --toMonitor**
           console.log(`scheduleByScore::RECALCULATE?!?`,flag,this.chosenScore, this.byScore)
           let toRet = Repo.goalsUpToScore(this.chosenScore)
@@ -1051,8 +1031,6 @@ export default class daySchedule {
       let sizey = euhOverlaps.length //oldie >> Object.keys(euhOverlaps).length
       
       this.updateCurrentMoods()
-
-      //console.log('scheduleByScore--ALL',this.getAllEvts())
 
       let added = toAdd.length - sizey - noTime.length
 
@@ -1232,7 +1210,7 @@ export default class daySchedule {
         dEvts = this.unscheduledDefaults()
       }else{
         this.resetSchedule() //byDefaults
-        dEvts = this.unscheduledDefaults() //this.getSubGoals()
+        dEvts = this.unscheduledDefaults()
       }
 
       this.showReloadBtn = this.hasEventsForDate()
@@ -1851,7 +1829,7 @@ export default class daySchedule {
   
       return toRet
     }
-    changeEvtTime(draggedItem, targetDrop,choice){
+    changeEvtTime(draggedItem, targetDrop,choice =''){
       //console.log("changeEvtTime: "+choice,targetDrop,draggedItem)
       if (choice == 'ok'){
         //this.store.saveSubProp(evtID, timey, score)  
@@ -1955,7 +1933,7 @@ export default class daySchedule {
       }
     }
     reduceEvtDuration(evtID,duration){
-      let evt =  this.findSchedEvent(evtID) //this.getSubGoalByID(evtID)
+      let evt =  this.findSchedEvent(evtID)
       if(!evt){ //umm shouldnt happen!!
         console.log(`ERROR:: reduceEvtDuration Evt not found!!!`, evtID)
         return

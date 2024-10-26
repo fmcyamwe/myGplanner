@@ -1,14 +1,14 @@
 <template>
     <q-dialog ref="dialogRef" transition-show="rotate" transition-hide="rotate" @hide="onDialogHidey">
     <!--<q-dialog  v-model="showy" @before-hide="gonHide"> -->
-      <q-card class="my-dialog"> <!--bg-secondary ..Notey & Score :: -->
+      <q-card class="my-dialog">
           <div class="q-ma-md title"> {{title}} </div>
+          <div class="q-ma-md message" > {{mess}} </div>
+
           <q-separator dark />
-          <div class="q-ma-md title"> {{mess}} </div>
 
           <q-card-section class="q-gutter-md">
-            
-            <div class="q-gutter-sm">
+            <div>
                 <q-option-group
                 v-model="oChoice"
                 :options="daOptions"
@@ -209,22 +209,26 @@ export default defineComponent ({  //this be Options Vue notation
 <style lang="sass" scoped>
 .inputBtn
   text-align: center
+
 .title
   position: relative
   display: flex
   justify-content: center
   align-items: center
-  height: 100%
+
+.message
+  color: #2196F3
+  position: relative
+  display: flex
+  justify-content: center
+  align-items: center
 
 .my-dialog
-  width: 75%
+  width: 100%
   background-color: gainsboro
 
-.poppy
-  width: 100%
-
 @media (max-width: 500px)
-  .poppy
+  .somethingToHide
     display: none
 
 </style>

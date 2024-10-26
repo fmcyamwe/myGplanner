@@ -1,17 +1,17 @@
 <template>
-    <div class="q-pa-md">
+    <div class="q-pa-sm">
         <q-card> <!-- row items-start... style="padding: 2px 2px;"-->
-            <q-card-section>
+            <div>
                 <div class="text-h3 title">Select event</div>
                 <div class="q-mx-md do-center"> @ <em>{{ atTime }}</em></div>
-            </q-card-section>
+            </div>
             <q-separator />
             
             <div class="q-mx-md event-select">
               <q-select
               v-model="toFilterBy" 
               :options="unscheduledP"
-              class="q-gutter-md q-px-md"
+              class="q-mx-md"
               option-value="id"
               option-label="title"
               popupContentClass="q-px-sm"
@@ -70,7 +70,7 @@
                 -->
 
             </div>
-            <div v-if="toAdd" class="q-px-md">
+            <div v-if="toAdd" class="q-mx-auto">
               Duration (min)
               <q-knob
                   :min="5"
@@ -86,8 +86,8 @@
               />
             </div>
             <br>
-            <q-card-actions align="center" class="q-px-xl">
-              <q-checkbox dense v-model="doForce" label="Force In" color="teal"/> <!--class="q-pa-sm"-->
+            <q-card-actions align="center" class="q-mx-auto">
+              <q-checkbox dense v-model="doForce" label="Force In" color="teal" class="q-mx-sm"/>
               <q-space/> 
               <q-checkbox v-if="canBalance()" dense v-model="useBalance" label="Use Balance" color="brown" /> <!--class="q-pa-sm"-->
             </q-card-actions>
@@ -239,10 +239,12 @@ import { whenFrmtTime} from '../../pages/util/utiFunc'
   text-align: center
 .title
   white-space: nowrap
+  text-align:center
 @media (max-width: 500px)
   .title
-    transform: scale(.75, .75)
-    white-space: nowrap
+    white-space: break-spaces
+    text-align: center
+    transform: scale(.7)
 </style>
 
 

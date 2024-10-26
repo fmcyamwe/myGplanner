@@ -2,7 +2,7 @@
     <q-btn-dropdown
     split
     dense
-    align="between"
+    align="evenly"
     color=""
     elevated
     :disable-main-btn= "disableBtn"
@@ -12,14 +12,14 @@
     no-wrap
   >
   <!--huh can add something first i.e <div>ddd</div> -->
-  <!--
+  <!--and pass in padding from parent!
     see about adding border to options below via class..
     class="q-px-xl"
   /> -->
   
   <q-list bordered padding>
       <q-item v-for="e in daOptions" :key="e" clickable v-close-popup @click="onSelect(e)" ><!--chooseScore(e)-->
-        <q-item-section  style="text-align: center;">
+        <q-item-section style="text-align: center;">
           <q-item-label>{{ e }}</q-item-label>
         </q-item-section>
       </q-item>

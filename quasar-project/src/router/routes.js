@@ -9,7 +9,8 @@ const routes = [
         { path: 'summary', component: () => import('pages/planner/summaryView.vue') }, //summaryCalendar
         //{ path: 'dayCalendar', component: () => import('pages/planner/dayView.vue') }, //dayCalendar
         { path: 'goalsPage', component: () => import('pages/planner/goalsView.vue') }, //goalsPage
-        { path: 'dayCalendar', component: () => import('pages/planner/altDayView.vue') } //refactor of dayCalendar >>testAlt
+        { path: 'dayCalendar', component: () => import('pages/planner/altDayView.vue') }, //refactor of dayCalendar >>testAlt
+        //{ path: 'testy', component: () => import('pages/testyPlanner.vue') }
         //{ path: 'draggy', component: aDragga }
       ]
     },

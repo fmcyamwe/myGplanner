@@ -372,21 +372,14 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     }
 
-    function fetchAllPrio(prio = null){
+    function fetchAllPrio(){
         let allGs = this.getMainGoals
         let Smap = new Set()
-
-        if(prio){
-            for( var i = 0; i < allGs.length; i++){ 
-                if ( allGs[i].priority == prio) {
-                    Smap.add(allGs[i].priority)  //umm not goal?!?
-                }
-            }
-        }else {
-            allGs.forEach(g => {
-                Smap.add(g.priority)
-            })
-        }
+        
+        allGs.forEach(g => {
+            Smap.add(g.priority)
+        })
+        
         return Smap
     }
 
@@ -466,6 +459,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let mains = this.getMainGoals
         let subs =  this.getSubGoals
 
+        
         let sorty = (a, b) => { //could still be out of order of creation due to id generation(see above when adding)....
             if (a.id > b.id) return 1; 
             if (a.id == b.id) return 0; 
@@ -598,7 +592,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let updateGoal = (task, withParent = null) => {
             let aTask = {
                 children: [],
-                title: withParent ? `${task.title.trim()}(${task.score})`: `${task.title.trim()} !${task.priority}!`,
+                title: withParent ? `${task.title.trim()} (${task.score})`: `${task.title.trim()} !${task.priority}!`,
                 key: withParent ? `${withParent}-${task.id}` : task.id,
                 logged:[], 
                 //logged: daDs[task.id] || [], //gotta assign empty eh!
