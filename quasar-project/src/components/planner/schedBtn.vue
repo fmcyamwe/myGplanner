@@ -40,12 +40,7 @@ import { defineComponent } from 'vue'
 })
 </script>
 <style lang="sass" scoped>
-.radio-select
-  display: flex
-  justify-content: center
-  margin:0 auto
-  width: 100%
-  padding-inline:30px
+
 </style>
 
       

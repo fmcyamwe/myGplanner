@@ -1604,7 +1604,7 @@ export default class daySchedule {
   
           //console.log(`Cascading time change moving (${overlappedEvtID})'${overlappedEvt?.title}' ${overlappedEvt?.time} due to ${doAdd ? "Adding":"Moving"} ${tEvt.id}-'${tEvt?.title?.trim()}'`) //: console.log(`ERROR::recurChangeTime ${overlappedEvtID} not found`) //umm return?
   
-          if (doNotif){doNotif(`${sizey} Cascading Overlaps handling (${overlappedEvtID}) '${overlappedEvt?.title}' going ${dName} as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`) }
+          if (doNotif){doNotif(`Cascading ${sizey} Overlaps >> '${overlappedEvt?.title}' going ${dName} as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`)} //(${overlappedEvtID}) '
           do {
             console.log(`CASCADING OVERLAPPED >> ${i} (${overlappedEvtID}) at: ${overlappedEvtNew.time} now at: ${overlappedEvt.start.time} till ${overlappedEvt.end.time}`,anyOtherOverlap[i]) //overlappedEvt.for
             //should prolly skip when seeing own self?!?--toMonitor**
@@ -1637,16 +1637,15 @@ export default class daySchedule {
         let conflicts = this.addToSchedule({...tEvt,time:draggedNewTime.time},this.isViewingToday()) //false
         if(conflicts.length > 0) { //oldie >> Object.keys(conflicts).length
           this.doLog(`recurChangeTime::TARGET extra OVERLAP ${doAdd ? "Adding":"Moving"} ${tEvt?.title?.trim()}`,conflicts) //JSON.parse(JSON.stringify(conflicts))
-          //${dName} 
-          //return conflicts //handle this here instead!!//--kinda take decision away from user but oh well!
-          //shouldnt have many conflicts?!?--toSee**
-          if (doNotif){doNotif(`EXTRA OVERLAPS ${doAdd ? "Adding":"Moving"} TARGET ${tEvt?.title?.trim()}`)} //${dName}
-
+          
           let hasOneToMany = conflicts.find(item => item[0] == "oneToMany")
           if (hasOneToMany){
             conflicts = conflicts.filter(item => item[0] != "oneToMany") //filter out
             this.doLog(`recurChangeTime::TARGET::WITHID!!!Now>>`,conflicts.length)
           }
+
+          if (doNotif){doNotif(`EXTRA ${conflicts.length} OVERLAPS ${hasOneToMany ? "::OneToMany::":""} Adding TARGET ${tEvt?.title?.trim()}`)} //${dName}
+
           
           //for (let l = 0; l < conflicts.length; l++) 
           let sizey = conflicts.length

@@ -1,5 +1,5 @@
 <template>
-    <div class="q-px-md boxy">
+    <div class="q-px-sm boxy">
         <div v-if="showReloadBtn">
             <sched-btn
             text-label="Reload"

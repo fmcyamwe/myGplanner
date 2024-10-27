@@ -23,7 +23,7 @@
               v-model:model-tasks="parsedTasks"
               v-model:model-footer="footerTasks"
               view="month"
-              :task-width="240"
+              :task-width="mobile ? 140 : 240"
               :cell-width="75"
               task-key="key"
               :min-weekday-length="2"
@@ -44,7 +44,7 @@
             >
             <template #head-tasks="{ /* scope */ }">
               <div
-                class="header ellipsis q-ma-sm"
+                class="header ellipsis"
                 style="font-weight: 600"
               >
                 <div class="issue ellipsis q-px-xs">{{getViewedMonth}}</div>
@@ -535,19 +535,19 @@ export default defineComponent({
   width: 100%
   padding: 2px
   font-size: .9em
-  .issue
-    display: flex
-    justify-content: flex-start
-    align-items: center
-    width: 80%
-  .key
-    display: flex
-    justify-content: center
-    width: 80px
-  .logged
-    display: flex
-    justify-content: flex-end
-    width: 80px
+.issue
+  display: flex
+  justify-content: flex-start
+  align-items: center
+  width: 80%
+.key
+  display: flex
+  justify-content: center
+  width: 80px
+.logged
+  display: flex
+  justify-content: space-evenly
+  width: 80px
 .summary
   display: flex
   justify-content: space-between
@@ -556,12 +556,12 @@ export default defineComponent({
   font-size: .9em
   font-weight: 700
   width: 100%
-  .title
-    display: flex
-    justify-content: flex-start
-  .total
-    display: flex
-    justify-content: flex-end
+.title
+  display: flex
+  justify-content: flex-start
+.total
+  display: flex
+  justify-content: flex-end
 .logged-time
   display: flex
   justify-content: center
@@ -607,6 +607,7 @@ export default defineComponent({
 @media (max-width: 500px)
   .myHeading
     font-size: 0.5em
+
   .key
     display: none
 </style>

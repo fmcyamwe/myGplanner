@@ -169,7 +169,9 @@
                 <!--<q-avatar v-if="mobile" color="primary" class="q-px-md" text-color="white" size="40px" icon="legend_toggle || question_mark" style="position: relative; top: 70%;"/>-->
                 
                 <template v-slot:after><!-- Calendar and dialogs...-->
-                  <div class="q-pa-md relative-position forMobile"><!--q-pa-md relative-position style="height: 280px; max-height: 80vh"-->
+                  <div class="q-pa-md relative-position forMobile"><!--q-pa-md relative-position style="height: 280px; max-height: 80vh"  "[18, 18]"-->
+                    <q-page-sticky position="top-left" :offset="fabPos">
+
                     <q-btn
                       v-morph:btn:mygroup:300.resize="morphGroupModel"
                       class="absolute-top-left q-mx-md"
@@ -179,13 +181,15 @@
                       icon="legend_toggle"
                       align="evenly"
                       @click="nextMorph"
-                    /><!--:disable="draggingFab" v-touch-pan.prevent.mouse="moveFab"  >>need q-page-sticky-->
+                      :disable="draggingFab"
+                      v-touch-pan.prevent.mouse="moveFab"
+                    /><!--need q-page-sticky-->
                     <!--<q-fab></q-fab> use q-fab? also make first qCard show faster? -->
                     <q-card
-                      v-morph:card1:mygroup:500.resize="morphGroupModel"
-                      class="absolute-top-left q-ma-md bg-grey"
-                      style="width: 50%; border-top-left-radius: 2em"
-                    >
+                      v-morph:card1:mygroup:500.tween="morphGroupModel"
+                      class="q-ma-md bg-grey"
+                      style="width: 59%; border-top-left-radius: 2em"
+                    ><!--absolute-top-left-->
                       
                         <scheduleDayLabel
                         :doShow="treeGoals.length > 0"
@@ -218,18 +222,16 @@
                     </q-card>
                     <q-card
                       v-morph:card2:mygroup:500.tween="morphGroupModel"
-                      class="absolute-top-left q-ma-md"
-                      style="width: 70%; border-top-left-radius: 2em"
+                      class="q-ma-xs"
+                      style="width: fit-content; border-top-left-radius: 2em"
                     >
-                      <!--<q-card-section class="text-h6">
-                        Finalize registration
-                      </q-card-section>-->
+                      <!--absolute-top-left -->
 
-                      <div class="text-center text-subtitle2 q-mt-sm">
+                      <div class="text-center text-subtitle2 q-ma-sm">
                         Reload By
                       </div>
                       <q-separator color="red" inset/>
-                      <q-card-section>  
+                      <div class="q-ma-xs">  
                         <actionBtns
                           :scoreOptions="scoreOptions"
                           :allMainGPrio="allMainGPrio()"
@@ -254,13 +256,14 @@
                           @on-schedule-one-each="() => {onScheduleOneEach(); morphClose()}"
                           @do-hide-tree="() => showTree = !showTree"
                         />
-                    </q-card-section>
+                      </div>
                     
                       <q-card-actions align="right">
                         <q-btn flat no-caps no-wrap @click="prevMorph"> &lt; Prev </q-btn>
                         <q-btn flat label="Close" no-caps no-wrap @click="nextMorph" />
                       </q-card-actions>
                     </q-card>
+                  </q-page-sticky>
                   </div>
                     <navigation-bar
                     @today="onToday"
@@ -546,7 +549,7 @@ export default {
       }),
       morphGroupModel: ref('btn'),
       draggingFab:ref(false),
-      fabPos: ref([ 18, 18 ]), //test for mobile draggable actnBtn >>better here
+      fabPos: ref([ 0, 10 ]), //mobile draggable actnBtn >>offset:: horizontal,vertical 
 
       calendar: ref(null),
 
@@ -718,12 +721,12 @@ export default {
   },
   methods:{
     moveFab (ev) {
-      console.log("moveFab...",ev,this.draggingFab,this.fabPos)
+      //console.log("moveFab...",ev,this.draggingFab,this.fabPos)
       this.draggingFab = ev.isFirst !== true && ev.isFinal !== true
 
         this.fabPos = [
-          this.fabPos[ 0 ] - ev.delta.x,
-          this.fabPos[ 1 ] - ev.delta.y
+          this.fabPos[ 0 ] + ev.delta.x, //oldie was -
+          this.fabPos[ 1 ] + ev.delta.y
         ]
     },
     prevMorph(){
@@ -732,7 +735,7 @@ export default {
     nextMorph() {
       this.morphGroupModel = this.nextMorphStep[ this.morphGroupModel]
     },
-    morphClose() { //after actionBtn click >> should be same as using >> this.morphGroupModel ...prolly 
+    morphClose() { //after actionBtn click >> should be same as using >> this.morphGroupModel
       this.morphGroupModel = this.nextMorphStep['card2']
     },
     showEvtMobile(id){
@@ -1026,7 +1029,9 @@ export default {
         
       this.reset() //clearDay
 
-      this.daSchedule.toggleActionBtns(hasSaved,'view') //enable if hadSavedEvts! 
+      this.daSchedule.toggleActionBtns(hasSaved,'view') //enable saveBtn if hadSavedEvts!
+
+      this.daSchedule.showClearBtn = false //overwrite toggleActionBtns above...
     },
     onLoadDefault(){
       //this.daSchedule.toggle()
@@ -1289,7 +1294,7 @@ export default {
                     return
                   case 'opt4': //forceIn
                     let e = allEvts.find(x => x.id != item.id)
-                    c.recurChangeTime(e.id,item,tTime,true)//,longerNotif)
+                    c.recurChangeTime(e.id,item,tTime,true)
                     resoCompleted = opt //check that done conflict reso with flag>>huh works!!
                     return
                   default://default is manual choose == case 'opt3':
@@ -1538,9 +1543,7 @@ export default {
         
         }else{//overlaps
           //this.doLog("doDroppy::CANNOT Drop",canDrop)//JSON.parse(JSON.stringify(canDrop)))
-          
-          //override flag null as better handled and transmitting from
-          //this.movedIntoConflict(canDrop.overlaps,null,'onDrop') // better for single overlaps but too many options.
+          //this.movedIntoConflict(canDrop.overlaps,null,'onDrop') // better for single overlaps but too many options.//override flag null as better handled and transmitting from
           this.handleOverlaps(canDrop.overlaps,'onDrop')
         }
       } else{
@@ -2101,8 +2104,8 @@ export default {
           setTimeout(() => {this.scrollToTime(noOv, 'slow')},1000) //to allow seeing changes
           //this.scrollToTime(noOv, 'slow')
         }
-        const longerNotif = (mess) =>{ //to show overlaps for longer--huh works!!
-          this.doNotifyTimeout(mess,"negative",'top',10000)
+        const longerNotif = (mess) =>{
+          this.doNotifyTimeout(mess,"negative") //'top',10000 >>too long
         }
         const aNotif = (mess,warn=false) => {
           this.doNotify(mess, warn ? "warning":"positive",'top')
@@ -3548,6 +3551,8 @@ export default {
       this.selectedItem = {evt:item, type:type}
 
       e.target.classList.add("my-header-drag")
+      this.touchedItem = e.target  //save to remove css class later
+
       e.preventDefault()
       return true
     },
@@ -3626,6 +3631,10 @@ export default {
       }
       if(e.type == "touchend"){
         let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
+
+        //remove css class
+        this.touchedItem.classList.contains("my-header-drag") ? this.touchedItem.classList.remove("my-header-drag") : console.log('onTouchHEvt::touchend>>No Header?!?',this.touchedItem)
+
         if(target.ariaLabel){
           let s = this.getLabelTime(target.ariaLabel)
           //console.log('onTouchHEvt::touchend>>TARGET', target,s,this.lastTarget)
@@ -3640,6 +3649,7 @@ export default {
           }
         }
 
+        
         e.preventDefault()
         e.stopPropagation() //needed?@? think so or would trigger other events...prolly...toMonitor***
 
@@ -3649,18 +3659,25 @@ export default {
       console.log("onTouchHEvt::UNKNOWN",e)
 
     },
-
+    resetDraggedItem(t){
+      let f = t.closest('.my-event')
+      if (f.classList.contains("my-event-drag")) {
+        f.classList.toggle("my-event-drag")
+        //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
+      }//else{console.log("onTouchEvt::resetClass...AINT THERE!"+e.type,f,t)}
+      return
+    },
     onTouchEvt(e, item){
       //console.log('onTouchEvt', e,item)
 
-        let resetClass = (t) =>{
+        /*let resetClass = (t) =>{ //moved in >> resetDraggedItem
           let f = t.closest('.my-event')
           if (f.classList.contains("my-event-drag")) {
             f.classList.toggle("my-event-drag")
             //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
           }//else{console.log("onTouchEvt::resetClass...AINT THERE!"+e.type,f,t)}
           return
-        }
+        }*/
 
       if (!this.selectedItem){ //should be populated** 
         console.log("onTouchEvt NULL Item >>ERROR?!? "+e.type,this.selectedItem,this.touchedItem)
@@ -3671,20 +3688,19 @@ export default {
       if(this.isViewingPast()){ //present check only for move/end --
           this.doNotify("Editing past is no no!")  //meh same as below for grouping!
           //this.useGroupNotify("Editing past is no no!", null,'bottom',e.type)//for grouping>>'NoG' 
-          resetClass(this.touchedItem)  //still have to remove the drag class!
+          this.resetDraggedItem(this.touchedItem)  //still have to remove the drag class!
           e.preventDefault()
           e.stopPropagation()
           return
       }
 
-      if(e.type == "touchmove"){ //fires a lot! --to simulate drag with updating the elt moving...
+      if(e.type == "touchmove"){ //fires a lot!
 
         let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
         if(target.ariaLabel){ //when moving into calendar's interval
 
         //e.target remains same original goal event
         //console.log("onTouchEvt::touchmove",this.lastTarget)//target.style)
-        //target.style.background = 'pink' //toSee
         //this.lastTarget = target //toSave just in case
 
           let s = this.getLabelTime(target.ariaLabel) //getTimey(target.ariaLabel)
@@ -3713,13 +3729,7 @@ export default {
 
           e.preventDefault()
           return
-        } /*else { ////no arialLabel...prolly when over another event! || or same one but in early stages of dragging?
-          let f = target.closest('.my-event')
-          if (f && !f.classList.contains("my-event-drag")) {
-            //target.parentNode.classList.add("my-event-drag")
-            console.log("onTouchEvt::move >>TO ADD AGAIN?!?",f,target, this.touchedItem)
-          }//else{console.log("handleTouchMove:gooootIT",f,target)}
-        } */
+        }
 
         //e.preventDefault()
         return //true? tbd**

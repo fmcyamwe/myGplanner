@@ -2,6 +2,7 @@ import { computed } from 'vue'   //ref
 import { defineStore } from 'pinia'
 import { useQuasar } from 'quasar'  //event, 
 
+import { deepCopy } from '../pages/util/utiFunc'
 //see from Blu file original Option store to this Setup Store
 //ref()s become 'state' properties
 //computed() become 'getters'
@@ -35,14 +36,14 @@ export const useGoalStore = defineStore('allGoals', () => {
     //let item = JSON.parse(localStorage.getItem(key))
         //doCopy(JSON.parse($q.localStorage.getItem("mainGoals")))
         let item = JSON.parse($q.localStorage.getItem("mainGoals"))
-        return doCopy(item)
+        return deepCopy(item) //doCopy
     })
     
     const getSubGoals = computed(() => {
     //let item = JSON.parse(localStorage.getItem(key))
         //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
         let item = JSON.parse($q.localStorage.getItem("subGoals"))
-        return doCopy(item)
+        return deepCopy(item) //doCopy
     })
 
     const getAllDates = computed(() => 

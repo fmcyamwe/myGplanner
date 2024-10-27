@@ -95,7 +95,7 @@
             <q-card-actions align="center">
               <q-btn flat label="Cancel" color="primary" @click="$emit('doCancel')" />
               <q-btn elevated color="primary" align="between" @click="onAddClicked">
-                <div class="q-mx-md" style="text-align:center;">
+                <div class="q-mx-md"><!-- style="text-align:center;"-->
                   Add 
                 </div>
               </q-btn>

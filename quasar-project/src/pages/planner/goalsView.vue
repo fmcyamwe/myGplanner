@@ -1,7 +1,7 @@
 <template>
 <q-page padding> <!-- oldie <main class="page page--table q-pa-md" -->
     <q-pull-to-refresh @refresh="refresh">
-        <div class="q-mx-auto" style="width: fit-content"> <!--style="max-width: 400px"  class="bg-grey-2 text-grey-7"-->
+        <div class="q-mx-auto" style="width: fill-available"> <!--style="max-width: 400px" fit-content  class="bg-grey-2 text-grey-7"-->
             <q-tabs
                 v-model="tab"
                 dense
@@ -152,10 +152,6 @@
                         </q-card>
                     </div>
 
-                    <div class="q-pa-lg" align="center">
-                        *Note* Goals named the same can be auto-scheduled!<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
-                    </div>
-
                     <q-toggle 
                     v-model="enableAdmin"
                     :label="enableAdmin ? 'Disable Admin' : 'Enable Admin'"
@@ -165,6 +161,9 @@
                 </q-tab-panel>
                 
                 <q-tab-panel name="Goal">
+                    <div class="q-pa-lg" align="center">
+                        ** Goals named the same can be auto-solved in Overlaps! **<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
+                    </div>
                     <q-form @submit="onSubmit" class="form"> <!--q-gutter-md-->
                         <div class="q-gutter-sm">
                             <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
