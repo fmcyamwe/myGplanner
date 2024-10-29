@@ -130,11 +130,11 @@ import { defineComponent,ref } from 'vue'
       const errorScore = ref(false)
       //let note = ref('')
       return {
-        errorMessageScore,
-        errorScore,
         note:this.notes,
         daScore:this.score,
         daIcon:this.icon,
+        errorMessageScore,
+        errorScore
         //showDialog:this.showMobileDialog   // !this.disabledScore
         //umm inverse in mobile...except it shows immediately!
         //--or maybe should do so programmatically in parent when in mobile?
@@ -181,12 +181,13 @@ import { defineComponent,ref } from 'vue'
           //this.$emit('saveScore', value, this.id) //auto-save does update it? >>does!
           //let e = this.aScoreValidation >>dont work..some side-effect error..cause it's in computed section...
           //def roundabout way to validate instead of using :validate smh..toReview **
-          let e = this.aScorey(value)
+          
+          //let e = //no need to check return?
+          this.aScorey(value) ? this.daScore = value : console.log(`setting invalid aScore?`, value, this.daScore) //todo** try to bring attention to errors before clicking saveBtn
           //console.log(`aScore valid?`,e,this.daScore, this.aNote)
-          if (e){ //umm no need to check return as errorMessage set in aScorey() ?...>>bof!
-            this.daScore = value
-          // this.$emit('saveScore', value, this.id,this.aNote) //bon no need to emit yet...
-          }
+          
+          //this.daScore = value
+          
          
         },
         cancel(){ //doesnt do anything...prolly cause of auto-save?--would prolly trigger when it's absent? //for when user clicks outside popup.--toSee if needed and use @cancel="" 
@@ -243,7 +244,7 @@ import { defineComponent,ref } from 'vue'
           return  //bon should let parent handle it...but wahala to coordinate esti
         }
 
-        this.$emit('saveScore', this.aScore, this.id,this.aNote)
+        this.$emit('saveScore', this.id,this.aScore,this.aNote)
         //this.showDialog = false //to reset and hide dialog
 
       },

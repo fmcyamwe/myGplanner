@@ -417,7 +417,7 @@
                                         :icon="event.icon"
                                         :happeningNow="daSchedule.hasStarted[event.id] ? daSchedule.hasStarted[event.id] : false"
                                         @end-now="onEndNow"
-                                        @save-score="onSaveScore"
+                                        @save-score="onUpdateNoteScorey"
                                         @add-mins="onAddMins"
                                         @delete-now="removeEvtInSchedule(event)"
                                         v-touch-hold:400:12:15="(e) => onTouchHold(e, event)"
@@ -442,7 +442,7 @@
                                         :details="event.details"
                                         :notes="event.notes"
                                         :show-dialog="showEvtMobile(event.id)"
-                                        @save-score="onSaveScore"
+                                        @save-score="onUpdateNoteScorey"
                                         @delete-now="removeEvtInSchedule(event)"
                                         @euh-hidin="daSchedule.euhHidin(event.id)"
                                       />
@@ -826,9 +826,9 @@ export default {
     constructTree(){
       this.treeGoals = this.daSchedule.fetchGoalsTree()
     },
-    resetGoalEvts(){ //redundant--toRemove** prolly
-        return this.daSchedule.getSubGoals()
-    },
+    //resetGoalEvts(){
+    //  return this.daSchedule.getSubGoals()
+    //},
     allMainGPrio(){
      return this.daSchedule.getAllPrio()
     },
@@ -2860,12 +2860,12 @@ export default {
         newDuration < 10 ? this.confirmAction('',"Less than 10mins remove?\n Cancel to just EndNow","Remove", doRemove,function(){reduce(newDuration)}) : reduce(newDuration)
       }
     },
-    onSaveScore(newScore, id,note=''){ //and notes --toRename**
-      //console.log('onSaveScore',newScore, id,note)
+    onUpdateNoteScorey(id,newScore,note=''){
+      //console.log('onUpdateNoteScorey',newScore, id,note)
       let dif = parseScore(newScore)
       if (dif < -1) {
         if (dif == -89) {
-          console.log(`onSaveScore parsing error`,dif,newScore)
+          console.log(`onUpdateNoteScorey parsing error`,dif,newScore)
           this.doNotify("Score Parsing Error... YOU FOO! ")
         } else{
           this.doNotify("Score Error: higher# on lower#")
@@ -3669,15 +3669,6 @@ export default {
     },
     onTouchEvt(e, item){
       //console.log('onTouchEvt', e,item)
-
-        /*let resetClass = (t) =>{ //moved in >> resetDraggedItem
-          let f = t.closest('.my-event')
-          if (f.classList.contains("my-event-drag")) {
-            f.classList.toggle("my-event-drag")
-            //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
-          }//else{console.log("onTouchEvt::resetClass...AINT THERE!"+e.type,f,t)}
-          return
-        }*/
 
       if (!this.selectedItem){ //should be populated** 
         console.log("onTouchEvt NULL Item >>ERROR?!? "+e.type,this.selectedItem,this.touchedItem)

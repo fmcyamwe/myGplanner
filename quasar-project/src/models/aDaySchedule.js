@@ -172,7 +172,7 @@ export default class daySchedule {
       return Repo.allPriorities()  //[1,2,3]//no need to do same for score Intervals
     }
     getSubGoals(){
-      return Repo.allSubGoals()  //deepCopy?
+      return Repo.allSubGoals()  //deepCopy?--done when retrieved from storage tho...toReview**
     }
     getCurrentMoods(){
       return this.usingMoods
@@ -197,7 +197,7 @@ export default class daySchedule {
       return this.unscheduledDefaults().length
     }
     unscheduled(){
-      let allG= this.getSubGoals() ///// these dont work >> !this.scheduledEvents.includes(x)  //this.scheduledEvents.indexOf(x) !== -1
+      let allG= this.getSubGoals()
       return allG.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)
     }
     subGoalsOfParent(id) {

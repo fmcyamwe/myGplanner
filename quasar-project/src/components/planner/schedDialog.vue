@@ -10,9 +10,17 @@
 
         <q-card v-if="showPickyDialog">
           <div class="q-ma-md event-select">
-            <select-event
+            <!--<select-event
               :unscheduled="allUnscheduled"
               :unscheduledParents="unscheduledPGoals"
+              :toBalance="balance"
+              :at="selectedTime"
+              @on-Pick-Event="onAddClicked"
+              @do-Cancel="onCancelBtn"
+            />-->
+            <altSelectEvent
+              :allUnscheduled="unscheduledGoals"
+              :unscheduledParents="unscheduledParents"
               :toBalance="balance"
               :at="selectedTime"
               @on-Pick-Event="onAddClicked"
@@ -51,12 +59,14 @@ import {ref, defineAsyncComponent } from 'vue'  //defineComponent,
 //import adHocEvent from '../../components/planner/adHocEvent.vue' 
 //import selectEvent from '../../components/planner/selectEvent.vue'
 
+import { doLog,deepCopy } from '../../pages/util/utiFunc'
 //export default defineComponent ({  //this be Options Vue notation
 export default {
   name: 'schedDialog',
   components:{
     adHocEvent: defineAsyncComponent(() => import('../../components/planner/adHocEvent.vue')), //seems good for loading on demand!
-    selectEvent: defineAsyncComponent(() => import('../../components/planner/selectEvent.vue')),
+    //selectEvent: defineAsyncComponent(() => import('../../components/planner/selectEvent.vue')),
+    altSelectEvent: defineAsyncComponent(() => import('../../components/planner/altSelectEvent.vue')), //rework of selectEvent above
   },
   props: {
     parentGoals: Array,
@@ -70,6 +80,7 @@ export default {
       showAdHocDialog:ref(false),
       show:ref(true), //for default dialog show/hide//true by default...
       unscheduledP:ref({}), //[] //filter by parents in selectEvent
+      unscheduledParents:ref({}),
     }
   },
   emits: [
@@ -96,27 +107,47 @@ export default {
         this.showAdHocDialog = value
       }
     },
-    unscheduledPGoals:{
+    unscheduledGoals:{ //rework of allUnscheduled to fix obj reference that saved pg,ic and color when filtered smh
+      get(){
+        this.canBeScheduled.forEach((obj) => {
+          if(!this.unscheduledParents[obj.parentGoal]){
+            //console.log(`unscheduledGoals::ADDING`,obj.parentGoal,obj.title)
+            let a = this.parentGoals.find(item => item.id == obj.parentGoal)
+            if(a){
+              this.unscheduledParents[a?.id] = {id:a?.id,title:a?.title.trim(),ic:a?.icon,color:a.bgcolor} 
+            }else{console.log(`unscheduledGoals::ERROR ERROR >>parent not found!!`,obj.parentGoal,obj)}//shouldnt happen!!
+          }//else{//present...nothing to do
+           // console.log(`unscheduledGoals::Parent Already present`,obj.parentGoal,obj.title)
+          //}
+        })
+
+        return this.canBeScheduled
+      }
+    },
+    /*unscheduledPGoals:{ //redundant --toRemove**
       get(){
         //console.log(`unscheduledPGoals`,JSON.parse(JSON.stringify(this.unscheduledP)))
         //umm try to turn into array here mayhaps?--not too expensive?
         let ret = []
-        for (let key in this.unscheduledP){
-          ret.push(this.unscheduledP[key])
+        for (let key in this.unscheduledP){ //this.unscheduledP
+          ret.push(this.unscheduledP[key]) //this.unscheduledP
         }
         //console.log(`unscheduledPGoals`,JSON.parse(JSON.stringify(this.unscheduledP)),JSON.parse(JSON.stringify(ret)))
+        doLog(`schedDialog::unscheduledPGoals`,this.unscheduledP,ret) //JSON.parse(JSON.stringify(this.unscheduledP)),JSON.parse(JSON.stringify(ret))
         return ret //this.unscheduledP
       },
       //set(value){ //no need..
       //  
       //}
-    },
-    allUnscheduled:{
+    },*/
+    /*allUnscheduled:{
         get(){
           //console.log(`allUnscheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
 
-          this.canBeScheduled.forEach((obj) => { //not too expensive?!? meh...
+          this.canBeScheduled.forEach((obj) => { //have to use deep-copy here as reference make changes saved to localStorage --toReview***
+
             let a = this.parentGoals.find(item => item.id == obj.parentGoal)
+            
             a ? obj.color = a.bgcolor : obj.color = ''
             obj.pg = a?.title.trim() //useful for label--could move into this.unscheduledP ? toReview**
             obj.ic = a?.icon //toSee if can use instead of 'pg' above..toReview**
@@ -130,7 +161,7 @@ export default {
           //console.log(`allUnscheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
           return this.canBeScheduled
         },
-    }
+    }*/
   },
   methods: {
     onAddClicked(toAdd,forceFlag,useBalance,newDura){

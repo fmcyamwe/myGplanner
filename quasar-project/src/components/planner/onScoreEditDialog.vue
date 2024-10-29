@@ -135,7 +135,7 @@ import { defineComponent,ref } from 'vue'
                 return  //bon should let parent handle it...but wahala to coordinate esti
             }
 
-            this.$emit('saveScore', this.aScore, this.id,this.aNote)
+            this.$emit('saveScore',this.id,this.aScore,this.aNote)
 
            this.showy = false // gotta hide dialog...huh works
             

@@ -16,14 +16,14 @@
               option-label="title"
               popupContentClass="q-px-sm"
               input-debounce="0"
-              label="Filter by Parent Goal"
+              label="Parent Goal"
               behavior="menu">
                 <template v-slot:default><!--umm default seems better-->
                   <q-icon v-if="toFilterBy" name="clear" size="14px" @click="clear"/>
                 </template>
               </q-select>
             </div>
-            <div v-if="this.selectedP" class="q-mx-md event-select">
+            <div v-if="selectedP" class="q-mx-md event-select">
               <q-select
               v-model="toAdd" 
               :options="allunScheduled"
@@ -184,7 +184,7 @@ import { whenFrmtTime} from '../../pages/util/utiFunc'
         this.useBalance = false
         this.toAdd = null //huh complains for dura in set() 
       },
-      filterFn (val, update, abort) {
+      filterFn (val, update, abort) { //useful when too many options but redundant when filtering by parentGoal...toRemove**
         update(() => {
           //if(val == ''){ //huh needed to reset toAdd >> but problem as start empty when there is already a selected toAdd smh >>fixed by using setModel()
             //console.log('empty'+val,this.toAdd)
@@ -193,6 +193,7 @@ import { whenFrmtTime} from '../../pages/util/utiFunc'
             //this.toAdd = null 
             //return
           //}
+        
           const needle = val.toLowerCase()
           this.allunScheduled = this.unscheduled.filter(v => v?.title.toLowerCase().indexOf(needle) > -1)
         })
@@ -239,7 +240,6 @@ import { whenFrmtTime} from '../../pages/util/utiFunc'
   text-align: center
 .title
   white-space: nowrap
-  text-align:center
 @media (max-width: 500px)
   .title
     white-space: break-spaces

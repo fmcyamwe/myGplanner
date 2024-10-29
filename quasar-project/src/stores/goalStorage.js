@@ -33,22 +33,16 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     //this works? nope...should it be a function instead?
     const getMainGoals = computed(() => {
-    //let item = JSON.parse(localStorage.getItem(key))
-        //doCopy(JSON.parse($q.localStorage.getItem("mainGoals")))
         let item = JSON.parse($q.localStorage.getItem("mainGoals"))
-        return deepCopy(item) //doCopy
+        return deepCopy(item) //doCopy instead? >>nope same reference issue
     })
     
     const getSubGoals = computed(() => {
-    //let item = JSON.parse(localStorage.getItem(key))
-        //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
         let item = JSON.parse($q.localStorage.getItem("subGoals"))
         return deepCopy(item) //doCopy
     })
 
     const getAllDates = computed(() => 
-    //let item = JSON.parse(localStorage.getItem(key))
-        //doCopy(JSON.parse($q.localStorage.getItem("subGoals")))
         JSON.parse($q.localStorage.getItem("AllDates"))
     )
 
@@ -144,7 +138,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         //console.log("editMainGoal", id+ ' ' + title + ' ' + details + ' ' + color + ' ' +priority+' ' +icon,iconParse(icon))
         
         let current = this.getMainGoals
-        let found = false  //flag for success/found?!? >>return it?!? tbd**
+        //let found = false  //flag for success/found?!? >>return it?!? tbd**
 
         for( var i = 0; i < current.length; i++){ 
             if (current[i].id === id) {
@@ -153,7 +147,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[i].bgcolor = color
                 current[i].priority = priority
                 current[i].icon = icon ? iconParse(icon) : current[i].icon 
-                found = true
+                //found = true
                 break
             }
         }
@@ -168,7 +162,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let current = this.getSubGoals
         //let id = current !== null ? current.length + 1 : 0
         if(!current){
-            $q.localStorage.set('subGoals', JSON.stringify([{ //unshift
+            $q.localStorage.set('subGoals', JSON.stringify([{
                 id: 0,
                 parentGoal:pGoal,
                 title: title.trim(),
@@ -213,7 +207,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         //console.log("editSubGoal", goalId+ ' ' + title + ' ' + score + ' ' + time + ' ' + duration +' ' + canMove + ' '+ inDefaults+' '+isAlternative)
         
         let current = this.getSubGoals
-        let found = false //flag for success/found?!? >>return it?!? tbd***
+        //let found = false //flag for success/found?!? >>return it?!? tbd***
 
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) {
@@ -226,7 +220,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                 current[i].isAlternative = isAlternative
                 current[i].jeSuis = moods ? moods : []  //to not add nulls...
                 //console.log("editSubGoal for",current[i], i)
-                found = true
+                //found = true
                 break
             }
         }

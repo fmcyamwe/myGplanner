@@ -83,3 +83,10 @@ export function parseScore(t){
   //console.log(`parseScore for ${t}`, tokens)
   return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!
 }
+
+export function doLog(mess,...data){
+  for (let arg of data){//sum += arg;
+    console.log(mess, arg ? JSON.parse(JSON.stringify(arg)) : '')
+  } 
+  //console.log(mess, data ? JSON.parse(JSON.stringify(data)) : '')
+}
