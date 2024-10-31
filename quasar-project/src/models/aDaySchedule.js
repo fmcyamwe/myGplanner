@@ -140,9 +140,9 @@ export default class daySchedule {
     actionBtnsEnabled() {
       return this.showActionBtns ////all action Btns in single place...
     }
-    // to encapsulate the btns!!---doesnt seem needed either as can access variables outside smh
+    //to encapsulate btns access in single place!!
+    //---doesnt seem needed either as can access variables and modify them outside smh
     getProps() {
-      //this.daSchedule.showReloadBtn >>also accessible straight up and modifiable outside!!!
       return {
         showReloadBtn:this.showReloadBtn,
         showClearBtn:this.showClearBtn, //:boolean; / //= false
@@ -151,6 +151,7 @@ export default class daySchedule {
         //showPrioBtn:this.showPrioBtn, //:boolean ; //= false
         //showOneEachBtn:this.showOneEachBtn, //:boolean ; //= false
 
+        //the two below are redundant with change--toRemove**
         disablePrioBtn:this.disablePrioBtn, //:boolean ; //= true  //to temp disable when selecting a new value...
         disableScoreBtn:this.disableScoreBtn,//:boolean ; //= true //same as above 
         
@@ -855,33 +856,53 @@ export default class daySchedule {
       this.disableSaveSchedule = true
     }
     chosenScoreLabel() { 
-      return this.chosenScore == null ? `By Score` : `Score <= ${this.chosenScore}` 
+      return this.chosenScore == null ? `By Score` : this.bySign.score ? `Score ${this.bySign.score.label} ${this.chosenScore}` : `Score <= ${this.chosenScore}`
     }
     chosenPrioLabel() { 
-      return this.chosenPrio == null ? `By Priority` : `Prio == ${this.chosenPrio}` 
+      return this.chosenPrio == null ? `By Priority` : this.bySign.prio ? `Prio ${this.bySign.prio.label} ${this.chosenPrio}` : `Prio == ${this.chosenPrio}` 
     }
-    filterSchedToCurrentPrio(){
+    filterSchedToCurrentPrio(sign='equalTo'){
       let toRet = []
       this._dailyScheduled.forEach((value, key, map)=> {
-        if(this.parentGoalById(value.parentGoal)?.priority == this.chosenPrio){
-          toRet.push(value)
+        switch (sign) {
+          case 'lesserThan':
+            if(this.parentGoalById(value.parentGoal)?.priority <= this.chosenPrio){
+              toRet.push(value)
+            }
+            break
+          case 'equalTo':
+            if(this.parentGoalById(value.parentGoal)?.priority == this.chosenPrio){
+              toRet.push(value)
+            }
+            break
+          case 'greaterThan':
+            if(this.parentGoalById(value.parentGoal)?.priority >= this.chosenPrio){
+              toRet.push(value)
+            }
+              break
+          default: //toMonitor***
+              console.log(`ERROR::filterSchedToCurrentPrio::UNKNOWN sign>>${sign} event added: ${value.title}`,this.chosenPrio)
+              toRet.push(value)
         }
       })
-      return toRet //this.actualEvts.filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
+      return toRet
     }
-    calculatePrioEvts(){
+    calculatePrioEvts(sign='equalTo'){ //default Prio sign ==
+      let reset = Repo.goalsByPriority(sign,this.chosenPrio) //oldie >> .goalsUpToScore
+      let add = reset.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)
+
       //let add = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio).filter(x => !this.actualEvts.find(item => item.id == x.id)) //huh second filter work!!
-      let reset = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio) //reset with allEvts
-      let add = reset.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)) //add those not scheduled
+      //let reset = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio) //reset with allEvts
+      //let add = reset.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)) //add those not scheduled
       this.byPrio={
         prio:this.chosenPrio,
         toAdd:add,  //.length? >>nah used later 
         reset:reset, //oldie >> this.getSubGoals().length
-        filter:this.filterSchedToCurrentPrio()
+        filter:this.filterSchedToCurrentPrio(sign)
       }
       //console.log(`calculatePrioEvts`, JSON.parse(JSON.stringify(this.byPrio)))
     }
-    onChoosenPrio(e){
+    onChoosenPrio(e){ //redundant--toRemove**
       //console.log('onChoosenPrio',e,this.chosenPrio)
       let oldy = this.chosenPrio
       if (oldy && oldy == e){
@@ -896,7 +917,8 @@ export default class daySchedule {
      
         const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculatePrioEvts() --toMonitor**
           console.log(`scheduleSamePrio::RECALCULATE?!?`,flag,this.chosenPrio, this.byPrio)
-          let toRet = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
+          //let toRet = this.getSubGoals().filter(evt => this.parentGoalById(evt.parentGoal)?.priority == this.chosenPrio)
+          let toRet = Repo.goalsByPriority('equalTo',this.chosenPrio)
           return flag == 'reset' ? toRet : toRet.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)
         }
       
@@ -905,7 +927,7 @@ export default class daySchedule {
       //filter && overwrite replaces
       //add concats...
       if(flag == 'filter'){
-        toAdd = this.filterSchedToCurrentPrio() //filterCurrent()
+        toAdd = this.byPrio ? this.byPrio.filter : this.filterSchedToCurrentPrio() //filterCurrent()
         this.resetSchedule() //byPrio
       } else { //flag == 'reset' || flag == 'add'
 
@@ -956,29 +978,62 @@ export default class daySchedule {
       }
       
     }
-    filterSchedToCurrentScore(){
+    filterSchedToCurrentScore(sign='lesserThan'){
       let toReload = []
       this._dailyScheduled.forEach((value, key, map) => {
         let daScore = parseScore(value.score)
-        if (daScore > -1 && daScore <= this.chosenScore) {
-          toReload.push(value)
-        }//else{console.log('filterCurrent::parseScore?skippin',daScore, item,this.usingMoods[item.id])}
+        switch (sign) {
+          case 'lesserThan':
+            if (daScore > -1 && daScore <= this.chosenScore) {
+              toReload.push(value)
+            }
+            break  //huh suprised break allowed in forEach
+          case 'equalTo':
+            if (daScore > -1 && daScore == this.chosenScore) {
+              toReload.push(value)
+            }
+            break
+          case 'greaterThan':
+            if (daScore > -1 && daScore >= this.chosenScore) {
+              toReload.push(value)
+            }
+            break
+          default: //toMonitor***
+            console.log(`ERROR::filterSchedToCurrentScore::UNKNOWN sign>>${sign} event added: ${value.title}`,value.score,this.chosenScore)
+            toReload.push(value)
+        }
       })
       return toReload
     }
-    calculateScoreEvts(){
-      let reset = Repo.goalsUpToScore(this.chosenScore)
+    calculateScoreEvts(sign='lesserThan'){ //default sign <=
+      let reset = Repo.goalsByScore(sign,this.chosenScore) //oldie >> .goalsUpToScore
       let add = reset.filter(x => !this._dailyScheduled.has(x.id)) //!this.actualEvts.find(item => item.id == x.id)
 
-      this.byScore={  //huh no complaint putting this here and can access later
+      this.byScore={
         score:this.chosenScore, //redundant but just to confirm still same later mayhaps...
         toAdd:add, //.length? >>nah used later 
         reset:reset,
-        filter:this.filterSchedToCurrentScore()
+        filter:this.filterSchedToCurrentScore(sign)
       }
       //console.log(`calculateScoreEvts`, JSON.parse(JSON.stringify(this.byScore)))
     }
-    onChoosenScore(e){
+    onScheduleBy(by,compareSign,value){ //score && prio with granular comparison choices
+      //this.bySign = compareSign //save for later...umm could be confounded when different for score/prio? >>yup! moved down
+      if(by == 'score'){
+        this.bySign = Object.assign({},{...this.bySign, score:compareSign}) //have to put back into self...
+        //this.bySign[by] = compareSign
+        this.chosenScore = value
+        this.calculateScoreEvts(compareSign.name)
+        //console.log('onScheduleBy::'+by,this.bySign,this.byScore)
+      }else{
+        //this.bySign[by] = compareSign //dont work
+        this.bySign = Object.assign({},{...this.bySign, prio:compareSign})
+        this.chosenPrio = value
+        this.calculatePrioEvts(compareSign.name)
+        //console.log('onScheduleBy::'+by,this.bySign,this.byPrio)
+      }
+    }
+    onChoosenScore(e){ //redundant--toRemove**
       //console.log('onChoosenScore',e)
       let oldy = this.chosenScore
       if (oldy && oldy == e){
@@ -992,9 +1047,9 @@ export default class daySchedule {
     scheduleByScore(flag,skipOvCheck = false){
       
         const recalculate = (flag) =>{ //shouldnt get here but just in case--could also invoke calculateScoreEvts() --toMonitor**
-          console.log(`scheduleByScore::RECALCULATE?!?`,flag,this.chosenScore, this.byScore)
-          let toRet = Repo.goalsUpToScore(this.chosenScore)
-          return flag == 'reset' ? toRet : toRet.filter(x => !this._dailyScheduled.has(x.id)) //this.actualEvts.find
+          console.log(`scheduleByScore::ERROR::RECALCULATE?!?`,flag,this.chosenScore, this.byScore)
+          let toRet = Repo.goalsByScore('lesserThan',this.chosenScore) //oldie >> .goalsUpToScore
+          return flag == 'reset' ? toRet : toRet.filter(x => !this._dailyScheduled.has(x.id))
         }
 
       let toAdd = []
@@ -1002,7 +1057,7 @@ export default class daySchedule {
       //filter && overwrite replaces
       //add concats 
       if(flag == 'filter'){
-        toAdd = this.filterSchedToCurrentScore() //filterCurrent()
+        toAdd = this.byScore ? this.byScore.filter : this.filterSchedToCurrentScore() //filterCurrent()
         this.resetSchedule() //byScore
       } else { //'reset' || 'add'
        
@@ -1318,14 +1373,14 @@ export default class daySchedule {
     }
     onAdHocEvent(evtID,timey,useBalance,doNotify=null){
         const allGood = (toAdd) => {
-          if (useBalance){
+          if (useBalance || this.isViewingPast()){
             this.removeFromBalance(toAdd?.duration) //duration should be present**
             console.log("onAdHocEvent...using Balance",toAdd?.duration)
 
             //just save when balance
             this.saveDaySchedule()
             if (doNotify){
-              doNotify(`New adHoc Evt!! Saving Schedule with new balance....`,'positive')
+              doNotify(`New adHoc Evt!! Saving Schedule ${useBalance ? 'with new balance':''} ....`,'positive')
             }
           }else{
             if (doNotify){
@@ -1775,6 +1830,8 @@ export default class daySchedule {
     resetChosen(){ //explicit reset of dropdown values for score & prio
       this.chosenScore = null
       this.chosenPrio = null
+
+      this.bySign = null
     }
     enableActionBtns(){
       let inPast = this.isViewingPast()

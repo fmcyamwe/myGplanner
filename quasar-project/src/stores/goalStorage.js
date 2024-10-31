@@ -2,7 +2,7 @@ import { computed } from 'vue'   //ref
 import { defineStore } from 'pinia'
 import { useQuasar } from 'quasar'  //event, 
 
-import { deepCopy } from '../pages/util/utiFunc'
+import { deepCopy,parseScore } from '../pages/util/utiFunc'
 //see from Blu file original Option store to this Setup Store
 //ref()s become 'state' properties
 //computed() become 'getters'
@@ -314,8 +314,8 @@ export const useGoalStore = defineStore('allGoals', () => {
             ////map[ event.date ].push(event)
             if(!events){//clearing day schedule
                 if (aDate in current){
-                    delete current[`${aDate}`] //delete user.age;
-                }else{console.log(`ERROR? deleting schedule of ${aDate} not found!`)}//shouldnt happen..prolly
+                    delete current[`${aDate}`]
+                }//else{console.log(`ERROR? deleting schedule of ${aDate} not found!`)}//when saving empty schedule but should be caught beforehand
             }else {
                 current[`${aDate}`] = events //hopefully doesnt overwrite?!? or use the .push
             }
@@ -398,9 +398,8 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function fetchGoalsUpToMaxScore(scorey){  //of scorey minimum --actually max difference range in the score **ToRename properly!!
         const map = []
-        //const tokenRegex = /^[0-9]{1,2}on[0-9]{1,2}$/g; //toREview....
-
-        let parseScore = function(t){ //parses score and returns the difference btween the interval
+        
+        /*let parseScore = function(t){ //parses score and returns the difference btween the interval
             //const tokens = []
             //let match
             //while ((match = tokenRegex.exec(t)) !== null) {
@@ -414,7 +413,7 @@ export const useGoalStore = defineStore('allGoals', () => {
             }
             //console.log(`parseScore for ${t}`, tokens)
             return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!**to add guardrails...
-        }
+        }*/
 
         let allSubGoals = this.getSubGoals
         if(!allSubGoals) {
@@ -424,7 +423,7 @@ export const useGoalStore = defineStore('allGoals', () => {
 
         allSubGoals.forEach(event => {
             if (event.score == ""){ //ben add those without score...should NOT happen.
-                console.log(`no score event added: ${event.title}`,event.score)
+                console.log(`ERROR::empty score event added: ${event.title}`,event.score)
                 map.push(event)
             }else{
                 let parsey = parseScore(event.score)

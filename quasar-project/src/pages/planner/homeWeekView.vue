@@ -183,7 +183,7 @@ import {
 import { applyClasses, applyStyles } from '../util/utiFunc'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
-//import { isMobile } from '../util/isMobile'
+import { isMobile } from '../util/isMobile'
 
 /*const CURRENT_DAY = new Date()
 function getCurrentDay (day) {
@@ -216,11 +216,13 @@ export default {
       treeGoals:ref([]),
       expanded:ref([]), //to hold expanding parentGoals...
       showTree:ref(false),
-      moods:ref({})
+      moods:ref({}),
+      mobile: ref(false),
       //splitterModel: ref(70) // start at 70% >>redundant
     }
   },
   beforeMount() {
+    this.mobile = isMobile()
     this.loadEvts()
     this.constructTree()
   },
@@ -396,7 +398,7 @@ export default {
       //can use to calculate largest interval height and set it dynamically to see all events properly >> if too many add more height space..
       if (events.length > this.mostEvts){
         //console.log(`getEvents hiiigh ${dt}`,events.length)
-        this.mostEvts = events.length
+        this.mostEvts = this.mobile ? events.length+5 : events.length
       }
       return events.sort(sorty)
     },

@@ -26,7 +26,13 @@
             />
         </div>
         <div v-if="showActionBtns">
-            <drop-dwn-btn
+          <alt-multi-drop-btn
+          :daLabel="onScoreBtnLabel"                          
+          :daOptions="scoreOptions"
+          @do-reload="(comp,val) => $emit('doReloadWithScore',comp,val)"
+          class="sched-drop-btn"
+          /><!--doReload('score',comp,val)-->
+            <!--<drop-dwn-btn
             class="sched-drop-btn"                                  
             text-color="teal"
             :disableBtn="isScoreBtnDisabled"
@@ -35,10 +41,16 @@
             :padding="inMobile ? 'xs' : 'sm'"
             @do-reload="$emit('doReloadWithScore')"
             @choose-option="(v) =>$emit('onChoosenScore',v)"
-            />
+            />-->
         </div>
         <div v-if="showActionBtns">
-            <drop-dwn-btn
+          <alt-multi-drop-btn
+          :daLabel="onPrioBtnLabel"
+          :daOptions="allMainGPrio"
+          @do-reload="(comp,val) => $emit('doReloadWithPrio',comp,val)"
+          class="sched-drop-btn"
+          /><!--doReload('prio',comp,val)-->
+            <!--<drop-dwn-btn
             class="sched-drop-btn"                      
             text-color="teal"                      
             :disableBtn="isPrioBtnDisabled"                      
@@ -47,7 +59,7 @@
             :padding="inMobile ? 'none' : 'sm'"
             @do-reload="$emit('doReloadWithPrio')"
             @choose-option="(v) =>$emit('onChoosenPrio',v)"
-            /><!-- :disableBtn="daSchedule.getProps().disablePrioBtn" -->
+            />--><!-- :disableBtn="daSchedule.getProps().disablePrioBtn" -->
         </div>
         <div v-if="showActionBtns">
             <sched-btn
@@ -65,6 +77,9 @@
             @do-btn-action="$emit('doHideTree')"
             /><!-- "By Moods" "showTree = !showTree"-->
         </div>
+        <div v-if="!showActionBtns && inMobile">
+          No Action Btns in past!
+        </div>
     </div>
     <!--put saveSchedule btn too?-->
 </template>
@@ -75,7 +90,8 @@ export default defineComponent ({  //this be Options Vue notation
   name: 'actionBtns',
   components:{
     schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),//seems good for loading on demand!
-    dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
+    //dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
+    altMultiDropBtn: defineAsyncComponent(() => import('../../components/planner/altMultiDropBtn.vue')), //replaces dropDwnBtn above
   },
   props: {
     scoreOptions:Array,

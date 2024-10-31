@@ -36,14 +36,25 @@
                             @on-reload-saved="onReloadSaved"
                             @on-clear-day="onClearDay"
                             @on-load-defaults="onLoadDefault"
-                            @do-reload-with-score="doReloadWithScore"
-                            @do-reload-with-prio="doReloadWithPrio"
+                            @do-reload-with-score="(comp,val) => doReload('score',comp,val)"
+                            @do-reload-with-prio="(comp,val) => doReload('prio',comp,val)"
                             @on-choosen-score="onChoosenScore"
                             @on-choosen-prio="onChoosenPrio"
                             @on-schedule-one-each="onScheduleOneEach"
                             @do-hide-tree="() => showTree = !showTree"
-                          /><!--@increase-by="(n) => count += n" />-->
-                           
+                          />
+                          
+                          <!--<alt-multi-drop-btn
+                          :daLabel="chosenScoreLabel"
+                          :daOptions="scoreOptions"
+                          @do-reload="(comp,val) => doReload('score',comp,val)" //doReloadWithScore
+                          />
+                          <alt-multi-drop-btn
+                          :daLabel="chosenPrioLabel"
+                          :daOptions="allMainGPrio()"
+                          @do-reload="(comp,val) => doReload('prio',comp,val)"//doReloadWithPrio
+                          />-->
+
                             <div class="row justify-center">
                               <sched-btn
                               text-label="SaveSchedule"
@@ -70,10 +81,12 @@
                           <!--<q-space/> have to be inside qComponent  class="q-gutter-md"-->
                           <div v-if="showTreeForm" class="q-gutter-md q-pa-sm bg-grey-12">
                             <q-item-label overline header lines="3">
-                              Filter by Mood / Expand & Hover for Moods
+                              {{ isViewingPast() ? 'Drag&Drop /' : 'Filter by Mood /' }} Expand & Hover for Moods
+                              
                             </q-item-label>
-                            <q-select
-                            :label="isViewingPast() ? 'Disabled In Past :(' : 'je-suis'"
+                            <!--no need for disable, label as not shown in past!!-->
+                            <q-select v-if="!isViewingPast()"
+                            :label="isViewingPast() ? 'No Filter In Past BUT Can Drag&Drop!!' : 'je-suis'"
                             hint="Keyword >> Enter"
                             hide-hint
                             ref="filterRef"
@@ -215,8 +228,8 @@
                         -->
                       </q-card-actions>
                      
-                      <q-card-actions align="right"><!--label="Next"-->
-                        <q-btn flat no-caps no-wrap @click="morphClose" icon="thumb_up" color="red"/>
+                      <q-card-actions align="right"><!--label="Next" thumb_up -->
+                        <q-btn flat no-caps no-wrap @click="morphClose" icon="close" color="red"/>
                         <q-btn flat @click="nextMorph" no-caps no-wrap>Actions &gt;</q-btn>
                       </q-card-actions>
                     </q-card>
@@ -249,8 +262,8 @@
                           @on-reload-saved="() => {onReloadSaved(); morphClose()}"
                           @on-clear-day="() => {onClearDay(); morphClose() }"
                           @on-load-defaults="() => {onLoadDefault(); morphClose()}"
-                          @do-reload-with-score="() => {doReloadWithScore(); morphClose()}"
-                          @do-reload-with-prio="() => {doReloadWithPrio(); morphClose()}"
+                          @do-reload-with-score="(comp,val) => {doReload('score',comp,val); morphClose()}"
+                          @do-reload-with-prio="(comp,val) => {doReload('prio',comp,val); morphClose()}"
                           @on-choosen-score="onChoosenScore"
                           @on-choosen-prio="onChoosenPrio"
                           @on-schedule-one-each="() => {onScheduleOneEach(); morphClose()}"
@@ -506,11 +519,10 @@ export default {
     GoalyEnd: defineAsyncComponent(() => import('../../components/planner/goalyEnd.vue')),
     daInstructions: defineAsyncComponent(() => import('../../components/planner/instructions.vue')),
     schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
-    //dropDwnBtn: defineAsyncComponent(() => import('../../components/planner/dropDwnBtn.vue')),
     schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
     mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
     actionBtns: defineAsyncComponent(() => import('../../components/planner/actionBtns.vue')),
-    scheduleDayLabel: defineAsyncComponent(() => import('../../components/planner/dayLabels.vue')),
+    scheduleDayLabel: defineAsyncComponent(() => import('../../components/planner/dayLabels.vue'))
   },
   data () {
     let possibleRange = null //for adhoc scheduling...keep track of selected time range
@@ -526,8 +538,6 @@ export default {
     const touchedItem = ref(null) //for touch mobile elt
 
     const lastTarget = ref(null) //for drag/drop highlight.
-
-    //const fabPos = ref([ 18, 18 ]) //test for mobile draggable actnBtn
 
     return {
       splitterPage: ref(35), // start--left side--before at 35%
@@ -586,21 +596,18 @@ export default {
   },
   computed: {
     chosenScoreLabel() {
-        //return this.chosenScore == null ? `By Score` : `Score <= ${this.chosenScore}`
-        return this.daSchedule.chosenScoreLabel()
+      //return this.chosenScore == null ? `By Score` : `Score <= ${this.chosenScore}`
+      return this.daSchedule.chosenScoreLabel()
     },
     chosenPrioLabel() { //could just directly use inline...todo?
-        //return this.chosenPrio == null ? `By Priority` : `Prio = ${this.chosenPrio}`
-        return this.daSchedule.chosenPrioLabel()
+      //return this.chosenPrio == null ? `By Priority` : `Prio = ${this.chosenPrio}`
+      return this.daSchedule.chosenPrioLabel()
     },
     style () {
       return {
         top: this.timeStartPos + 'px'
       }
     },
-    //splitterPagey(){ //bon done in mount as warning of read-only...
-    //  return this.mobile ? 0 : this.splitterPage
-    //},
     splitterLimits(){
       //console.log("splitterLimits...",this.mobile)
       return this.mobile ? [0, 100] : [30, 70]
@@ -627,7 +634,7 @@ export default {
     doShowActionBtns(){
       return this.daSchedule.actionBtnsEnabled()
     },
-    scheduleProps(){//huh updates...toMonitor**
+    scheduleProps(){
       return this.daSchedule.getProps()
     },
     saveScheduleDisabled(){
@@ -996,9 +1003,9 @@ export default {
               console.log('onReloadSaved::OVERLAPS',res.overlaps)
               this.handleOverlaps(res.overlaps,'view')
             }else{
-              this.doNotify(`Reloaded schedule for ${this.currentDate}`, "positive",'bottom')
+              this.doNotify(`Reloaded schedule for ${this.currentDate}`, "positive") //,'bottom'
               
-              if(this.isViewingPast() || this.currentDate !== today()) { //adjustTime for past && futur 
+              if(this.isViewingPast() || this.currentDate != today()) { //adjustTime for past && futur 
                 //console.log("adjusting time for past/future", this.currentDate) //,this.scheduledEvents.length)
                 this.adjustCurrentTime()
               }
@@ -1016,10 +1023,9 @@ export default {
     },
     onClearDay(){
       let hasSaved = this.daSchedule.hasEventsForDate()
-      //console.log('onClearDay',hasSaved)//this.daSchedule.hasEventsForDate())
         
       if(this.isViewingPast()){
-        this.doNotify("Editing past is no no!")
+        this.doNotify("Editing past is a no no!")
         return
       }
       
@@ -1073,9 +1079,17 @@ export default {
         doOk({choice:'reset', skipOCheck:!this.isViewingToday()}) //reset
       }
     },
-    onChoosenPrio(e){
-      //console.log('choosenPrio',e,this.daSchedule.chosenPrio)
-      this.daSchedule.onChoosenPrio(e) 
+    doReload(flag,comparison,choice){
+      //console.log('doReload',flag,comparison,choice)
+      this.daSchedule.onScheduleBy(flag,comparison,choice)
+      flag == 'score' ? this.doReloadWithScore() : this.doReloadWithPrio()
+    },
+    onChoosenPrio(e){ //redundant--toRemove**
+      console.log('onChoosenPrio::ERROR?!?',e) //,this.daSchedule.chosenPrio
+      //this.daSchedule.onChoosenPrio(e) 
+    },
+    currentScheduleBySign(from){
+      return from == 'score' ? this.daSchedule.bySign?.score?.label || '' : this.daSchedule.bySign?.prio?.label || '' //umm '' ? toReview** 
     },
     doReloadWithPrio(){
       //console.log('doReloadWithPrio')
@@ -1101,17 +1115,18 @@ export default {
               res?.added > 0 ? this.doNotify(`${res?.added} Evts added ${res?.noTime ? "Plus "+res?.noTime+" Without time":""} BUT some Overlaps to fix!`, "warning") : ''
               return this.handleOverlaps(res.overlaps,'byPrio')
             }
-            this.doNotify(`No Evts with Priority == ${currentPrio} :(`, "warning",'top')
+            this.doNotify(`No Evts with Priority ${compSign} ${currentPrio} :(`, "warning",'top')
           }else{//allGood no overlap //By ${flag} >> 
-            this.doNotify(`${res?.added} Evts with Priority == ${currentPrio} ...doSave eh`, "info") 
+            this.doNotify(`${res?.added} Evts with Priority ${compSign} ${currentPrio} ...doSave eh`, "info") 
             //console.log("doReloadWithPrio::Continue. ACTION Res>>",JSON.parse(JSON.stringify(res)))
           }
           currentSched > 0 || res?.added > 0 ? this.daSchedule.toggleActionBtns(true,'byPrio') : console.log("doReloadWithPrio::no Evts and no toggling for flag>> ",opt.choice,res?.added)
         }
 
       let options = this.daSchedule.byPrio  //some calculations for proper options >> i.e: no add option when already scheduled or no evt with chosenPrio found
+      let compSign = this.currentScheduleBySign('prio')
       let currentSched = this.daSchedule.getScheduledEvts().size
-      let mess = `By Goal's Parent Priority == ${currentPrio}`
+      let mess = `By Goal's Parent Priority ${compSign} ${currentPrio}` //==
       let labels = []
 
       if(!options){ //shouldnt happen?!?
@@ -1128,16 +1143,17 @@ export default {
         return
       }
 
-      //skip filter when it results in no change
-      let showFilter = options?.filter?.length > 0 && options?.filter?.length != currentSched
+      
+      let showFilter = options?.filter?.length > 0 && options?.filter?.length != currentSched //skip filter when it results in no change
+      let showReset = options?.reset?.length > 0 && currentSched > 0 //skip reset when nothing scheduled
       showFilter ? labels.push({label: `Filter out of ${currentSched} scheduled to ${options?.filter?.length} Evts`,value: 'filter' }) : '' //console.log("doReloadWithPrio::FILTER option skipped",options?.filter?.length,currentSched)  //with priority == ${currentPrio} //no false value as empty string evaluates to it...smh!  
       options?.toAdd?.length > 0 ? labels.push({label: `Add ${options?.toAdd?.length} Evts to current schedule`,value: 'add'}) : '' //whose priority == ${currentPrio}
-      options?.reset?.length > 0 ? labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) : '' //whose priority == ${currentPrio}  //oldie >> 'overwrite'
+      showReset ? labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) : '' //whose priority == ${currentPrio}  //oldie >> 'overwrite'
       
       //when No Evts as all options above are 0 >> no need to continue.
       if (!labels.length > 0){
         //this.doLog("doReloadWithPrio::No options!! currentSched= "+currentSched,options)
-        this.doNotify(`No Evts with Priority == ${currentPrio} :(`, "warning",'top')
+        this.doNotify(`No Evts with Priority ${compSign} ${currentPrio} :(`, "warning",'top')
         return
       }
 
@@ -1160,9 +1176,9 @@ export default {
         //not allow reclick without changing prio again...
         this.daSchedule.disablePrioBtn = true 
     },
-    onChoosenScore(e){
-      //console.log('choosenScore',e,this.daSchedule.chosenScore)
-      this.daSchedule.onChoosenScore(e)  
+    onChoosenScore(e){//redundant--toRemove**
+      console.log('onChoosenScore::ERROR?',e) //this.daSchedule.chosenScore
+      //this.daSchedule.onChoosenScore(e)  
     },
     onScheduleByScore(toAdd,skipOvCheck = false){ //skipOvCheck flag to skip handling overlaps!!--redundant tho...
       let extraO = []
@@ -1393,9 +1409,9 @@ export default {
               res?.added > 0 ? this.doNotify(`${res?.added} Evts added ${res?.noTime ? "Plus "+res?.noTime+" Without time":""} BUT some Overlaps to fix!`, "warning") : '' //Interval Score <= ${currentScore}
               return this.handleOverlaps(res.overlaps,'byScore')
             }
-            this.doNotify(`No Evts with Interval Score <= ${currentScore} :(`, "warning")//,'bottom')
+            this.doNotify(`No Evts with Interval Score ${compSign} ${currentScore} :(`, "warning")//,'bottom')
           }else{//allGood no overlap prolly... via ${flag} 
-            this.doNotify(`${res?.added} Evts with Interval Score <= ${currentScore} ...doSave eh`, "info")
+            this.doNotify(`${res?.added} Evts with Interval Score ${compSign} ${currentScore} ...doSave eh`, "info")
             //console.log("doReloadWithScore::Continue. ACTION Res>>",JSON.parse(JSON.stringify(res)))
           }
          
@@ -1403,8 +1419,9 @@ export default {
         }
 
       let options = this.daSchedule.byScore
+      let compSign = this.currentScheduleBySign('score')
       let currentSched = this.daSchedule.getScheduledEvts().size
-      let mess = `Goals with Interval Score <= ${currentScore}`//`With Goal Evts of Interval Score <= ${currentScore}`
+      let mess = `Goals with Interval Score ${compSign} ${currentScore}` //<= //`With Goal Evts of Interval Score <= ${currentScore}`
       let labels = []
       
       if(!options){ //shouldnt happen?!?
@@ -1421,16 +1438,17 @@ export default {
         return
       }
 
-      //skip filter when result in no changes
-      let showFilter = options?.filter?.length > 0 && options?.filter?.length != currentSched
+      
+      let showFilter = options?.filter?.length > 0 && options?.filter?.length != currentSched //skip filter when result in no changes
+      let showReset = options?.reset?.length > 0 && currentSched > 0 //skip reset when nothing scheduled
       showFilter ? labels.push({label: `Filter out of ${currentSched} scheduled to ${options?.filter?.length} Evts`,value: 'filter'}) : '' //console.log("doReloadWithScore::FILTER option skipped",options?.filter?.length,options?.reset?.length,currentSched)  //for Interval Score <= ${currentScore}
       options?.toAdd?.length > 0 ? labels.push({label: `Add ${options?.toAdd?.length} Evts to current schedule.`,value: 'add'}) : '' //whose Interval Score <= ${currentScore}
-      options?.reset?.length > 0 ? labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) : '' // whose Interval Score <= ${currentScore} //oldie>> overwrite
+      showReset ? labels.push({label: `Reset current and schedule ${options?.reset?.length} Evts.`,value: 'reset'}) : '' // whose Interval Score <= ${currentScore} //oldie>> overwrite
       
       //when No Evts as all options above are 0 >> no need to continue.
       if (!labels.length > 0){
         //this.doLog("doReloadWithScore::No options!! currentSched= "+currentSched,options)
-        this.doNotify(`No Evts with Interval Score <= ${currentScore} :(`, "warning")
+        this.doNotify(`No Evts with Interval Score ${compSign} ${currentScore} :(`, "warning")
         return
       }
 
@@ -1448,7 +1466,7 @@ export default {
       } else{ //no scheduled--just overwrite--still offer for too many add..especially skipOCheck when in future...
         options?.toAdd?.length > 10 ? this.scheduleByDialog('Schedule by Score',
         mess,
-        labels,  //ugly word break when labels too long...also reason for empty title
+        labels,
         '',
         doAction,
         doCancel) : doAction({choice:'reset', skipOCheck:!this.isViewingToday()}) //'reset'
@@ -1459,6 +1477,12 @@ export default {
         
     },
     doSaveSchedule(){
+      let currentSched = this.daSchedule.getScheduledEvts().size
+      if (!currentSched > 0 && !this.daSchedule.hasEventsForDate()) {
+        this.doNotify(`Nothing to Save :(`, "warning")
+        return
+      }
+    
       let noTimes = this.labelScheduled()?.noTime
       this.daSchedule.saveDaySchedule()
 
@@ -1468,7 +1492,7 @@ export default {
       this.resetFilter() //meh
     },
     addNewToSchedule(targetDrop, item){
-      console.log("addNewToSchedule: ",targetDrop, item)
+      //console.log("addNewToSchedule: ",targetDrop, item)
       //have to check that not present already before add..
       let d = this.daSchedule.findSchedEvent(item.id)
       if (d) {
@@ -1479,14 +1503,30 @@ export default {
       }
 
       //let canDrop = this.daSchedule.canDropEvent(targetDrop, item) //meh pointless...just add
-      let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...item,time:targetDrop.time}],this.isViewingToday())
+      
+      let euhOverlaps = this.daSchedule.addGoalsToSchedule([{...item,time:targetDrop.time}],this.isViewingToday()||this.isViewingPast())
       if (euhOverlaps.length > 0){
-        //console.log(`addNewToSchedule::Overlaps!!`,euhOverlaps)
+        //this.doLog(`addNewToSchedule::Overlaps!! `+this.isViewingPast(),euhOverlaps)
+        ///No overlaps in past
+        if(this.isViewingPast()){
+          let mess = `No Overlaps allowed in past!!`
+          let cap = `Evt '${item?.title.trim()}' NOT added.`
+          this.doNotifyCaption(mess, cap, "warning")
+          this.doCleanup()
+          this.reset()
+          return
+        }
         return this.handleOverlaps(euhOverlaps,'addNew')
+      }
+
+      if(this.isViewingPast()){ //auto-save in past!
+        this.daSchedule.saveDaySchedule()
+        this.doNotify(`${item?.title} Added and Schedule saved!`,'info')
+        return
       }
       
       this.doNotify(`${item?.title} Added!..doSave eh`,"positive")
-      this.daSchedule.toggleActionBtns(true,'onDrop')
+      this.daSchedule.toggleActionBtns(true,'addNew')
       this.doCleanup()
       
     },
@@ -3112,7 +3152,6 @@ export default {
           } else {
             toSave = EvtsOn 
           }
-
           //console.log("chooseAlternatives::addInFutur",eArr,EvtsOn,startDay.date,altDay)
 
           eArr.forEach(i => {
@@ -3253,7 +3292,7 @@ export default {
       this.touchedItem = null
       this.possibleRange = null
     },
-    closingDialog(){// close dialog
+    closingDialog(){
       this.showEvtDialog = false
     },
     doLog(mess,data){
@@ -3271,7 +3310,7 @@ export default {
       }
 
       if(!this.saveScheduleDisabled){ //handle when cx has some unsaved changes!
-        this.confirmAction('',`Save day: ${this.currentDate} changes?`,"Save",doSave, doContinue)
+        this.confirmAction('',`Save changes of day: ${this.currentDate} ?`,"Save",doSave, doContinue)
         
       } else {
         doContinue() //oldie >> this.$refs.calendar.prev()
@@ -3289,7 +3328,7 @@ export default {
       }
 
       if(!this.saveScheduleDisabled){ //handle when cx has some unsaved changes!
-        this.confirmAction('',`Save day: ${this.currentDate} changes?`,"Save",doSave, doContinue)
+        this.confirmAction('',`Save changes of day: ${this.currentDate} ?`,"Save",doSave, doContinue)
       } else {
         doContinue()
       }
@@ -3307,7 +3346,7 @@ export default {
       }
 
       if(!this.saveScheduleDisabled){ //handle when cx has some unsaved changes!
-        this.confirmAction('',`Save day: ${this.currentDate} changes?`,"Save",doSave, doContinue)
+        this.confirmAction('',`Save changes of day: ${this.currentDate} ?`,"Save",doSave, doContinue)
       }else {
         doContinue()
       }
@@ -3322,7 +3361,7 @@ export default {
           //this.doLog("onChangeViewDate::OVERLAPS",res.overlaps)
           return this.handleOverlaps(res.overlaps,'view')
         }else{
-          this.doNotify(`Loaded schedule for ${this.currentDate}`, "positive",'bottom')
+          this.doNotify(`Loaded schedule for ${this.currentDate}`, "positive") //'bottom'
 
           this.adjustCurrentTime() //meh just do always...
           //if(this.isViewingPast() || this.currentDate !== today()) { //adjustTime for past && futur 
@@ -3340,15 +3379,15 @@ export default {
     onDragStart(e, type, item) {
       //console.log('onDragStart',e,type, item)
       //this.doLog('onDragStart '+type, item) 
-      if(this.isViewingPast()){
-        this.doNotify("Editing past is no no!")
-        e.preventDefault()        
+      if(this.isViewingPast() && type != 'tree-item'){ // allowing tree-items add in past? toReview**
+        this.doNotifyCaption("Editing past is a no no!","Use Drag & Drop from Tree or manually add Evts") //oldie >> doNotify
+        e.preventDefault()
         return
       }
 
       if(type == 'tree-item'){
         let it = this.daSchedule.getSubGoalByID(item.id)
-        console.log('onDragyStart::TreeItem '+type, JSON.parse(JSON.stringify(item)),JSON.parse(JSON.stringify(it))) //this.doLog
+        //console.log('onDragyStart::TreeItem '+type, JSON.parse(JSON.stringify(item)),JSON.parse(JSON.stringify(it))) //this.doLog
         this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
         return
       }
@@ -3567,7 +3606,7 @@ export default {
         //let f = target.closest('.my-event')
 
         if(target.parentNode.classList.contains("my-event")){
-          //console.log("onTouchStart >>my-event-drag","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id]) //target,,this.mobileEnableScore[item.id]
+          //console.log("onTouchStart >>my-event-drag",target)//"isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],"showMobileDialog>> "+this.daSchedule.showMobileDialog[item.id]) //target,,this.mobileEnableScore[item.id]
           target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
           this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
         } else {
@@ -3576,12 +3615,12 @@ export default {
           //let f = target.closest('.my-event')
           target = target.parentNode
           if(target.parentNode.classList.contains("my-event")){
-            //console.log("onTouchStart >>PHEW..FOUND","isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
+            //console.log("onTouchStart >>PHEW..FOUND",target)//"isDisabledScoreEdit>> "+this.daSchedule.isDisabledScoreEdit[item.id],f) //target,,this.mobileEnableScore[item.id]
             target.parentNode.classList.add("my-event-drag") //transform: skew(-20deg)
             this.touchedItem = target //keep track of it to see if gonna move OR touch-hold OR onScore edit OR dblClick for remove
           }else{
             this.touchedItem = false //flag for later in case clicked on endNow, addMin btns....
-            //console.log("onTouchStart:ERROR...Btn?",target, target.parentNode) //this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
+            console.log("onTouchStart:ERROR...Btn?",target, target.parentNode) //this.isDisabledScoreEdit[item.id],this.mobileEnableScore[item.id])  
             return //needed
           }
         }
@@ -3660,6 +3699,10 @@ export default {
 
     },
     resetDraggedItem(t){
+      if (!t){ //just in case false...
+        console.log("resetDraggedItem::ERROR::ERROR?",t)
+        return
+      }
       let f = t.closest('.my-event')
       if (f.classList.contains("my-event-drag")) {
         f.classList.toggle("my-event-drag")
@@ -3677,8 +3720,8 @@ export default {
       }
 
       if(this.isViewingPast()){ //present check only for move/end --
-          this.doNotify("Editing past is no no!")  //meh same as below for grouping!
-          //this.useGroupNotify("Editing past is no no!", null,'bottom',e.type)//for grouping>>'NoG' 
+          this.doNotify("Editing past is a no no!")
+          //console.log('onTouchEvt::PAST', this.touchedItem)
           this.resetDraggedItem(this.touchedItem)  //still have to remove the drag class!
           e.preventDefault()
           e.stopPropagation()
@@ -3818,7 +3861,7 @@ export default {
       let f = target.closest('.my-event')
     
       if(target.classList.contains("title") && target.parentNode.classList.contains("my-event-drag")){ 
-        console.log("onTouchHold...REMOVING my-event-drag")//,f)//,f,target.parentNode)// remove the 'my-event-drag' class as not a drag!!
+        //console.log("onTouchHold...REMOVING my-event-drag")//,f)//,f,target.parentNode)// remove the 'my-event-drag' class as not a drag!!
         target.parentNode.classList.remove("my-event-drag")
       }else{
         if (f && f.classList.contains("my-event-drag")){//just toggle it...
@@ -4093,6 +4136,18 @@ export default {
         color: colorNotif !== undefined ? colorNotif : 'negative',
         position: position,
         message: messg,
+        multiLine: true,  //for larger text--seems better!
+        icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+        //group?: boolean | string | number;
+        //timeout?: number; // time to display (in milliseconds)>>default is 5000
+      })
+    },
+    doNotifyCaption(messg, cap, colorNotif = undefined, position = 'top'){
+      this.$q.notify({
+        color: colorNotif !== undefined ? colorNotif : 'negative',
+        position: position,
+        message: messg,
+        caption:cap,
         multiLine: true,  //for larger text--seems better!
         icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
         //group?: boolean | string | number;

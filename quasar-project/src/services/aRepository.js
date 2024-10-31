@@ -8,7 +8,7 @@ import { useGoalStore } from 'stores/goalStorage'
 
 //import { createEvent } from '../models/schedEvt.js'
 
-import { deepCopy } from '../pages/util/utiFunc' //  '../util/utiFunc'
+import { deepCopy,parseScore } from '../pages/util/utiFunc'
 
 //access goalStorage
 //have list of allDates,pGoals and subGoals
@@ -87,7 +87,7 @@ export function allSubGoals() {
         //deepCopy(_repositoryData.subGoals) --huh no change
         _repositoryData.subGoals = _store.getSubGoals
     }
-    //umm prolly doesnt updates for new?
+    //umm prolly doesnt updates for new?--toTest**
     return _repositoryData.subGoals  
 }
 
@@ -127,6 +127,69 @@ export function getDefaultEvts() {
 
 export function goalsUpToScore(score) {
     return _store.fetchGoalsUpToMaxScore(score)
+}
+
+export function goalsByScore(sign,score) {
+    const map = []
+    let allGoals = allSubGoals()
+    if(!allGoals) {
+        return map
+    }
+    allGoals.forEach(event => {
+        if (event.score == ""){ //ben add those without score...should NOT happen.
+            console.log(`ERROR::empty score event added: ${event.title}`,event.score)
+            map.push(event)
+        }else{
+            let parsey = parseScore(event.score)
+            switch (sign) {
+                case 'lesserThan':
+                    if (parsey > -1 && parsey <= score) {
+                        map.push(event)
+                    }
+                    break  //huh suprised break allowed in forEach
+                case 'equalTo':
+                    if (parsey > -1 && parsey == score) {
+                        map.push(event)
+                    }
+                    break
+                case 'greaterThan':
+                    if (parsey > -1 && parsey >= score) {
+                        map.push(event)
+                    }
+                    break
+                default: //toMonitor***
+                    console.log(`ERROR::goalsByScore::UNKNOWN sign>>${sign} event added: ${event.title}`,event.score)
+                    map.push(event)
+            }
+        }
+    })
+    return map
+}
+export function goalsByPriority(sign,prio) {
+    let map = [] //error when const...
+    let allGoals = allSubGoals()
+    let pGoals = parentGoalsMap()
+    if(!allGoals || !pGoals) {
+        return map
+    }
+        const parentGoalById = (id) =>{
+            return pGoals.has(id) ? pGoals.get(id) : null
+        }
+    switch (sign) {
+        case 'lesserThan':
+            map = allGoals.filter(evt => parentGoalById(evt.parentGoal)?.priority <= prio)
+            break  //huh suprised break allowed in forEach
+        case 'equalTo':
+            map = allGoals.filter(evt => parentGoalById(evt.parentGoal)?.priority == prio)
+            break
+        case 'greaterThan':
+            map = allGoals.filter(evt => parentGoalById(evt.parentGoal)?.priority >= prio)
+            break
+        default: //toMonitor***
+            console.log(`ERROR::goalsByPriority::UNKNOWN sign>>${sign} all events added`,prio)
+            map=allGoals
+        }
+    return map
 }
 
 export function doSaveEvtProp(evtID, timey = null, score = null) {
