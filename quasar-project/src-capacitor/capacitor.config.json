@@ -1,7 +1,5 @@
 {
   "appId": "org.capacitor.BluTomato",
   "appName": "Blu-tomato",
-  "bundledWebRuntime": false,
-  "npmClient": "npm",
   "webDir": "www"
 }
