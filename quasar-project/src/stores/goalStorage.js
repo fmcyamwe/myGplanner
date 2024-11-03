@@ -34,12 +34,12 @@ export const useGoalStore = defineStore('allGoals', () => {
     //this works? nope...should it be a function instead?
     const getMainGoals = computed(() => {
         let item = JSON.parse($q.localStorage.getItem("mainGoals"))
-        return deepCopy(item) //doCopy instead? >>nope same reference issue
+        return doCopy(item) //doCopy instead? >>nope same reference issue //deepCopy craps for empty arrays..especially on Android
     })
     
     const getSubGoals = computed(() => {
         let item = JSON.parse($q.localStorage.getItem("subGoals"))
-        return deepCopy(item) //doCopy
+        return doCopy(item) //reverted to doCopy from deepCopy...
     })
 
     const getAllDates = computed(() => 
@@ -370,7 +370,11 @@ export const useGoalStore = defineStore('allGoals', () => {
     function fetchAllPrio(){
         let allGs = this.getMainGoals
         let Smap = new Set()
-        
+        if(!allGs){
+            console.log("fetchAllPrio::No mainGoals :(")
+            return Smap
+        }
+
         allGs.forEach(g => {
             Smap.add(g.priority)
         })
@@ -484,6 +488,11 @@ export const useGoalStore = defineStore('allGoals', () => {
         }
 
         let tree = []
+
+        if(!mains){
+            console.log("fetchGoalsTree::No mainGoals :(")
+            return tree
+        }
 
         mains.forEach(goal => {
             let toAdd = {

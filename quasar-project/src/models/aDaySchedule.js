@@ -49,6 +49,7 @@ export default class daySchedule {
   
       this.savedRawEvts = []
 
+      this.unsavedChanges = false //easier logic for toggling saveScheduleBtn--toUse**
 
       this.usingMoods = {} //:ref({}),  //ref(null)
 
@@ -159,8 +160,11 @@ export default class daySchedule {
         chosenPrio:this.chosenPrio //:1 ; //= null
       }
     }
-    saveBtnEnabled(){
+    saveBtnEnabled(){ //should use hasUnsavedChanges() below
       return this.disableSaveSchedule
+    }
+    hasUnsavedChanges(){ // || or && ? toReview**
+      return this.unsavedChanges || (this.savedRawEvts && Object.keys(this.savedRawEvts).length != this._dailyScheduled.size)
     }
     fetchGoalsTree(){
       return Repo.constructTree()
@@ -807,6 +811,7 @@ export default class daySchedule {
     loadEvtsForDay(sameDay){
       if (!sameDay){ 
         this.resetSchedule(true) //first clear for new different date!
+        this.unsavedChanges = false
       }
 
       //console.log('loadEvtsForDay--FOR date',d,this.currentDate,this.savedRawEvts)
@@ -1659,7 +1664,9 @@ export default class daySchedule {
   
           //console.log(`Cascading time change moving (${overlappedEvtID})'${overlappedEvt?.title}' ${overlappedEvt?.time} due to ${doAdd ? "Adding":"Moving"} ${tEvt.id}-'${tEvt?.title?.trim()}'`) //: console.log(`ERROR::recurChangeTime ${overlappedEvtID} not found`) //umm return?
   
-          if (doNotif){doNotif(`Cascading ${sizey} Overlaps >> '${overlappedEvt?.title}' going ${dName} as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`)} //(${overlappedEvtID}) '
+          //too many notifs estiii
+          //if (doNotif){doNotif(`Cascading ${sizey} Overlaps >> '${overlappedEvt?.title}' going ${dName} as ${doAdd ? "Adding":"Moving"} '${tEvt?.title?.trim()}'`)} //(${overlappedEvtID})
+
           do {
             console.log(`CASCADING OVERLAPPED >> ${i} (${overlappedEvtID}) at: ${overlappedEvtNew.time} now at: ${overlappedEvt.start.time} till ${overlappedEvt.end.time}`,anyOtherOverlap[i]) //overlappedEvt.for
             //should prolly skip when seeing own self?!?--toMonitor**
@@ -1894,6 +1901,8 @@ export default class daySchedule {
       //here doing temp.Move/add just changes the time..
       this.doUpdateSchedule(draggedItem,targetDrop)
 
+      this.unsavedChanges = true 
+
       return choice
     }
     doUpdateSchedule(draggedItem,targetDrop){
@@ -1965,6 +1974,8 @@ export default class daySchedule {
 
        Repo.saveDailySchedule(this.currentDate, toSave) 
        
+       this.unsavedChanges = false //reset 
+
        this.disableSaveSchedule = true 
        this.showReloadBtn = false
        this.showClearBtn = toSave != null && !this.isViewingPast()
@@ -2071,7 +2082,7 @@ export default class daySchedule {
           //console.log(`updateNoteScore::note ${id}from ${oldy} to ${newScore} with note>>`,note)
           ev.notes = note
           //h.notes = note //to update inner child
-         
+         this.unsavedChanges = true
         }
 
        this.isViewingPast() ? this.saveDaySchedule() : this.toggleActionBtns(true,'updateNoteScore') //console.log(`updateNoteScore::not auto-saving today`,h,ev)
@@ -2121,6 +2132,7 @@ export default class daySchedule {
           console.log(`removeScheduledEvt ::> ERROR? scheduleSets has no such evt?@? start:${hadStart}...end:${hadEnd}`, toDel, evt.id + ' '+ evt?.title.trim()+' '+ evt?.details )
         }
         this.deleteEvtMood(evt.id)
+        this.unsavedChanges = true
       }
         //if (rMood){ //use this.deleteEvtMood() and forgo rMood flag!!
         //console.log(`removeScheduledEvt::Mood Remove...`,this.usingMoods[evt.id])

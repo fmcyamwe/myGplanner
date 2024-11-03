@@ -130,7 +130,7 @@
 
                     <br>
                     
-                    <div v-if="Object.keys(allMGoals).length < 1" class="column justify-center items-center">
+                    <div v-if="allMGoals && allMGoals.length < 1" class="column justify-center items-center">
                         <q-card>
                         1. Add some Goals first. A schedulable goal is one with a parent Goal--can have multiple related goals with the same parent.
                         </q-card>
@@ -643,13 +643,16 @@ export default {
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
             let currentColors = []
-            if(mainGoals.value){
+            if(mainGoals.value.length > 0){
                 mainGoals.value.forEach(item => {
                     expanded[item.id] = expanded[item.id] || false  //if was true already...toTest
 
                     currentColors.push(item.bgcolor)
                 })
-            }
+            }//else{
+             //   console.log(`resetGsAndColors::Empty MainGoals`,mainGoals.value)
+             //   return
+            //}
             let c = pGColors()
             
             avColors.value = c.filter(item => !currentColors.find(o => o == item)) //filter out already taken colors...
