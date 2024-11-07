@@ -10,7 +10,7 @@ const routes = [
         //{ path: 'dayCalendar', component: () => import('pages/planner/dayView.vue') }, //dayCalendar
         { path: 'goalsPage', component: () => import('pages/planner/goalsView.vue') }, //goalsPage
         { path: 'dayCalendar', component: () => import('pages/planner/altDayView.vue') }, //refactor of dayCalendar >>testAlt
-        //{ path: 'testy', component: () => import('pages/testyNotifs.vue') }
+        //{ path: 'testy', component: () => import('pages/testLocalNotifs.vue') }
         //{ path: 'draggy', component: aDragga }
       ]
     },

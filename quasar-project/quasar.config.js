@@ -29,6 +29,8 @@ module.exports = configure(function (/* ctx */) {
     // https://v2.quasar.dev/quasar-cli/boot-files
     boot: [
       //"echo", //cant build capacitor estiiii(registerPlugin issue) --normal build works with warnings
+      //"notifs", //huh works!! suprising... 
+      "regis"
     ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css

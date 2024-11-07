@@ -113,7 +113,7 @@ export function allPriorities() {
     //console.log('allPriorities',e) //ar, typeof ar)
     if(!e.size > 0){
         //this.prioOptions = e.values()
-        console.log('ERROR...no Priority goals?', e)
+        //console.log('ERROR...no Priority goals?', e)
         return []
     }
     return Array.from(e.values()).sort()

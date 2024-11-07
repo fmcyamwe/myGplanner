@@ -298,7 +298,7 @@
                   </div>
                   
                   <div class="row justify-center">
-                      <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 600px;">
+                      <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 90vh;"><!--height: 600px;-->
                         <q-calendar-day
                           ref="calendar"
                           view="day"
@@ -595,6 +595,7 @@ mounted() {
 },
 beforeUnmount() {
   clearInterval(this.intervalId)
+  this.daSchedule.schedulePending()
 },
 computed: {
   chosenScoreLabel() {
@@ -611,7 +612,7 @@ computed: {
     }
   },
   fabClass(){ //saveScheduleDisabled
-    return this.hasUnsavedChanges ? 'absolute-top-left q-mx-md unsaved doBounce' : 'absolute-top-left q-mx-md allGood'
+    return this.hasUnsavedChanges() ? 'absolute-top-left q-mx-md unsaved doBounce' : 'absolute-top-left q-mx-md allGood'
   },
   splitterLimits(){
     //console.log("splitterLimits...",this.mobile)
@@ -641,9 +642,6 @@ computed: {
   },
   scheduleProps(){
     return this.daSchedule.getProps()
-  },
-  hasUnsavedChanges(){
-    return this.daSchedule.hasUnsavedChanges()
   },
   saveScheduleDisabled(){
     let e = this.daSchedule.hasUnsavedChanges()
@@ -762,6 +760,9 @@ methods:{
   selectedTimeInterval(){ //updates when placed here smh
     return this.targetDrop.timestamp.time //?? ''
   },
+  hasUnsavedChanges(){
+    return this.daSchedule.hasUnsavedChanges()
+  },
   adjustCurrentTime() {
     const now = parseDate(new Date())
 
@@ -786,9 +787,9 @@ methods:{
       this.daSchedule.updateMinEndNowBtn(this.currentTime,hasEnd, hasStart)
       if (hasStart){
         this.scrollToTime(now,'slow')
-        this.doNotify(`Event Starting :)`, "positive",'top') //umm try to get evt's title? toSee**
+        //this.doNotify(`Event Starting :)`, "positive",'top') //umm try to get evt's title? toSee**
+        
         //should prolly be here that notification is sent!!
-
         /*chrome.notifications.create(data.url, {  //would this work?!? >>nah errors out at .create
           "type": "basic",//data.type,
           "iconUrl": chrome.runtime.getURL("icons/manga-48.png"), //chrome.extension.getURL("icons/manga-48.png"),

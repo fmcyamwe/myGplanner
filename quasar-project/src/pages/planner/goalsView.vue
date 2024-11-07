@@ -609,6 +609,8 @@ export default {
         //const addSubG = () => store.addSubGoal()
 
         onBeforeMount(() => { //was onMounted
+            //let e = new Date(Date.now() + 1000 * 100)
+            //console.log(`the component is now mounted.`,e)
             resetGsAndColors()
 
             //constructTree() //redundant as not used...

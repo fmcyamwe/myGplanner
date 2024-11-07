@@ -17,7 +17,10 @@ import * as Repo from '../services/aRepository.js'
 
 import { createEvent } from '../models/schedEvt.js'
 
+import {LocNotifications} from '../notifHelper'; 
+
 import { whenFrmtTime,parseScore, pGColors} from '../pages/util/utiFunc'
+
 export default class daySchedule {
     /*
     data //= null //really doesnt like declared inner variables smh
@@ -164,7 +167,8 @@ export default class daySchedule {
       return this.disableSaveSchedule
     }
     hasUnsavedChanges(){ // || or && ? toReview**
-      return this.unsavedChanges || (this.savedRawEvts && Object.keys(this.savedRawEvts).length != this._dailyScheduled.size)
+      let cS = this.getEventsForDate(this.currentDate) //not too much?!?
+      return this.unsavedChanges || (cS && Object.keys(cS).length != this._dailyScheduled.size) //was prolly wrong >>(this.savedRawEvts && Object.keys(this.savedRawEvts).length != this._dailyScheduled.size)
     }
     fetchGoalsTree(){
       return Repo.constructTree()
@@ -815,7 +819,7 @@ export default class daySchedule {
       }
 
       //console.log('loadEvtsForDay--FOR date',d,this.currentDate,this.savedRawEvts)
-      this.savedRawEvts = Repo.getDataForDate(this.currentDate)
+      this.savedRawEvts = this.getEventsForDate(this.currentDate) //Repo.getDataForDate(this.currentDate)
       
       if (this.savedRawEvts){
         //this.doLog("loadEvtsForDay",this.savedRawEvts)
@@ -974,6 +978,7 @@ export default class daySchedule {
       let added = toAdd.length - sizey - noTime.length
 
       this.toggleActionBtns(added > 0,'byPrio')
+      this.unsavedChanges = added > 0
       
       return {
         overlaps:euhOverlaps,
@@ -1095,6 +1100,8 @@ export default class daySchedule {
       let added = toAdd.length - sizey - noTime.length
 
       this.toggleActionBtns(added > 0,'byScore')
+      this.unsavedChanges = added > 0
+
       return {
         overlaps:euhOverlaps,
         canContinue:sizey > 0 ? false : true, //true,
@@ -1185,8 +1192,6 @@ export default class daySchedule {
         //this.doLog('scheduleOneEach...TOADD>> '+toAdd.length,toAdd)
 
       } else { //reset!
-        //this.scheduledEvents = []
-        //this.updateCurrentSchedule()
         this.resetSchedule() //oneEach
       
         //random...implicit that overwrite and no need to check 'notScheduled' ...
@@ -1215,6 +1220,7 @@ export default class daySchedule {
 
       let added = toAdd.length - sizey - noTime.length
       this.toggleActionBtns(added > 0,'oneEach') //true //(sizey > 0)
+      this.unsavedChanges = added > 0
       return {
         overlaps:euhOverlaps,//null,
         canContinue:sizey > 0 ? false : true,//true,
@@ -1286,6 +1292,7 @@ export default class daySchedule {
       this.updateCurrentMoods() //just in case...with resetSchedule() above
 
       this.toggleActionBtns(added > 0,'defaults') 
+      this.unsavedChanges = added > 0
       //this.disableSaveSchedule = !(dEvts.length > 0) //false
       
       //this.reset() //nah could have other settings like onScore/Prio.
@@ -1307,9 +1314,17 @@ export default class daySchedule {
           }
 
           let anyO = this.addToSchedule({...addE,time:timey.time},false)
+          if(!anyO){ //prolly exists already
+            console.log("onPickEvent::ERROR>>NOT added>exists?",addE?.title,anyO)
+            if (doNotify){doNotify(`${addE?.title} already scheduled :(`,'warning') }
+            return {
+              overlaps:null, //or anyO ? >> toSee**
+              canContinue:true,
+            }
+          }
           
-          //console.log("onPickEvent::NO overlap",useBalance,anyO)
-     
+          this.unsavedChanges = true 
+
           //this.toggleActionBtns(true,'onPickEvt')
           if(this.isViewingPast() || useBalance){
             if (doNotify){doNotify(`onPickEvent::Added ${addE?.title}...Saving schedule`,'info') }
@@ -1388,6 +1403,7 @@ export default class daySchedule {
               doNotify(`New adHoc Evt!! Saving Schedule ${useBalance ? 'with new balance':''} ....`,'positive')
             }
           }else{
+            this.unsavedChanges = true
             if (doNotify){
               doNotify(`New adHoc Evt added!! ...doSave eh`,'info') //
               this.toggleActionBtns(true,'onAdHoc')
@@ -1942,10 +1958,12 @@ export default class daySchedule {
     saveDaySchedule(){
       
       let toSave = {} //better as could look up by ID later and can also have array for multiple ids for multiple subGoal per day as below example!
-    
+      let toSchedLater = []
       if (this._dailyScheduled.size < 1){ //clearing day
         toSave = null
       } else {
+        const now = parseDate(new Date()) //umm shouldnt it be this.currentDate ? toSee**
+      
         this._dailyScheduled.forEach( (value, key, map) => {
           if(value.start.time.indexOf('NaN') > -1){ //skip those without time
             //console.log("saveDaySchedule::NOTIME...skipped!",value.title,value.time,value.start.time)
@@ -1964,6 +1982,12 @@ export default class daySchedule {
               //toSave[key].atScore = value?.score  // toSave[key].atScore || value?.score ?!?
               toSave[key].notes = value?.notes
             }
+
+            let diffy = diffTimestamp(now,value.start)
+            if(diffy > 0){ //so evt has NOT started...prolly
+              console.log("saveDaySchedule::Not Started--added!",value.title,value.time)
+              toSchedLater.push(value)
+            }
           }
         })
       }
@@ -1980,6 +2004,9 @@ export default class daySchedule {
        this.showReloadBtn = false
        this.showClearBtn = toSave != null && !this.isViewingPast()
 
+       //schedule Notifs?!?--those upcoming only.
+       LocNotifications.scheduleLater(toSchedLater,this.currentDate)
+       console.log("saveDaySchedule>>State "+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
     }
     //to enable/disable endButton...
     updateMinEndNowBtn(timey,hasEnd, hasStart){ 
@@ -1995,9 +2022,46 @@ export default class daySchedule {
             console.log(`updateMinEndNowBtn..MOBILE::good?>>${hasStart}::${hasEnd}`,timey)
             this.showMobileDialog[entry] = !hasEnd //umm toTest if toggle too*** //false
           }
+          hasStart ? this.showNotification(val) : '' //nothing for end --toReview**
+          break
         }
         //ELSE for hasStart to SHOW enableBtn--TODO? OR just test above?** 
       }
+    }
+    schedulePending(){
+      console.log("schedulePending>>",JSON.stringify(LocNotifications.getState()))
+      LocNotifications.schedulePending()
+    }
+    showNotification(evt){
+      let at = new Date(Date.now() + 1000 * 100) //adds timezone utc and seem in future smh
+      let n = addToDate(parseDate(new Date()),{ minute: 1})
+      //let aty = Date.parse("2024-11-07 05:53:58")/1000;//new Date(this.getTimeyNumber(n))
+      let aty = Date.parse(`${n.date} ${n.time}`)
+      let aty1 = new Date(aty)
+      let aty2 = new Date(aty/1000) //think sets a few mins in past?
+      //console.log("showNotification::AT", JSON.stringify(at),JSON.stringify(n),JSON.stringify(aty),JSON.stringify(aty1),JSON.stringify(aty2))//,JSON.stringify(compareTime))
+            
+      //LocNotifications dont seem to attach listeners(for web!--toReview maybe)
+      LocNotifications.schedule({
+        notifications: [{
+            title: 'Start',
+            body: evt.title,//'Body',
+            id: evt.id, //umm could have others?!? toMonitor but should be unique //1,
+            schedule: { at: aty1 }, //+ 1000 * 5  >>goes five hours in front?!?
+            sound: './public/assets/sounds/alarm.aiff',
+            attachments: null,
+            actionTypeId: '',
+            iconColor:!evt.bgcolor ? '#9d8802' : evt.bgcolor.includes("-") ? '#9d8802' : evt.bgcolor, //'blue',
+            extra: null
+          }]
+        })
+        //.then((res) => {
+        //    console.log("notify::good",JSON.stringify(res))
+        //    console.log(res)
+        //}).catch((err) => {
+        //    console.log("notify::ERROR",JSON.stringify(err))
+        //    console.log(err)
+        //})
     }
     reduceEvtDuration(evtID,duration){
       let evt =  this.findSchedEvent(evtID)
