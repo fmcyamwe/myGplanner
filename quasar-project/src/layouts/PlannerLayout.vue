@@ -27,9 +27,8 @@
         /><!--@reset="clicky"-->
       </div>
       </q-toolbar>
+      <br>
     </q-header>
-
- 
 
     <q-page-container>
       <router-view />

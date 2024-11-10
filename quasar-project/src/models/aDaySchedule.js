@@ -18,8 +18,9 @@ import * as Repo from '../services/aRepository.js'
 import { createEvent } from '../models/schedEvt.js'
 
 import {LocNotifications} from '../notifHelper'; 
+//import {PersistentNotification} from '../persistNotif';
 
-import { whenFrmtTime,parseScore, pGColors} from '../pages/util/utiFunc'
+import { whenFrmtTime,parseScore, pGColors,hexColor} from '../pages/util/utiFunc'
 
 export default class daySchedule {
     /*
@@ -66,6 +67,8 @@ export default class daySchedule {
       this.mobile = isMobile
             
       Repo.initialize()
+
+      //console.log("NEW daySchedule>>",JSON.stringify(LocNotifications.getState()))
     }
     //showyReloadBtn(){ //works!
     //  return this.showReloadBtn
@@ -711,9 +714,6 @@ export default class daySchedule {
           //could be already present--so NOT an error!!!
         } else {
           if(Array.isArray(added)){ //overlap!!!
-            //this.doLog('enrichAddToSchedule::overlap for '+key,added)
-            //oldie when {} >> euhOverlaps[originalG.id] = added
-
             let hasOneToMany = added.length > 1 && added.find(item => item[0] == "oneToMany") //.find better than .some
             let ret = {e:c, ov:added[0], oneToMany:hasOneToMany}
             //let u = ...added[0] //huh complain about unfurl
@@ -725,7 +725,6 @@ export default class daySchedule {
 
       //this.doLog("enrichAddToSchedule...",euhOverlaps)
       
-      // massageManyToOneOverlaps be still needed even?!? >>doesnt seem so!!
       return this.recheckOverlaps(euhOverlaps) //this.massageManyToOneOverlaps(euhOverlaps)
     }
     recheckOverlaps(oLaps){ //to recheck overlaps for potential oneToMany..
@@ -742,7 +741,9 @@ export default class daySchedule {
           }
           //return toRet? no need as keeps reference...
         }
+
       let encountered = null //to skip already seen...
+
       for(let i = 0; i< oLaps.length;i++){
         let elt = oLaps[i].e
         let overlap = oLaps[i].ov
@@ -795,14 +796,6 @@ export default class daySchedule {
           }else{
             //console.log("recheckOverlaps::NOCHANGE "+elt.id,m.length,JSON.parse(JSON.stringify(oOth)),JSON.parse(JSON.stringify(overlap)))
             findPrevious(overlap)
-            /*let exist = toRet.find(item => item[0] == overlap[0])
-            if (exist){
-              let j = toRet.findIndex(item => item[0] == overlap[0])
-              console.log("WOAH WOAH,recheckOverlaps PREV FOUND at: "+j,m.length,JSON.parse(JSON.stringify(exist))) //JSON.parse(JSON.stringify(toH)),
-              toRet[j]= [overlap[0], [...exist[1],...overlap[1]]] 
-            }else{
-              toRet.push(overlap)
-            }*/
           }
         }else{ //else? toMonitor** but shouldnt happen
           console.log("recheckOverlaps::ERROR>>hasOverlappingEvent no overlap?!?",elt.id,oOth)
@@ -824,7 +817,7 @@ export default class daySchedule {
       if (this.savedRawEvts){
         //this.doLog("loadEvtsForDay",this.savedRawEvts)
         let hasOverlaps = this.enrichAddToSchedule()
-        
+        //hasOverlaps.length > 0 ? console.log('loadEvtsForDay--OVERLAPS no scheduleLAter',this.currentDate) : this.scheduleLater()
         //console.log('loadEvtsForDay',this.currentDate,hasOverlaps,this._dailyScheduled,this.actualEvts)
         return {
           overlaps:hasOverlaps,
@@ -845,6 +838,36 @@ export default class daySchedule {
       
       return this.loadEvtsForDay(sameDay)
     }
+    scheduleLater(){
+      if(this.isViewingPast()){
+        console.log('scheduleLater >>NOT IN PAST',this.currentDate)
+        return
+      }
+      if(this.isViewingToday()){
+        let toSchedLater = []
+        const now = parseDate(new Date()) //should be this.currentDate for future...
+        //umm too much looping?!? toReview**
+        this._dailyScheduled.forEach( (value, key, map) => {
+          if(value.start.time.indexOf('NaN') > -1){//shouldnt happen?!? toMonitor**
+            console.log("scheduleLater::NOTIME...skipped!--ERROR--present?!?",value.title,value.time,value.start.time)
+          }else{
+            let diffy = diffTimestamp(now,value.start)
+            if(diffy > 0){ //so evt has NOT started...prolly
+              //console.log("scheduleLater::Evt NOT Started yet--gon schedule!",value.title,value.time)
+              toSchedLater.push(value)
+            }
+          }
+        })
+
+       LocNotifications.scheduleLater(toSchedLater,this.currentDate)
+       console.log("scheduleLater>>State "+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
+
+       LocNotifications.schedulePending() //meh should do in one step...toReview**
+      }else{
+        //should do in future?!? toReview**
+        console.log('scheduleLater >>IN FUTURE...what to do?!?',this.currentDate)
+      }
+    }
     resetSchedule(skipMoods=false){
       //console.log('resetSchedule >>',skipMoods)
       this.savedRawEvts = []
@@ -859,7 +882,7 @@ export default class daySchedule {
 
       //this.chosenScore = null //-moved in resetChosen()
       //this.chosenPrio = null
-      
+      this.unsavedChanges = this.hasEventsForDate()
       this.showReloadBtn = false
       this.showClearBtn = false
       this.disableSaveSchedule = true
@@ -1958,11 +1981,11 @@ export default class daySchedule {
     saveDaySchedule(){
       
       let toSave = {} //better as could look up by ID later and can also have array for multiple ids for multiple subGoal per day as below example!
-      let toSchedLater = []
+      //let toSchedLater = []
       if (this._dailyScheduled.size < 1){ //clearing day
         toSave = null
       } else {
-        const now = parseDate(new Date()) //umm shouldnt it be this.currentDate ? toSee**
+        //const now = parseDate(new Date()) //umm shouldnt it be this.currentDate ? toSee**
       
         this._dailyScheduled.forEach( (value, key, map) => {
           if(value.start.time.indexOf('NaN') > -1){ //skip those without time
@@ -1983,11 +2006,11 @@ export default class daySchedule {
               toSave[key].notes = value?.notes
             }
 
-            let diffy = diffTimestamp(now,value.start)
-            if(diffy > 0){ //so evt has NOT started...prolly
-              console.log("saveDaySchedule::Not Started--added!",value.title,value.time)
-              toSchedLater.push(value)
-            }
+            //let diffy = diffTimestamp(now,value.start)
+            //if(diffy > 0){ //so evt has NOT started...prolly
+            //  console.log("saveDaySchedule::Not Started--added!",value.title,value.time)
+            //  toSchedLater.push(value)
+            //}
           }
         })
       }
@@ -2005,8 +2028,8 @@ export default class daySchedule {
        this.showClearBtn = toSave != null && !this.isViewingPast()
 
        //schedule Notifs?!?--those upcoming only.
-       LocNotifications.scheduleLater(toSchedLater,this.currentDate)
-       console.log("saveDaySchedule>>State "+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
+       //LocNotifications.scheduleLater(toSchedLater,this.currentDate)
+       //console.log("saveDaySchedule>>State "+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
     }
     //to enable/disable endButton...
     updateMinEndNowBtn(timey,hasEnd, hasStart){ 
@@ -2022,16 +2045,16 @@ export default class daySchedule {
             console.log(`updateMinEndNowBtn..MOBILE::good?>>${hasStart}::${hasEnd}`,timey)
             this.showMobileDialog[entry] = !hasEnd //umm toTest if toggle too*** //false
           }
-          hasStart ? this.showNotification(val) : '' //nothing for end --toReview**
+          hasStart ? this.showNotification(val) : console.log(`updateMinEndNowBtn..hasEND..not scheduling`) //nothing for end --toReview**
           break
         }
         //ELSE for hasStart to SHOW enableBtn--TODO? OR just test above?** 
       }
     }
-    schedulePending(){
-      console.log("schedulePending>>",JSON.stringify(LocNotifications.getState()))
-      LocNotifications.schedulePending()
-    }
+    //schedulePending(){
+    //  console.log("schedulePending>>",JSON.stringify(LocNotifications.getState()))
+    //  LocNotifications.schedulePending()
+    //}
     showNotification(evt){
       let at = new Date(Date.now() + 1000 * 100) //adds timezone utc and seem in future smh
       let n = addToDate(parseDate(new Date()),{ minute: 1})
@@ -2048,10 +2071,10 @@ export default class daySchedule {
             body: evt.title,//'Body',
             id: evt.id, //umm could have others?!? toMonitor but should be unique //1,
             schedule: { at: aty1 }, //+ 1000 * 5  >>goes five hours in front?!?
-            sound: './public/assets/sounds/alarm.aiff',
+            //sound: './public/assets/sounds/alarm.aiff', //meh shouldnt be available..default to system
             attachments: null,
-            actionTypeId: '',
-            iconColor:!evt.bgcolor ? '#9d8802' : evt.bgcolor.includes("-") ? '#9d8802' : evt.bgcolor, //'blue',
+            actionTypeId: 'start',//'',
+            iconColor:hexColor(evt.bgcolor), //!evt.bgcolor ? '#9d8802' : evt.bgcolor.includes("-") ? '#9d8802' : evt.bgcolor, //'blue',
             extra: null
           }]
         })
@@ -2062,6 +2085,16 @@ export default class daySchedule {
         //    console.log("notify::ERROR",JSON.stringify(err))
         //    console.log(err)
         //})
+
+        //test to see if service starts>>nope :(
+        /*PersistentNotification.open({
+          title: 'Start',
+          icon: 'sleep',  //?!?
+          body: evt.title, 
+          actions: [{id:'ok',title:'OK'},{id:'go',title:'Nav'}],//Array<NotificationAction>, 
+          color: hexColor(evt.bgcolor), 
+          badge: ''
+        })*/
     }
     reduceEvtDuration(evtID,duration){
       let evt =  this.findSchedEvent(evtID)

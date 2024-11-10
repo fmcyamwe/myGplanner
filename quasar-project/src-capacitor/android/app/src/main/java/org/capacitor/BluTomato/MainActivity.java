@@ -13,7 +13,9 @@ import org.capacitor.BluTomato.LocalNotification;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-      registerPlugin(LocalNotificationsPlugin.class);
+      registerPlugin(LocalNotificationsPlugin.class); // have to be here to run...not needed tho
+
+      //registerPlugin(PersistentNotification.class);
 
       super.onCreate(savedInstanceState);
 

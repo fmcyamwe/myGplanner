@@ -31,15 +31,34 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+                android:resource="@xml/file_paths"/>
         </provider>
-
-        <receiver android:name="org.capacitor.BluTomato.TimedNotificationPublisher" />
-        <receiver android:name="org.capacitor.BluTomato.NotificationDismissReceiver" />
+        <!--not sure below receivers are needed even smh >>see with remove org.capacitor.BluTomato >> nope
+        see with intent filters: removed <data android:scheme="http" android:host="example.com" />
+        -->
+        <receiver
+          android:enabled="true"
+          android:exported="true"
+          android:name="TimedNotificationPublisher" >
+          <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+          </intent-filter>
+        </receiver>
+        <receiver
+          android:enabled="true"
+          android:exported="true"
+          android:name="NotificationDismissReceiver">
+          <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+          </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->
-
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>

@@ -5,12 +5,13 @@
     dense
     :to="link"
     activeClass="g-link-active"
-    style="margin: 0 1em 0 1em;"
+    style="margin: 0 auto"
   >
     <!--without activeClass only the caption shows lool toReview
     @click="$emit('reset')"
     target="_blank"  >> opens new tab
-    :href="link"-->
+    :href="link"
+    oldie for style but too much space>> style="margin: 0 1em 0 1em;"-->
 
     <q-item-section v-if="icon" avatar>
       <q-icon :name="icon" size="20px"/>

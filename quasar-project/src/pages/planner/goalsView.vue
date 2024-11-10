@@ -17,13 +17,12 @@
               <q-tab-panels v-model="tab" animated > <!--class="bg-primary text-white"-->
                 <q-tab-panel name="GList">
                     <q-list bordered>
-                        <q-item>
+                        <q-item v-if="allMGoals && allMGoals.length > 0">
                             <q-item-section>
                             <q-item-label overline class="q-mx-lg q-px-md row justify-center" style="max-width:100%;font-weight: bolder;">Swipe to Edit or Delete Goal</q-item-label>
                             </q-item-section>
+                            <q-separator spaced />
                         </q-item>
-                    
-                        <q-separator spaced />
                     
                         <transition-group name="dalist">
                             <q-expansion-item v-for="goal in allMGoals" class="q-my-sm"
@@ -39,8 +38,8 @@
                             <!--:icon="goal.icon" //shows when fontAwesome added in quasar.config 
                             ...literal as >> icon="fas fa-handshake" || "far fa-thumbs-up"-->
                         
-                            <template v-slot:header> <!--for edit ability...-->
-                                <div><!--add proper class..todo**-->
+                            <template v-slot:header> <!--for edit btns...-->
+                                <div class="col">
                                     <q-icon v-if="expanded[goal.id] ? 'expand_less' : 'expand_more'" size="28px" right/>
                                     <!-- huh q-item-label works even if not in a q-item-section
                                         <div class="q-px-sm text-weight-bold" >{{ goal.title }}</div>
@@ -50,29 +49,37 @@
                                     <q-item-label overline>{{ goal.title }}</q-item-label>
                                     <q-item-label caption>{{ goal.details }}--({{ goal.priority }})</q-item-label>
                                     <q-icon :name="goal.icon" />
-                                    
+                                </div>
+                                <div class="row">
+                                    <q-btn v-if="expanded[goal.id]"
+                                    label="Edit goal" 
+                                    type="reset" 
+                                    color="secondary"
+                                    padding="sm"
+                                    noWrap
+                                    noCaps 
+                                    push 
+                                    align="between" 
+                                    class="q-mx-sm"
+                                    style="max-height:3em;"
+                                    @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" 
+                                    />
+                                
+                                    <q-btn v-if="!hasSubG(goal.id) && expanded[goal.id]"
+                                    label="Delete goal"
+                                    type="reset"
+                                    color="primary"
+                                    class="q-mx-sm"
+                                    style="max-height:3em;"
+                                    padding="sm"
+                                    noWrap 
+                                    noCaps
+                                    push 
+                                    align="between"
+                                    @click.prevent="(e) => onParentAction('del',goal.id,goal.title)"
+                                    /> 
                                 </div>
 
-                                <q-btn v-if="expanded[goal.id]"
-                                label="Edit goal" 
-                                type="reset" 
-                                color="secondary" 
-                                noWrap 
-                                push 
-                                align="evenly" 
-                                class="q-mx-sm"  
-                                @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" 
-                                />
-                                <!--better look than in qCard below?-->
-                                <q-btn v-if="!hasSubG(goal.id) && expanded[goal.id]"
-                                label="Delete goal"
-                                type="reset"
-                                color="primary"
-                                class="q-mx-sm"
-                                noWrap push 
-                                align="evenly" 
-                                @click.prevent="(e) => onParentAction('del',goal.id,goal.title)"
-                                />
                             </template>
                             <template v-slot:default> 
                                 <q-card v-for="subGoal in getSubGoals(goal.id)" :key="subGoal.id"> <!--v-for on a crd works?>>huh not without adding >>:key="event.id" -->
@@ -123,7 +130,7 @@
                                     <q-btn label="Edit goal" type="reset" color="primary" noWrap push align="evenly" class="q-mx-sm"  @click.prevent="(e) => onParentAction('edit',goal.id,goal.title)" />
                                     -->
                                 </q-card>
-                             </template>
+                            </template>
                             </q-expansion-item>
                         </transition-group>
                     </q-list>
@@ -161,225 +168,246 @@
                 </q-tab-panel>
                 
                 <q-tab-panel name="Goal">
-                    <div class="q-pa-lg" align="center">
+                    <div class="q-pb-md" align="center">
                         ** Goals named the same can be auto-solved in Overlaps! **<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
                     </div>
-                    <q-form @submit="onSubmit" class="form"> <!--q-gutter-md-->
-                        <div class="q-gutter-sm">
-                            <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
-                            
-                            <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
-                        </div>
-
-                        <q-input class="q-mx-auto"
-                            filled
-                            v-model="goalTitle"
-                            label="A Goal"
-                            clearable
-                            lazy-rules
-                            item-aligned
-                            :rules="[ val => val && val.length > 1 || 'Please type a goal']"
-                        />
-
-                        <div v-if="showSubG" class="q-gutter-md">
-                            <q-select
-                            v-model="pGoal"
-                            :options="mainGoals"
-                            option-value="id"
-                            option-label="title"
-                            label="Parent Goal"
-                            popup-content-class="q-px-md"
-                            />
-                            <br>
-                        </div> 
-
-                        <q-input v-else
-                            filled
-                            v-model="details"
-                            label="Description/Details"
-                        />
-                        <div v-if="!showSubG" class="q-gutter-md">
-                            <q-select
-                            v-model="bgcolor"
-                            :options="avColors"
-                            :color="bgcolor"
-                            label="Color"
-                            popup-content-class="q-px-md"
-                            >
-                              <template v-slot:label>
-                                <div class="row items-center all-pointer-events q-mx-xs">
-                                  <q-icon class="q-mx-xs" :color="bgcolor" size="24px" name="palette" />
-                                  Color
-                                  <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Subgoals color group</q-tooltip>
-                                </div>
-                              </template>
-                            </q-select>
-                            <!--popupContentStyle="justify-content: center"
-                            /> -->
-                            <br>
-                            <div v-if="currentIcon">
-                                <!--add style class >> todo** -->
-                                Icon: <i :class="currentIcon" ></i>
-                                <br>
-                                <q-toggle
-                                v-model="changeIcon"
-                                label="Change Icon?"
-                                left-label
-                                />
+                    <q-card class="no-margin">
+                        <q-form @submit="onSubmit" class="form">
+                            <div class="q-gutter-sm q-mx-auto">
+                                <strong class="typey"><em>Goal Type:</em></strong>
+                                <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
+                                
+                                <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
                             </div>
 
-                            <!--<q-icon :name="icon" /> :icon="icon"-->
-                            
-
-                            <Vue3IconPicker v-if="!currentIcon || changeIcon" v-model="icon" placeholder="Select icon" class="q-gutter-md" valueType="name" :displaySearch="false"/> 
-                            <!-- valueType as name important as default is svg
-                            //bon review placement as doesnt show all of dialog --show search ?
-                            
-                            -->
-
-                            <br>
-
-                            <q-input
+                            <q-input class="q-mx-none"
                                 filled
-                                v-model.number="priority"
-                                type="number"
-                                label="Priority"
-                                hint="0 to 10"
-                            />
-                        </div>
-
-                        <div v-if="showSubG" class="q-gutter-sm">
-                            <q-input 
-                            v-model="time"
-                            filled
-                            outlined
-                            type="time"
-                            clearable
-                            hint="Default Schedule time"
-                            class="q-mx-auto"
-                            />
-                            
-                            <br>
-                              <div class="atLeft"> 
-                                Duration (min)
-                                <q-knob
-                                :min="5"
-                                :max="120"
-                                :thickness="0.22"
-                                :step="5"
-                                v-model="duration"
-                                show-value
-                                size="75px"
-                                color="teal"
-                                track-color="grey-3"
-                                class="q-ma-md center"
-                                />
-                              </div>
-                              
-                              <div class="atRight"> <!--q-mr-md-->
-                                <q-toggle
-                                v-model="canMove"
-                                label="Can Move"
-                                left-label
-                                color="green">
-                                    <q-badge
-                                    color="orange" floating
-                                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                    ? <q-tooltip>Or need to confirm any timeslot change</q-tooltip>
-                                    </q-badge>
-                                </q-toggle>
-                            
-                              <br>
-                              <q-toggle
-                              v-model="inDefaults"
-                              label="In Defaults"
-                              left-label
-                              color="blue">
-                                <q-badge 
-                                color="orange" floating
-                                style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                ? <q-tooltip>Is Default/Get done daily!</q-tooltip>
-                                </q-badge>
-                              </q-toggle>
-                            
-                              <br>
-
-                              <q-toggle v-if="duration < 30"
-                                v-model="isAlternative"
-                                label="As Alternative"
-                                left-label
-                                color="blue">
-                                    <q-badge 
-                                    color="orange" floating
-                                    style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
-                                    ? <q-tooltip>Can be scheduled as an alternative</q-tooltip>
-                                    </q-badge>
-                              </q-toggle>
-                            </div>
-                            <br>
-                           
-                            <div style="clear: both;">
-                                <q-input v-model="score" 
-                                filled
-                                label-slot
-                                hint="format: #on#"
+                                v-model="goalTitle"
+                                label="A Goal"
+                                clearable
                                 lazy-rules
-                                :rules="[ val => val && val.match(/^\don\d$/g) && val.length > 3 || 'hint, hint!']"
-                                > 
-                                <template v-slot:label>
-                                    <div class="row items-center all-pointer-events q-mx-xs">
-                                    <!--<q-icon class="q-mx-xs" color="deep-orange" size="24px" name="mail" /> -->
-                                    Score (hover for more info)
-                                    <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Progress/Rating to next level of Mastery</q-tooltip>
-                                    </div>
-                                </template>
-                                </q-input>
+                                item-aligned
+                                :rules="[ val => val && val.length > 1 || 'Please type a goal']"
+                            />
+                            
+                            <q-select v-if="showSubG"
+                                class="q-mx-md q-pa-sm"
+                                v-model="pGoal"
+                                :options="mainGoals"
+                                option-value="id"
+                                option-label="title"
+                                label="Parent Goal"
+                                popup-content-class="q-px-md"
+                                popup-content-style="text-align: center;"
+                                />
+            
+                            <q-input v-else
+                                filled
+                                v-model="details"
+                                label="Description"
+                                class="col q-mx-sm q-pa-md"
+                            />
+
+                            <div v-if="!showSubG" class="col q-mx-sm">
+                                <q-input
+                                    filled
+                                    v-model.number="priority"
+                                    type="number"
+                                    label="Priority"
+                                    hint="0 to 10"
+                                    class="q-mx-sm q-pb-md"
+                                    :rules="[ val => val && val > 0 && val <=10 || 'hint hint!!']"
+                                />
+
+                                <q-select
+                                v-model="bgcolor"
+                                :options="avColors"
+                                :color="bgcolor"
+                                label="Color"
+                                popup-content-class="q-px-md"
+                                popupContentStyle="text-align: center;"
+                                class="q-mx-sm q-pb-md"
+                                >
+                                    <template v-slot:label>
+                                        <div class="row items-center all-pointer-events q-mx-xs">
+                                        <q-icon class="q-mx-xs" :color="bgcolor" size="24px" name="palette" />
+                                        Color
+                                        <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Subgoals color group</q-tooltip>
+                                        </div>
+                                    </template>
+                                </q-select>
+                                <!--popupContentStyle="justify-content: center"
+                                /> -->
+                                <br>
+                                <div v-if="currentIcon">
+                                    <!--add style class >> todo** -->
+                                    Icon: <i :class="currentIcon" ></i>
+                                    <br>
+                                    <q-toggle
+                                    v-model="changeIcon"
+                                    label="Change Icon?"
+                                    left-label
+                                    />
+                                </div>
+
+                                <!--<q-icon :name="icon" /> :icon="icon"-->
+                                
+                                <Vue3IconPicker v-if="!currentIcon || changeIcon" 
+                                v-model="icon" 
+                                placeholder="Goal icon" 
+                                class="q-gutter-md q-mb-lg"
+                                valueType="name"
+                                @click="()=>{ hello2(icon,{})}"
+                                :displaySearch="false"/> 
+                                <!-- valueType as name important as default is svg
+                                //bon review placement as doesnt show all of dialog --show search ?
+                                can use click to increase scroll page maybe?!?
+                                -->
                             </div>
 
-                            <br>
-                            <q-select
-                            label="Moods: 'je-suis'"
-                            filled
-                            v-model="moods"
-                            use-input
-                            use-chips
-                            multiple
-                            hide-dropdown-icon
-                            input-debounce="0"
-                            new-value-mode="add-unique"
-                            style="width: 100%"
-                            >
-                              <template v-slot:label>
-                                <div class="row items-center all-pointer-events q-mx-xs">
-                                  <q-icon class="q-mx-xs" color="blue" size="24px" name="mood" />
-                                  Moods (hover for more info)
-                                  <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">'je-suis' keywords for scheduling.</q-tooltip>
+                            <div v-if="showSubG" class="q-gutter-sm">
+                                <q-input 
+                                v-model="time"
+                                filled
+                                outlined
+                                type="time"
+                                clearable
+                                label="Default Schedule time"
+                                hint="Can be Empty for manual add"
+                                hideHint
+                                class="col-xs-12 col-sm-6 col-md-4 q-mx-sm q-py-md"
+                                />
+                                <div class="row"> 
+                                    <div class="atLeft col-6 q-mt-md"> 
+                                    Duration (min)
+                                    <q-knob
+                                    :min="5"
+                                    :max="120"
+                                    :thickness="0.34"
+                                    :step="5"
+                                    v-model="duration"
+                                    show-value
+                                    size="5em"
+                                    color="teal"
+                                    trackColor="grey-3"
+                                    class="q-ma-md center"
+                                    />
                                 </div>
-                              </template>
-                              <template v-slot:selected-item="scope">
-                                <q-chip
-                                  removable
-                                  dense
-                                  @remove="scope.removeAtIndex(scope.index)"
-                                  :tabindex="scope.tabindex"
-                                  text-color="black"
-                                  class="q-ma-none"
-                                  style="width:100px"
-                                >
-                                  {{ scope.opt }}
-                                </q-chip>
-                              </template>
-                            </q-select>
-                            <br>
-                        </div>
+                                
+                                <div class="atRight col-6 q-mt-md">
+                                    <q-toggle
+                                    v-model="canMove"
+                                    label="Can Move"
+                                    left-label
+                                    color="green">
+                                        <q-badge
+                                        color="orange" floating
+                                        style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                                        ? <q-tooltip>Or need to confirm any timeslot change</q-tooltip>
+                                        </q-badge>
+                                    </q-toggle>
+                                
+                                    <br>
+                                    <q-toggle
+                                    v-model="inDefaults"
+                                    label="In Defaults"
+                                    left-label
+                                    color="blue">
+                                        <q-badge 
+                                        color="orange" floating
+                                        style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                                        ? <q-tooltip>Is Default/Get done daily!</q-tooltip>
+                                        </q-badge>
+                                    </q-toggle>
+                                
+                                    <br>
 
-                        <div>
-                            <q-btn :label="buttonLabel" type="submit" color="primary" class="q-ml-sm" align="between" />
+                                    <q-toggle v-if="duration < 30"
+                                    v-model="isAlternative"
+                                    label="As Alternative"
+                                    left-label
+                                    color="blue">
+                                        <q-badge 
+                                        color="orange" floating
+                                        style="top: 5px; position: relative; width: 10px; max-width: 10px; height: 10px; max-height: 10px; padding-inline: 3px 6px; cursor: pointer">
+                                        ? <q-tooltip>Can be scheduled as an alternative</q-tooltip>
+                                        </q-badge>
+                                    </q-toggle>
+                                </div>
+                                </div>
+
+                                
+                                <br>
                             
-                            <!--Cancel only shown on edit-->
-                            <q-btn v-if="buttonLabel == 'Save'" label="Cancel" type="reset" color="secondary" class="q-ml-sm" align="between" @click="doCancel"/>
-                        </div>
-                    </q-form>
+                                <div style="clear: both;">
+                                    <q-input v-model="score" 
+                                    filled
+                                    label-slot
+                                    hint="format: #on#"
+                                    lazy-rules
+                                    class="col q-mx-sm q-pa-md"
+                                    :rules="[ val => val && val.match(/^\don\d$/g) && val.length > 3 || 'hint, hint!']"
+                                    > 
+                                    <template v-slot:label>
+                                        <div class="row items-center all-pointer-events q-mx-xs">
+                                        <!--<q-icon class="q-mx-xs" color="deep-orange" size="24px" name="mail" /> -->
+                                        Score (hover for more info)
+                                        <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Progress/Rating to next level of Mastery</q-tooltip>
+                                        </div>
+                                    </template>
+                                    </q-input>
+                                </div>
+
+                                <br>
+                                <!--really hard to enter keywords on mobile as enter does form submission...below didnt work
+                                :updateInputValue="()=>{ hello(moods,{})}"
+                                @new-value="()=>{ hello2(moods,{})}"
+                                
+                                should just hide moods anyway on mobile?!?-->
+                                <q-select
+                                label="Moods: 'je-suis'"
+                                filled
+                                v-model="moods"
+                                use-input
+                                use-chips
+                                multiple
+                                hide-dropdown-icon
+                                new-value-mode="add-unique"
+                                class="col-auto"
+                                input-debounce="0"
+                                ><!-- v-on:keyup.enter="()=>{ hello2(moods,{})}" 
+                                still doesnt stop form submission on mobile smh >>huh have to add space for it to work?!?-->
+                                    <template v-slot:label>
+                                        <div class="row q-mx-xs no-wrap">
+                                            <q-icon class="q-mx-xs" color="blue" size="24px" name="mood" />
+                                            Moods (hover for more info)
+                                            <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">'je-suis' keywords for scheduling.</q-tooltip>
+                                        </div>
+                                    </template>
+                                    <template v-slot:selected-item="scope">
+                                        <q-chip
+                                        removable
+                                        dense
+                                        @remove="scope.removeAtIndex(scope.index)"
+                                        text-color="black"
+                                        class="q-ma-none"
+                                        style="width:100px"
+                                        :tabindex="scope.tabindex"
+                                        >
+                                        {{ scope.opt }}
+                                        </q-chip>
+                                    </template>
+                                </q-select>
+                                <br>
+                            </div>
+
+                            <div class="q-ml-sm q-mb-md q-gutter-md">
+                                <q-btn :label="buttonLabel" type="submit" color="primary"  align="between" @submit="onSubmit"/>
+                                <!--Cancel only shown on edit-->
+                                <q-btn v-if="buttonLabel == 'Save'" label="Cancel" type="reset" color="secondary" align="between" @click="doCancel"/>
+                            </div>
+                        </q-form>
+                    </q-card>
                 </q-tab-panel>
 
                 <q-tab-panel name="Admin">
@@ -900,7 +928,7 @@ export default {
                 if(pGoal.value){
                     let pId = pGoal.value
                     store.addSubGoal(pId.id,goalTitle.value,score.value,time.value, duration.value,canMove.value, inDefaults.value,isAlternative.value,moods.value)
-                    console.log("Subgoal Goal added for parent:",pId.title)
+                    //console.log("Subgoal Goal added for parent:",pId.title)
 
                     expanded.value[pId.id] = true //to see updates when back in tab
                 }
@@ -978,6 +1006,7 @@ export default {
             //console.log("reloadin...", subGoals.value)
     
             //e.reset() //just reset how things looked--not helpful
+            reload() //updates?!?
         }
 
         function onLeftEdit ({reset},subId, pID) {
@@ -1202,7 +1231,12 @@ export default {
             return `${att}${when(att)}`
 
         }
-
+        function hello(value,fn){
+            console.log("HELLO",value)
+        }
+        function hello2(value,reset){
+            console.log("HELLO2",value)
+        }
         function errorNotify(mess){ //position='top',icon=null,color='negative'
             doNotify(mess,'top','report_problem','negative')
         }
@@ -1222,7 +1256,7 @@ export default {
         }
 
         return {
-            //splitterModel,
+            hello,hello2,
             enableAdmin,step,mainGJson,subGJson,allJson, isImporting,AdminLabel,showGoalsArea,
             showSubG,
             mainGoals,
@@ -1245,7 +1279,9 @@ export default {
 
 <style lang="scss">
 .form {
-    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 .page--table {
   .page {
@@ -1283,6 +1319,9 @@ export default {
 .atRight {
     float:none;
     }
+.typey {
+    display:none
+}
 }
  
 </style>

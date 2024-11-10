@@ -211,20 +211,31 @@
                       :balanceLabel="labelBalance()"
                       :scheduleLabel="labelScheduled()"
                       />
-                    
-
-                    <!--<q-card-section>
-                      Please fill the details for a new user.
-                    </q-card-section>-->
+                  
                     <q-card-actions align="center">
+                      <q-btn
+                      label="SaveSchedule"
+                      color=""
+                      text-color="white"
+                      align="between"
+                      class="q-mt-md"
+                      elevated
+                      push
+                      :dense="false"
+                      no-wrap
+                      no-caps
+                      @click.prevent="() => {doSaveSchedule(); morphClose() }"
+                      />
+                      <!--better align with above smh
                       <sched-btn
                       text-label="SaveSchedule"
                       class="q-mt-md"
+                      style="text-align: center;"
                       text-color="white"
                       @do-btn-action="() => {doSaveSchedule(); morphClose() }"
                       push
                       :dense="false"
-                      />
+                      />-->
                       <!--:text-color="saveScheduleDisabled ? 'grey' : 'blue'" 
                       :disable="saveScheduleDisabled" >> shouldnt disable here...
                       -->
@@ -328,7 +339,7 @@
                           @mouseup-time="onMouseUpTime"
                           @mousemove-time="onMouseMoveTime">
                             <template #head-day-event="{ scope: { timestamp } }">
-                              <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
+                              <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;margin-bottom: 5px;"> <!--toSee margin-bottom on mobile...-->
                                 
                                 <template
                                   v-for="event in eventsMap[timestamp.date]"
@@ -504,13 +515,13 @@ import '@quasar/quasar-ui-qcalendar/src/QCalendarDay.sass'
 
 import { defineAsyncComponent,ref } from 'vue' //defineComponent
 import { isMobile } from '../util/isMobile'
-import { applyClasses, applyStyles, whenFrmtTime,parseScore,deepCopy } from '../util/utiFunc'
+import { applyClasses, applyStyles, whenFrmtTime,parseScore,deepCopy,hexColor } from '../util/utiFunc'
 import { useQuasar } from 'quasar'  //Platform
 import daySchedule  from '../../models/aDaySchedule.js'
 import scheduleBy from '../../components/planner/scheduleByDialog.vue' //also craps out when in demand?
 
 function isLeftClick (e) {
-return e.button === 0
+  return e.button === 0
 }
 
 export default {
@@ -595,7 +606,7 @@ mounted() {
 },
 beforeUnmount() {
   clearInterval(this.intervalId)
-  this.daSchedule.schedulePending()
+  this.daSchedule.scheduleLater()
 },
 computed: {
   chosenScoreLabel() {
@@ -787,7 +798,6 @@ methods:{
       this.daSchedule.updateMinEndNowBtn(this.currentTime,hasEnd, hasStart)
       if (hasStart){
         this.scrollToTime(now,'slow')
-        //this.doNotify(`Event Starting :)`, "positive",'top') //umm try to get evt's title? toSee**
         
         //should prolly be here that notification is sent!!
         /*chrome.notifications.create(data.url, {  //would this work?!? >>nah errors out at .create
@@ -3430,7 +3440,7 @@ methods:{
         //if(this.selectedItem.bgcolor.includes("-")){ target.classList.add(`bg-${this.selectedItem.bgcolor?.toLocaleLowerCase()}`) } else{ target.style.background = this.selectedItem.bgcolor }
         //target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //'bg-'+this.selectedItem.bgcolor >>doesnt work for style >>does as css class! above line works but passed over intervals keep color and removing from classlist would be hassle...
         let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
-        target.style.background = color.includes("-") ? 'grey' : color
+        target.style.background = hexColor(color) //color.includes("-") ? 'grey' : color
         this.lastTarget = target
       }
     
@@ -3665,10 +3675,10 @@ methods:{
           let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
           if(!this.lastTarget){
             this.lastTarget = target
-            target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ? 'grey' : this.selectedItem.evt.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
+            target.style.background = hexColor(color) //color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ? 'grey' : this.selectedItem.evt.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
           }else{
             this.lastTarget.style.background = '' //remove from old
-            target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ?'grey' : this.selectedItem.evt.bgcolor
+            target.style.background = hexColor(color) //color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ?'grey' : this.selectedItem.evt.bgcolor
             this.lastTarget = target 
           }
         }
@@ -3764,10 +3774,10 @@ methods:{
           let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
           if(!this.lastTarget){
             this.lastTarget = target
-            target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ? 'grey' : this.selectedItem.evt.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
+            target.style.background = hexColor(color) //color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ? 'grey' : this.selectedItem.evt.bgcolor  //or .color //using `bg-${this.selectedItem.bgcolor}` doesnt work as should be a css class  //oldie >>'pink'
           }else{
             this.lastTarget.style.background = '' //remove from old
-            target.style.background = color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ?'grey' : this.selectedItem.evt.bgcolor 
+            target.style.background = hexColor(color) //color.includes("-") ? 'grey' : color //this.selectedItem.evt.bgcolor.includes("-") ?'grey' : this.selectedItem.evt.bgcolor 
             this.lastTarget = target 
           }
         }
@@ -4149,9 +4159,10 @@ methods:{
       position: position,
       message: messg,
       multiLine: true,  //for larger text--seems better!
+      timeout: 3000,
       icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
       //group?: boolean | string | number;
-      //timeout?: number; // time to display (in milliseconds)>>default is 5000
+      
     })
   },
   doNotifyCaption(messg, cap, colorNotif = undefined, position = 'top'){

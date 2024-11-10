@@ -226,8 +226,11 @@ export default {
     this.loadEvts()
     this.constructTree()
   },
-  mounted() { //redundant--toRemove**
-    console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
+  //mounted() { //redundant--toRemove**
+  //  console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
+  //},
+  beforeUnmount() {
+    //console.log(`beforeUnmount...do anything?!?`)
   },
   computed: {
     storedGoalsMap(){  //rename properly** todo
@@ -443,28 +446,30 @@ export default {
       //console.log('onClickHeadDay',d,hasM,dayEvts) 
       if (hasM){  //toSee if can do it better as tooltip!
         this.$q.notify({
-        color: 'positive',
-        position: 'top',
-        message: `${dayEvts} Scheduled with Moods: ${hasM.join()}`, //need ',' separator?
-        icon: 'tag_faces', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-        multiLine:true  //for max-width....
-        //group?: boolean | string | number;
-        //timeout?: number; // time to display (in milliseconds)>>default is 5000
+          color: 'positive',
+          position: 'top',
+          message: `${dayEvts} Scheduled with Moods: ${hasM.join()}`, //need ',' separator?
+          icon: 'tag_faces', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+          multiLine:true,  //for max-width....
+          timeout: 3000 // time to display (in milliseconds)>>default is 5000 (5sec)
+          //group?: boolean | string | number;
       })
       }else{//no moods
         this.$q.notify({ 
-        color: 'white', //color of whole dialog //default to black
-        textColor: 'black', //message text color //default to white
-        position: 'top',
-        message: dayEvts > 0 ? `${dayEvts} Scheduled without Any Mood!` : `Empty and NO mood!!`,
-        icon: dayEvts > 0 ? 'mood' : 'sentiment_neutral',//${dayEvts}
-        iconColor: dayEvts > 0 ? 'positive' : "red",
-        multiLine:true  //to have max-width
+          color: 'white', //color of whole dialog //default to black
+          textColor: 'black', //message text color //default to white
+          position: 'top',
+          message: dayEvts > 0 ? `${dayEvts} Scheduled without Any Mood!` : `Empty and NO mood!!`,
+          icon: dayEvts > 0 ? 'mood' : 'sentiment_neutral',//${dayEvts}
+          iconColor: dayEvts > 0 ? 'positive' : "red",
+          multiLine:true,  //to have max-width
+          //closeBtn:true  //ugly close btn smh
+          timeout: 3000
       })}
     },
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
       this.mostEvts = 5 //to update the interval-height
-      console.log('onChange', data)
+      //console.log('onChange', JSON.stringify(data))
     }
   }
 }//)

@@ -48,8 +48,8 @@
             <div class="text-h6 choice">Ad hoc or Existing event</div>
           </q-card-section>
           <q-card-actions align="center">
-            <q-btn push label="Ad hoc" no-wrap no-caps color="primary" align="evenly" @click="onChooseAdHoc"/>
-            <q-btn push label="Existing" no-wrap no-caps color="primary" align="evenly" @click="onChooseExisting"/>
+            <q-btn push label="Ad hoc" no-wrap no-caps color="primary" align="between" @click="onChooseAdHoc"/>
+            <q-btn push label="Existing" no-wrap no-caps color="primary" align="between" @click="onChooseExisting"/>
           </q-card-actions>        
         </q-card>
     </q-dialog>

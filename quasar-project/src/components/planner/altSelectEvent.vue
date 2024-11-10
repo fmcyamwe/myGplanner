@@ -41,7 +41,7 @@
                 </template>
               </q-select>
             </div>
-            <div v-if="toAdd" class="q-mx-auto">
+            <div v-if="toAdd" class="q-mx-auto q-px-sm">
               Duration (min)
               <q-knob
                   :min="5"

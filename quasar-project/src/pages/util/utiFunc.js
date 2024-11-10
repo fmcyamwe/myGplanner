@@ -1,3 +1,6 @@
+import { colors } from 'quasar'
+
+const { getPaletteColor } = colors  //just to deal with these colors smh too much?!?
 
 export function applyClasses (event, type) {
     const isHeader = type === 'header'
@@ -20,6 +23,10 @@ export function applyStyles (event, type, timeStartPos = undefined, timeDuration
     s[ 'align-items' ] = 'flex-start'
     return s
   }
+
+export function hexColor(c) {
+  return getPaletteColor(c)
+}
 
 export function pGColors() {
   return ['blue-grey',

@@ -2,15 +2,13 @@
 
 import { boot } from "quasar/wrappers";
 // Platform
-import { Capacitor } from '@capacitor/core';
-const platform = Capacitor.getPlatform();
-import { isMobile } from '../pages/util/isMobile'
+//import { Capacitor } from '@capacitor/core';
+//const platform = Capacitor.getPlatform();
+//import { isMobile } from '../pages/util/isMobile'
 
 //import { registerWebPlugin } from '@capacitor/core'; //deprecated
-import { registerPlugin ,WebPlugin} from '@capacitor/core'; //PluginListenerHandle
-
-import { LocalNotifications } from '@capacitor/local-notifications';
-
+//import { registerPlugin ,WebPlugin} from '@capacitor/core'; //PluginListenerHandle
+//import { LocalNotifications } from '@capacitor/local-notifications';
 
 const PluginsConfig = { //toSee*** when removed in capacitor.config.json
     LocalNotifications: {
@@ -19,11 +17,9 @@ const PluginsConfig = { //toSee*** when removed in capacitor.config.json
       sound: "beep.wav" // Example value
     }
   };
-///umm have class to instantiate?!?
-////those vars perhaps??! OR just have them as global?!?...
-////mm prolly good for tracking what evts scheduled and stuff---TODO**....
 
 
+/* //moved into notifHelper...
 const registerNotifications = async () => {
     let permStatus = await LocalNotifications.checkPermissions();
 
@@ -54,16 +50,6 @@ const addListeners = async () => { //
         console.log('regis::localNotificationActionPerformed::ACtion>> ', JSON.stringify(notificationAction));//also contains action
     });
 }
-
-const getDeliveredNotifications = async () => {
-    const notificationList = await LocalNotifications.getDeliveredNotifications();
-    console.log('regis::getDeliveredNotifications',JSON.stringify(notificationList)); //JSON.parse(JSON.stringify(notificationList))
-
-    for (const index in notificationList) { //just to See....
-        console.log('regis::getDeliveredNotifications>> '+index,notificationList[index])
-    }
-}
-
 const otherNotifInfo = async () => { //works!
     
     //can create channel?!? toTry?
@@ -75,22 +61,12 @@ const otherNotifInfo = async () => { //works!
     //for (const index in channels.channels) { //just to See....
     //    console.log('regis::otherNotifInfo>> '+index,channels[index])
     //}
-}
-
-/* //moved below and works here too...
-if (platform != "web") {
-    registerNotifications();
-    addListeners();
-    getDeliveredNotifications();
-    //FCM.subscribeTo({ topic: "updates" })
-    //    .catch((err) => console.log(err));
-    console.log('ANDROID Platform', platform);
-}else{
-    console.log('WEB Platform', platform);
 }*/
+
 
 //import { CapacitorAlarmNotificationPlugin, AlarmSetResult } from '../otherDefs';
 import {LocNotifications} from '../notifHelper';
+//import {PersistentNotification} from '../persistNotif'; //bof still cant call plugin methods smh
 
 //export default async ({ /*app, router, store */ }) => {
 export default boot(async ({ /*app, router, store */ }) => { //huh still work when wrapped by boot!!
@@ -116,5 +92,7 @@ export default boot(async ({ /*app, router, store */ }) => { //huh still work wh
         //}
     }*/
     
-        LocNotifications.doPrint() //huh works...BUT eventListeners still aint working?
+        LocNotifications.doPrint() //huh works...BUT eventListeners dont work for Web
+       
+       //PersistentNotification.doPrint() 
 })
