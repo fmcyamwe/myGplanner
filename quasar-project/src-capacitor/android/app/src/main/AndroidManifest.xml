@@ -35,25 +35,45 @@
         </provider>
         <!--not sure below receivers are needed even smh >>see with remove org.capacitor.BluTomato >> nope
         see with intent filters: removed <data android:scheme="http" android:host="example.com" />
+        does it order matter? >>nope
+
+        huh should prolly use com.capacitorjs.plugins.localnotifications.TimedNotificationPublisher? >>yup def!! works!
+        TimedNotificationPublisher
+        .timey
         -->
         <receiver
           android:enabled="true"
           android:exported="true"
-          android:name="TimedNotificationPublisher" >
-          <intent-filter>
+          android:name="com.capacitorjs.plugins.localnotifications.TimedNotificationPublisher" >
+          <!--<intent-filter>
             <action android:name="android.intent.action.VIEW" />
+            <action android:name="org.capacitor.BluTomato.nav" />
+            <action android:name="org.capacitor.BluTomato.tap" />
+            <action android:name="org.capacitor.BluTomato.TAP" />
+            <action android:name="org.capacitor.BluTomato.ok" />
+            <action android:name="org.capacitor.BluTomato.go" />
+            <action android:name="org.capacitor.BluTomato.nav.go" />
+            <action android:name="org.capacitor.BluTomato.nav.ok" />
+            <category android:name="android.intent.category.DEFAULT" />
+            //toSee when removing intent-filters...
+            <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-          </intent-filter>
+          </intent-filter>-->
         </receiver>
         <receiver
           android:enabled="true"
           android:exported="true"
-          android:name="NotificationDismissReceiver">
+          android:name="com.capacitorjs.plugins.localnotifications.NotificationDismissReceiver">
           <intent-filter>
-            <action android:name="android.intent.action.VIEW" />
+            <action android:name="android.intent.action.DELETE"/>
+            <action android:name="android.intent.action.DISMISS"/>
+            <action android:name="org.capacitor.BluTomato.DISMISS" />
+            <action android:name="org.capacitor.BluTomato.DELETE" />
             <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" />
+            <!-- umm action filters needed even?!? prolly not
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" /> -->
           </intent-filter>
         </receiver>
     </application>
@@ -62,5 +82,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+    tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>

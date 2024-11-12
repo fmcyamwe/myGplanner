@@ -66,6 +66,7 @@ const otherNotifInfo = async () => { //works!
 
 //import { CapacitorAlarmNotificationPlugin, AlarmSetResult } from '../otherDefs';
 import {LocNotifications} from '../notifHelper';
+
 //import {PersistentNotification} from '../persistNotif'; //bof still cant call plugin methods smh
 
 //export default async ({ /*app, router, store */ }) => {
@@ -93,6 +94,6 @@ export default boot(async ({ /*app, router, store */ }) => { //huh still work wh
     }*/
     
         LocNotifications.doPrint() //huh works...BUT eventListeners dont work for Web
-       
+
        //PersistentNotification.doPrint() 
 })

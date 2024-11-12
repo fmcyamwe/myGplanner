@@ -606,7 +606,24 @@ mounted() {
 },
 beforeUnmount() {
   clearInterval(this.intervalId)
-  this.daSchedule.scheduleLater()
+
+    let doContinue = () => {
+      this.daSchedule.scheduleLater()
+    }
+    
+    let doSave = () => {
+      setTimeout(doContinue, 1000);
+      this.daSchedule.saveDaySchedule()
+    }
+
+  //bon should save? 
+  if(!this.saveScheduleDisabled){ //handle when cx has some unsaved changes!
+      this.confirmAction('',`Save changes of day: ${this.currentDate} before Nav away?`,"Save",doSave, doContinue)
+  } else {
+    doContinue() 
+  }
+  
+    //this.daSchedule.scheduleLater()
 },
 computed: {
   chosenScoreLabel() {

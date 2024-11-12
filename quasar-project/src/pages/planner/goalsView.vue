@@ -209,16 +209,6 @@
                             />
 
                             <div v-if="!showSubG" class="col q-mx-sm">
-                                <q-input
-                                    filled
-                                    v-model.number="priority"
-                                    type="number"
-                                    label="Priority"
-                                    hint="0 to 10"
-                                    class="q-mx-sm q-pb-md"
-                                    :rules="[ val => val && val > 0 && val <=10 || 'hint hint!!']"
-                                />
-
                                 <q-select
                                 v-model="bgcolor"
                                 :options="avColors"
@@ -236,8 +226,17 @@
                                         </div>
                                     </template>
                                 </q-select>
-                                <!--popupContentStyle="justify-content: center"
-                                /> -->
+
+                                <q-input
+                                    filled
+                                    v-model.number="priority"
+                                    type="number"
+                                    label="Priority"
+                                    hint="0 to 10"
+                                    class="q-mx-sm q-pb-md"
+                                    :rules="[ val => val && val > 0 && val <=10 || 'hint hint!!']"
+                                />
+
                                 <br>
                                 <div v-if="currentIcon">
                                     <!--add style class >> todo** -->
@@ -611,7 +610,7 @@ export default {
         const store = useGoalStore()
 
         //const timer = ref(null)
-        let timer  //redundant...
+        //let timer  //redundant...
         let updatingSubG = null //to keep track of goalID when editing
 
         const allMGoals = computed(() => mainGoals.value) //oldie store.getMainGoals >> doesnt updates
@@ -646,9 +645,9 @@ export default {
             //console.log(`the component is now mounted.`,currentColors, avColors.value)
         })
 
-        onBeforeUnmount(() => {
-            clearTimeout(timer)  //or with .value? >>no need when seclaring with 'let' 
-        })
+        //onBeforeUnmount(() => {
+        //    clearTimeout(timer)  //or with .value? >>no need when seclaring with 'let' 
+        //})
 
         function resetLabel() {
             return goalType.value === 'line' ? "Reset ALL" : `Reset ${goalType.value}`
@@ -978,11 +977,11 @@ export default {
             }) 
         }
 
-        function finalize(reset) {  //redundant--toRemove**
+        /*function finalize(reset) {  //redundant--toRemove**
             timer = setTimeout(() => {
                 reset()
             }, 0)
-        }
+        }*/
 
         function onSwipeAction({evt, ...newInfo },id, pID) { //redundant--toRemove**
             console.log("onSwipeAction", evt,newInfo,id, pID) 

@@ -68,7 +68,7 @@ export default class daySchedule {
             
       Repo.initialize()
 
-      //console.log("NEW daySchedule>>",JSON.stringify(LocNotifications.getState()))
+      console.log("NEW daySchedule>>",JSON.stringify(LocNotifications.getState()))
     }
     //showyReloadBtn(){ //works!
     //  return this.showReloadBtn
@@ -817,8 +817,6 @@ export default class daySchedule {
       if (this.savedRawEvts){
         //this.doLog("loadEvtsForDay",this.savedRawEvts)
         let hasOverlaps = this.enrichAddToSchedule()
-        //hasOverlaps.length > 0 ? console.log('loadEvtsForDay--OVERLAPS no scheduleLAter',this.currentDate) : this.scheduleLater()
-        //console.log('loadEvtsForDay',this.currentDate,hasOverlaps,this._dailyScheduled,this.actualEvts)
         return {
           overlaps:hasOverlaps,
           canContinue:false,
@@ -852,7 +850,7 @@ export default class daySchedule {
             console.log("scheduleLater::NOTIME...skipped!--ERROR--present?!?",value.title,value.time,value.start.time)
           }else{
             let diffy = diffTimestamp(now,value.start)
-            if(diffy > 0){ //so evt has NOT started...prolly
+            if(diffy > 0){ //so evt has NOT started.
               //console.log("scheduleLater::Evt NOT Started yet--gon schedule!",value.title,value.time)
               toSchedLater.push(value)
             }
@@ -864,7 +862,7 @@ export default class daySchedule {
 
        LocNotifications.schedulePending() //meh should do in one step...toReview**
       }else{
-        //should do in future?!? toReview**
+        //should do in future?!? >> just push?!?  toReview**..
         console.log('scheduleLater >>IN FUTURE...what to do?!?',this.currentDate)
       }
     }

@@ -1,28 +1,31 @@
 //to track Scheduled notifs and schedule
 
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core'; // registerPlugin ,WebPlugin
+import { Capacitor,registerPlugin,WebPlugin } from '@capacitor/core';
 
 const platform = Capacitor.getPlatform();
-import{parseTime,addToDate,parsed,parseTimestamp} from '@quasar/quasar-ui-qcalendar/src/index.js'
+import{parseTime,addToDate,parsed} from '@quasar/quasar-ui-qcalendar/src/index.js'
 
 import { whenFrmtTime, hexColor} from 'pages/util/utiFunc'
 
 
-export class CapacitorNotificationsWeb { //extends WebPlugin // implements CapacitorAlarmNotificationPlugin
+export class CapacitorNotificationsWeb { //extends WebPlugin {// implements CapacitorAlarmNotificationPlugin
     //try to have Singleton!!!
     ///>>meh seems ok...
     ///BUT toMonitor** with these vars below...
     constructor() {
-        //super()
-        //umm review below...
-        this.name = 'CapacitorNotificationsWeb';
-        this.platforms = ['web'];
-        this.pending = [];  //LocalNotificationSchema[] = [];
-        this.deliveredNotifications = [] ;//protected deliveredNotifications: Notification[] = [];
-        this.doInit() //or should invoke?
-        this.seen = {}  //or make it single?!?
-        this.lastSeen = null
+      //super({
+      //  name: 'CapacitorNotificationsWeb',
+      //  platforms: ['android']  //umm makes diff?!?
+      //});
+      this.name = 'CapacitorNotificationsWeb';
+      this.platforms = ['web'];
+
+      this.pending = [];  //LocalNotificationSchema[] = [];
+      this.deliveredNotifications = [] ;//protected deliveredNotifications: Notification[] = [];
+      this.doInit() //or should invoke?
+      this.seen = {}  //or make it single?!?
+      this.lastSeen = null
     }
 
     doInit(){
@@ -36,12 +39,11 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
       }
 
       this.checkPermissions();
-      this.addListeners();
+      //this.addListeners(); //skip this for now...
       this.createChannel();
       this.registerActions();
+      this.getPending();  //bon get pending first
       this.getDeliveredNotifications(); //redundant?!?
-      this.getPending();
-
     }
 
     doPrint(){
@@ -89,17 +91,30 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
               this.seen[notification.id] = true //makes id key as string smh
               this.lastSeen = notification.id
               //or cancel?!? specially when seen again esti >>prolly cause of that repeat....
+              //umm would it do to update notif with dismiss action?!?
             }else{
               console.log('localNotificationReceived>>UNDEFINED...what to do?',notification,JSON.stringify(this.seen),JSON.stringify(this.lastSeen))
               if(this.lastSeen){
-                LocalNotifications.cancel({
-                  notifications:[{id:this.lastSeen}] //much better!
-                })
+                //also check in this.seen in case there was multiple?!? toSee if necessary**
+                //also this does remove the notification even when NOT interacted with it yet!!!>>bon no cancel for now
+
+                //this.doCancel({
+                //  notifications:[{id:this.lastSeen}]
+                //})
+                
+                //LocalNotifications.cancel({
+                //  notifications:[{id:this.lastSeen}] //much better!
+                //})
                 this.lastSeen = null //reset
-              }//else?
+
+              }else{ //see if in delivered /pending?
+                console.log('localNotificationReceived>>UNDEFINED..inDeliv/pending?',JSON.stringify(this.deliveredNotifications),JSON.stringify(this.pending))
+                //then?!? toSee**
+
+              }
 
               /*if(Object.keys(this.seen) > 0) {//if("key" in obj)
-                //would prolly erase existing notif?!?toSee**
+                
                 for (let k of Object.keys(this.seen)) {
                   //this.cancel(k)
                   LocalNotifications.cancel({
@@ -122,22 +137,70 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
 
         });
     }
-  
-    async getDeliveredNotifications() { //= async () => 
+    async getDeliveredNotifications() {//to catch any errors from getDeliveredNotifications.
+      let notificationList = null
+      
+      LocalNotifications.getDeliveredNotifications().then((res) => {
+        console.log('getDeliveredNotifications',JSON.stringify(res)); //JSON.parse(JSON.stringify(notificationList))
+        console.log(res)
+
+        notificationList = res //issue with const?!?
+        //should check if in pending?!?
+        for (const index in notificationList.notifications) { 
+          console.log('getDeliveredNotifications::Notif...inPENDING?'+index,JSON.stringify(notificationList.notifications[index]),JSON.stringify(this.pending))
+          this.deliveredNotifications.push(notificationList.notifications[index]);
+        }
+
+      }).catch((err) => {
+        console.log("getDeliveredNotifications>>ERROR",JSON.stringify(err))
+        console.log(err)
+      })
+      
+
+  }
+
+    /*async getDeliveredNotifications() { //= async () => 
         const notificationList = await LocalNotifications.getDeliveredNotifications();
         console.log('getDeliveredNotifications',JSON.stringify(notificationList)); //JSON.parse(JSON.stringify(notificationList))
-    
+
+        //should check if in pending?!?
         for (const index in notificationList.notifications) { 
-            console.log('getDeliveredNotifications::Notif '+index,JSON.stringify(notificationList.notifications[index]))
+            console.log('getDeliveredNotifications::Notif...inPENDING?'+index,JSON.stringify(notificationList.notifications[index]))
             this.deliveredNotifications.push(notificationList.notifications[index]);
         }
-    }
+    }*/
   
     async createChannel() { //= async () =>
         
         if (platform != "web") {
-          //let channels = await LocalNotifications.listChannels();
-          //console.log('otherNotifInfo',JSON.stringify(channels));
+          let channels = await LocalNotifications.listChannels();
+          console.log('createChannel',JSON.stringify(channels)); //umm shouldnt the LocNotifs show up on second start >>yup does!!--bon prolly skip create again?
+          
+          //bon instead check for exactNotifSettings?
+          let permStatus = await LocalNotifications.checkExactNotificationSetting(); 
+          console.log('ExactNotificationSetting>>CheckP',JSON.stringify(permStatus)); 
+          if (permStatus.exact_alarm !== 'granted') { //=== 'prompt'
+              permStatus = await LocalNotifications.changeExactNotificationSetting();
+              console.log('ExactNotificationSetting::requestP',JSON.stringify(permStatus))
+          }
+      
+          if (permStatus.exact_alarm !== 'granted') {
+              //throw new Error('User denied permissions!');
+              console.log('ExactNotificationSetting::NOPE', permStatus.exact_alarm);
+          }
+
+          let doExist = false 
+          for (const index in channels.channels) {
+              if (channels.channels[index].id == 'LocNotifs'){
+                doExist = true
+                break
+              }
+          }
+
+          if(doExist){
+            console.log('createChannel>>WOO LocNotifs exists!!')
+            return 
+          }
           
           // channel with high importance..>>dont seem to help with wake device but oh well..
           await LocalNotifications.createChannel({
@@ -151,20 +214,20 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
           })
 
           let channelz = await LocalNotifications.listChannels();
-          console.log('createChannel>>channelz',JSON.stringify(channelz));
+          console.log('createChannel>>channelz>>CREATED',JSON.stringify(channelz));
         }
     }
     async registerActions() {
       const actions = {
         "ok":{id:'ok',title:'OK'}, //progress at startEvt
         "add":{id:'add',title:'Add3'}, //addMins at endEvt
-        "rem":{id:'rem',title:'End'}, //skip at startEvt
+        "skip":{id:'skip',title:'Skip'}, //skip at startEvt
         "go":{id:'go',title:'Nav'}, //nav...
       }
 
       const startType = {
         id:'start',
-        actions:[actions['ok'],actions['rem']]
+        actions:[actions['ok'],actions['skip']]
       }
       const endType = {
         id:'end',
@@ -185,7 +248,8 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
 
     async getPending() { //: Promise<PendingResult>
       const pending = await LocalNotifications.getPending();
-        console.log('getPending',JSON.stringify(pending)); //JSON.parse(JSON.stringify(notificationList))
+      
+      console.log('getPending',JSON.stringify(pending)); //JSON.parse(JSON.stringify(notificationList))
     
         for (const index in pending.notifications) {
             //console.log('getPending:: Notif::AT?!? >> '+index,JSON.stringify(pending.notifications[index]))
@@ -196,12 +260,13 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
             let aty = Date.parse(at) //bon in epoch needing for new Date(aty)
             let aty1 = new Date(at)  //huh seems good...
 
-            console.log('getPending:: Notif::AT?!? >> ',JSON.stringify(at),JSON.stringify(aty),JSON.stringify(new Date(aty)),JSON.stringify(aty1))
+            console.log('getPending:: Notif>> ',JSON.stringify(at),JSON.stringify(aty),JSON.stringify(new Date(aty)),JSON.stringify(aty1))
             let diff = aty - Date.now()
             if(diff <= 0){ //has passed
               console.log('getPending:: SKIPPED oldy>> ',diff, JSON.stringify(at),JSON.stringify(aty),JSON.stringify(aty1))
             }else{
-              this.pending.push({...notif,schedule: { at: aty1 }});
+              //this.pending.push({...notif,schedule: { at: aty1 }}); //no need to re-add just schedule it.
+              LocalNotifications.schedule({notifications:[{...notif,schedule:{at: aty1},actionTypeId:'start'}]});
             }
         }
     }
@@ -211,23 +276,25 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
         //console.log('NotifHelper::scheduleLater',JSON.stringify(dt),JSON.stringify(evts))
         
         for (const e of evts) {
-            let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) })
+            let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) - 1 }) //five minutes too much..see with one...
             let aty = Date.parse(`${mid.date} ${mid.time}`) 
             //let another = parseTimestamp(`${dt} ${e.start.time}`)
             let aty1 = new Date(aty) //huh works!! >>or not as formatted wrong...
             //let another1 = new Date(another) //null...should add now above? bof
             //let at = new Date(getDayTimeIdentifier(mid)) //or getTimeIdentifier ? //+ 1000 * 100
             let not = {
-                title: 'Scheduled!',
+                title: `Scheduled at ${whenFrmtTime(e.start.time)}`,
                 body: e.title,//'Body',
-                id: e.id, //umm could have others?!? toMonitor but should be unique per day //1,
-                schedule: { at: aty1, allowWhileIdle: true, repeats:true },  //use scheduleOn? prolly no need
+                largeBody: `${e.title} from ${whenFrmtTime(e.start.time)} to ${whenFrmtTime(e.end.time)}`, //toSee
+                id: e.id, //umm could have others?!? toMonitor but should be unique per day? //1,
+                schedule: { at: aty1, allowWhileIdle: true, repeats:true },  //add count maybe? //use scheduleOn? prolly no need
                 //sound: './public/assets/sounds/alarm.aiff', //meh default
                 attachments: null,
-                actionTypeId: 'nav', //'',
+                actionTypeId: 'start',
                 iconColor:hexColor(e.bgcolor), //!e.bgcolor ? '#9d8802' : e.bgcolor.includes("-") ? '#9d8802' : e.bgcolor, // e.bgcolor ?? 'blue', //can break smh color.includes("-") //even normal named can be invalid color smh
-                extra: null,
-                channelId:'LocNotifs' 
+                extra: {duration:e.duration, scorey:e.score}, //null,
+                channelId:'LocNotifs' //could use default but prolly better to have custom one
+                //autoCancel
               }
             this.pending.push(not); //JSON.stringify(not)
             //console.log('scheduleLater::Added>>'+e.title,JSON.stringify(not),JSON.stringify(aty),JSON.stringify(aty1),JSON.stringify(another),JSON.stringify(another1))
@@ -269,22 +336,24 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
           }).catch((err) => {
               console.log("schedulePending>>ERROR",err)
               console.log(err)
-              //bon here just cancel it...could be parsing error
+              //bon here just cancel it.
               this.cancel(notification.id)
           })
         }
     }
 
-    //bon cancel notifID >>invokes LocalNotifications.cancel(pending)
     async cancel(pendingID) { //: ScheduleResult  : Promise<void>
       
       //for (const notification of this.pending) {
       for(let i = 0; i < this.pending.length; i++){
         if(pendingID == this.pending[i].id){ //notification.id
           console.log('cancel>>notif',pendingID,JSON.stringify(this.pending[i])) //notification
-          LocalNotifications.cancel({
-            notifications:[this.pending[i]] //notification
+          this.doCancel({
+            notifications:[this.pending[i]]
           })
+          //LocalNotifications.cancel({
+          //  notifications:[this.pending[i]] //notification
+          //})
 
           this.pending.splice(i, 1);
         }
@@ -294,6 +363,10 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
       //  notification =>
       //    !pending.notifications.find(n => n.id === notification.id),
       //);
+    }
+
+    doCancel(toCancel){
+      LocalNotifications.cancel(toCancel) //would prolly erase existing notif?!?toSee**
     }
 
     async removeDeliveredNotifications(delivered) { //: DeliveredNotifications, : Promise<void>
@@ -328,7 +401,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin // implements Capac
 const LocNotifications = new CapacitorNotificationsWeb();
   //const LocNotification = registerPlugin('LocNotifications'); //Echo //bon to see if naming is diff...
 export { LocNotifications };
-// registerPlugin(LocNotifications); //huh seems to work?!?
+//registerPlugin("LocNotifications");
 
 
 

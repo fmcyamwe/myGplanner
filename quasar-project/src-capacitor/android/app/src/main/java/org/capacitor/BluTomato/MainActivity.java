@@ -4,17 +4,17 @@ import com.getcapacitor.BridgeActivity;
 
 import android.os.Bundle;
 
-import com.getcapacitor.Plugin;
 
-import java.util.ArrayList;
+import com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin; //huh shoulda used this one!!
+import com.getcapacitor.Logger;
+
 // my plugin
-import org.capacitor.BluTomato.LocalNotification;
+//import org.capacitor.BluTomato.LocalNotification;
 
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-      registerPlugin(LocalNotificationsPlugin.class); // have to be here to run...not needed tho
-
+      registerPlugin(LocalNotificationsPlugin.class);
       //registerPlugin(PersistentNotification.class);
 
       super.onCreate(savedInstanceState);
@@ -26,4 +26,15 @@ public class MainActivity extends BridgeActivity {
             add(LocalNotificationsPlugin.class);
         }}); */
     }
+  @Override
+  public void onDestroy() {
+    Logger.error("FLO-TAG","onDestroy?!?",null);
+    super.onDestroy();
+  }
+  @Override
+  public void onStop() {
+    Logger.error("FLO-TAG","onStop?!?",null);
+    //LocalNotificationsPlugin.havePending(); //meh access issues..
+    super.onStop();
+  }
 }
