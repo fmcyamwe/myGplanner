@@ -309,7 +309,7 @@ import { defineComponent,ref } from 'vue'
 @media (max-width: 500px)
   .poppy
     display: none
-  .title
+  .title__TOOSMALL
     transform: scale(.75, .75)
 
 </style>

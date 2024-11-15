@@ -210,6 +210,7 @@
                       :doShow="treeGoals.length > 0"
                       :balanceLabel="labelBalance()"
                       :scheduleLabel="labelScheduled()"
+                      :hasUnsaved="hasUnsavedChanges()"
                       />
                   
                     <q-card-actions align="center">
@@ -241,9 +242,9 @@
                       -->
                     </q-card-actions>
                    
-                    <q-card-actions align="right"><!--label="Next" thumb_up -->
-                      <q-btn flat no-caps no-wrap @click="morphClose" icon="close" color="red"/>
-                      <q-btn flat @click="nextMorph" no-caps no-wrap>Actions &gt;</q-btn>
+                    <q-card-actions align="around"><!--label="Next" thumb_up  flat-->
+                      <q-btn outline push no-caps no-wrap @click="morphClose" icon="close" color="red" align="between"/>
+                      <q-btn elevated push @click="nextMorph" no-caps no-wrap align="between">Actions &gt;</q-btn>
                     </q-card-actions>
                   </q-card>
                   <q-card
@@ -616,7 +617,7 @@ beforeUnmount() {
       this.daSchedule.saveDaySchedule()
     }
 
-  //bon should save? 
+  //bon save?--does ask when already on homeview page tho...--toReview** 
   if(!this.saveScheduleDisabled){ //handle when cx has some unsaved changes!
       this.confirmAction('',`Save changes of day: ${this.currentDate} before Nav away?`,"Save",doSave, doContinue)
   } else {
@@ -3770,7 +3771,7 @@ methods:{
     if(e.type == "touchmove"){ //fires a lot!
 
       let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
-      if(target.ariaLabel){ //when moving into calendar's interval
+      if(target && target.ariaLabel){ //when moving into calendar's interval
 
       //e.target remains same original goal event
       //console.log("onTouchEvt::touchmove",this.lastTarget)//target.style)
@@ -4176,7 +4177,7 @@ methods:{
       position: position,
       message: messg,
       multiLine: true,  //for larger text--seems better!
-      timeout: 3000,
+      timeout: 2000,
       icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
       //group?: boolean | string | number;
       

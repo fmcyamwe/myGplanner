@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -40,13 +41,15 @@
         huh should prolly use com.capacitorjs.plugins.localnotifications.TimedNotificationPublisher? >>yup def!! works!
         TimedNotificationPublisher
         .timey
+
+        >>also prolly no need to add receivers as already included in plugin? >> prolly!
         -->
-        <receiver
+        <!--<receiver
           android:enabled="true"
           android:exported="true"
           android:name="com.capacitorjs.plugins.localnotifications.TimedNotificationPublisher" >
-          <!--<intent-filter>
-            <action android:name="android.intent.action.VIEW" />
+          <intent-filter>
+            //<action android:name="android.intent.action.VIEW" />
             <action android:name="org.capacitor.BluTomato.nav" />
             <action android:name="org.capacitor.BluTomato.tap" />
             <action android:name="org.capacitor.BluTomato.TAP" />
@@ -55,13 +58,13 @@
             <action android:name="org.capacitor.BluTomato.nav.go" />
             <action android:name="org.capacitor.BluTomato.nav.ok" />
             <category android:name="android.intent.category.DEFAULT" />
-            //toSee when removing intent-filters...
+            //toSee when removing intent-filters... have to have at least action.Main below
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-          </intent-filter>-->
-        </receiver>
-        <receiver
+          </intent-filter>
+        </receiver>-->
+        <!--<receiver
           android:enabled="true"
           android:exported="true"
           android:name="com.capacitorjs.plugins.localnotifications.NotificationDismissReceiver">
@@ -71,11 +74,14 @@
             <action android:name="org.capacitor.BluTomato.DISMISS" />
             <action android:name="org.capacitor.BluTomato.DELETE" />
             <category android:name="android.intent.category.DEFAULT" />
-            <!-- umm action filters needed even?!? prolly not
-            <category android:name="android.intent.category.DEFAULT" />
-            <category android:name="android.intent.category.BROWSABLE" /> -->
-          </intent-filter>
+            <category android:name="android.intent.category.BROWSABLE" />
+            //<action android:name="com.example.action.APP_ACTION" />
+            //<category android:name="android.intent.category.DEFAULT" />
+          </intent-filter> //umm have to have at least one action filter but prolly not all the above...
         </receiver>
+        <receiver android:enabled="true"
+          android:name="com.capacitorjs.plugins.localnotifications.ActionNotificationReceiver" />-->
+
     </application>
 
     <!-- Permissions -->
@@ -83,6 +89,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
-    tools:ignore="ProtectedPermissions" />
+      tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>

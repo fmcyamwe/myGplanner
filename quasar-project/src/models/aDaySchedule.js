@@ -68,7 +68,7 @@ export default class daySchedule {
             
       Repo.initialize()
 
-      console.log("NEW daySchedule>>",JSON.stringify(LocNotifications.getState()))
+      //console.log("NEW daySchedule>>",JSON.stringify(LocNotifications.getState()))
     }
     //showyReloadBtn(){ //works!
     //  return this.showReloadBtn
@@ -678,7 +678,7 @@ export default class daySchedule {
       let euhOverlaps = [] //better for keeping order when added//{}
       let checkOverlaps = this.isViewingToday()
 
-      console.log('enrichAddToSchedule',Object.keys(this.savedRawEvts).length,"overlapCheck:"+checkOverlaps)//,JSON.parse(JSON.stringify(this.savedRawEvts)))
+      console.log('enrichAddToSchedule',Object.keys(this.savedRawEvts).length,"overlapCheck:"+checkOverlaps,JSON.stringify(LocNotifications.getState())) //,JSON.parse(JSON.stringify(this.savedRawEvts)))
       
       //so order here by time--would help with overlaps..prolly..toTest** 
       let aSorted = this.anotherSorting(this.savedRawEvts)
@@ -846,8 +846,8 @@ export default class daySchedule {
         const now = parseDate(new Date()) //should be this.currentDate for future...
         //umm too much looping?!? toReview**
         this._dailyScheduled.forEach( (value, key, map) => {
-          if(value.start.time.indexOf('NaN') > -1){//shouldnt happen?!? toMonitor**
-            console.log("scheduleLater::NOTIME...skipped!--ERROR--present?!?",value.title,value.time,value.start.time)
+          if(value.start.time.indexOf('NaN') > -1){////skip those without time
+            //console.log("scheduleLater::NOTIME...skipped!",value.title,value.time,value.start.time)
           }else{
             let diffy = diffTimestamp(now,value.start)
             if(diffy > 0){ //so evt has NOT started.
@@ -857,10 +857,12 @@ export default class daySchedule {
           }
         })
 
-       LocNotifications.scheduleLater(toSchedLater,this.currentDate)
-       console.log("scheduleLater>>State "+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
+       LocNotifications.addPendingEvts(toSchedLater,this.currentDate)
+       //console.log("addPendingEvts >> #"+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
 
-       LocNotifications.schedulePending() //meh should do in one step...toReview**
+       LocNotifications.scheduleLater() //meh should do with above in one step...toReview**
+       
+       console.log("scheduleLater >> #"+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
       }else{
         //should do in future?!? >> just push?!?  toReview**..
         console.log('scheduleLater >>IN FUTURE...what to do?!?',this.currentDate)
@@ -2026,7 +2028,7 @@ export default class daySchedule {
        this.showClearBtn = toSave != null && !this.isViewingPast()
 
        //schedule Notifs?!?--those upcoming only.
-       //LocNotifications.scheduleLater(toSchedLater,this.currentDate)
+       //LocNotifications.addPendingEvts(toSchedLater,this.currentDate)
        //console.log("saveDaySchedule>>State "+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
     }
     //to enable/disable endButton...
@@ -2043,37 +2045,35 @@ export default class daySchedule {
             console.log(`updateMinEndNowBtn..MOBILE::good?>>${hasStart}::${hasEnd}`,timey)
             this.showMobileDialog[entry] = !hasEnd //umm toTest if toggle too*** //false
           }
-          hasStart ? this.showNotification(val) : console.log(`updateMinEndNowBtn..hasEND..not scheduling`) //nothing for end --toReview**
+          //nothing to do for end..prolly
+          hasStart ? this.showNotification(val) : '' //console.log(`updateMinEndNowBtn..hasEND..no Notif?`,LocNotifications.getState())
           break
         }
-        //ELSE for hasStart to SHOW enableBtn--TODO? OR just test above?** 
       }
     }
-    //schedulePending(){
-    //  console.log("schedulePending>>",JSON.stringify(LocNotifications.getState()))
-    //  LocNotifications.schedulePending()
-    //}
     showNotification(evt){
-      let at = new Date(Date.now() + 1000 * 100) //adds timezone utc and seem in future smh
+      //let at = new Date(Date.now() + 1000 * 100) //adds timezone utc and seem in future smh
       let n = addToDate(parseDate(new Date()),{ minute: 1})
       //let aty = Date.parse("2024-11-07 05:53:58")/1000;//new Date(this.getTimeyNumber(n))
       let aty = Date.parse(`${n.date} ${n.time}`)
       let aty1 = new Date(aty)
-      let aty2 = new Date(aty/1000) //think sets a few mins in past?
-      //console.log("showNotification::AT", JSON.stringify(at),JSON.stringify(n),JSON.stringify(aty),JSON.stringify(aty1),JSON.stringify(aty2))//,JSON.stringify(compareTime))
+      //let aty2 = new Date(aty/1000) //way in past
+      //console.log("showNotification::AT", JSON.stringify(at),JSON.stringify(n),JSON.stringify(aty),JSON.stringify(aty1))//,JSON.stringify(aty2))//,JSON.stringify(compareTime))
             
       //LocNotifications dont seem to attach listeners(for web!--toReview maybe)
       LocNotifications.schedule({
         notifications: [{
-            title: 'Start',
+            title: `Evt Starting ${whenFrmtTime(evt.start.time)}`,
             body: evt.title,//'Body',
             id: evt.id, //umm could have others?!? toMonitor but should be unique //1,
-            schedule: { at: aty1 }, //+ 1000 * 5  >>goes five hours in front?!?
+            largeBody: `${evt.title} from ${whenFrmtTime(evt.start.time)} to ${whenFrmtTime(evt.end.time)}`, //toSee
+            schedule: { at: aty1 }, //for web could use .on?:{ScheduleOn} ? //count:3, toTry** on web?
             //sound: './public/assets/sounds/alarm.aiff', //meh shouldnt be available..default to system
             attachments: null,
             actionTypeId: 'start',//'',
             iconColor:hexColor(evt.bgcolor), //!evt.bgcolor ? '#9d8802' : evt.bgcolor.includes("-") ? '#9d8802' : evt.bgcolor, //'blue',
-            extra: null
+            extra: {duration:evt.duration, scorey:evt.score}, //null
+            //autoCancel >>only for mobile
           }]
         })
         //.then((res) => {

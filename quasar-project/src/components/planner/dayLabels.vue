@@ -5,7 +5,11 @@
         </div>
         
         <div v-if="scheduleLabel.noTime" class="q-pa-sm row justify-center q-mx-auto labely">
-        {{scheduleLabel.noTime}} Evts Need manual addition!
+          {{scheduleLabel.noTime}} Evts Need manual addition!
+          <q-separator dark/>
+        </div>
+        <div v-if="hasUnsaved" class="q-pa-sm row justify-center q-mx-auto labely">
+          <em>Unsaved Changes!</em>
         </div>
         <div class="row justify-center"> 
         <q-badge color="secondary" multi-line>
@@ -24,7 +28,8 @@ export default defineComponent ({
     props: {
       scheduleLabel: Object,
       balanceLabel: String,
-      doShow:Boolean
+      doShow:Boolean,
+      hasUnsaved:Boolean
     }
 })
 </script>

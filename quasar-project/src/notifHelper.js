@@ -8,6 +8,8 @@ import{parseTime,addToDate,parsed} from '@quasar/quasar-ui-qcalendar/src/index.j
 
 import { whenFrmtTime, hexColor} from 'pages/util/utiFunc'
 
+//import {} from 'chrome';// chrome.notifications;
+
 
 export class CapacitorNotificationsWeb { //extends WebPlugin {// implements CapacitorAlarmNotificationPlugin
     //try to have Singleton!!!
@@ -18,14 +20,15 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
       //  name: 'CapacitorNotificationsWeb',
       //  platforms: ['android']  //umm makes diff?!?
       //});
-      this.name = 'CapacitorNotificationsWeb';
-      this.platforms = ['web'];
+      //this.name = 'CapacitorNotificationsWeb';
+      //this.platforms = ['web'];
 
-      this.pending = [];  //LocalNotificationSchema[] = [];
+      this.pending = []  //LocalNotificationSchema[] = [];
+      this.realPlat = null
       this.deliveredNotifications = [] ;//protected deliveredNotifications: Notification[] = [];
       this.doInit() //or should invoke?
       this.seen = {}  //or make it single?!?
-      this.lastSeen = null
+      this.lastSeen = null //this single of above
     }
 
     doInit(){
@@ -33,13 +36,15 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
           //FCM.subscribeTo({ topic: "updates" })
           //    .catch((err) => console.log(err));
           console.log('CapacitorNotificationsWeb>>ANDROID Platform', platform);
+          this.realPlat = platform
       }else{
           //let isM = isMobile()
           console.log('CapacitorNotificationsWeb>>WEB Platform', platform); //isM
+          this.realPlat = platform
       }
 
       this.checkPermissions();
-      //this.addListeners(); //skip this for now...
+      this.addListeners();
       this.createChannel();
       this.registerActions();
       this.getPending();  //bon get pending first
@@ -51,38 +56,88 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
       //is class even instantiated at this point?!? >>yup as shows up After doInit() below...
     }
 
-    getState(){ //just to see what's in...
+    getState(){ //current state
       return {
-          pending:this.pending.length,
-          delivered:this.deliveredNotifications.length
+        platform:this.realPlat,
+        pending:this.pending.length,
+        delivered:this.deliveredNotifications.length,
       }
     }
 
     async checkPermissions() { //= async () =>
       let permStatus = await LocalNotifications.checkPermissions();
   
-      console.log('registerNotifications>>CheckP',JSON.stringify(permStatus)); //JSON.parse(JSON.stringify(permStatus))
+      console.log('checkPermissions>>CheckP',JSON.stringify(permStatus)); //JSON.parse(JSON.stringify(permStatus))
       //for (const index in permStatus) {
       //    console.log('registerNotifications>> '+index,permStatus[index])
       //}
   
       if (permStatus.display === 'prompt') {
           permStatus = await LocalNotifications.requestPermissions();
-          console.log('registerNotifications::requestP',JSON.stringify(permStatus)) //JSON.parse(JSON.stringify(permStatus))
+          console.log('checkPermissions::requestP',JSON.stringify(permStatus)) //JSON.parse(JSON.stringify(permStatus))
       }
   
       if (permStatus.display !== 'granted') {
           //throw new Error('User denied permissions!');
-          console.log('registerNotifications::NOPE', permStatus.display,permStatus.receive);
+          console.log('checkPermissions::NOPE', permStatus.display,permStatus.receive);
       }
+
+      //below borks!
+      //chrome.runtime.getPlatformInfo().then((res) => {
+      //  console.log('checkPermissions>>Chromey',JSON.stringify(res));
+      //})
   
+      if (platform !== "web") {
+        //bon instead check for exactNotifSettings?
+        //cannot be changed on API 32 and higher so would need SCHEDULE_EXACT_ALARM permissions in manifest(default to granted on lower apis) 
+        let exactNotifs = await LocalNotifications.checkExactNotificationSetting(); 
+        console.log('ExactNotificationSetting>>CheckP',JSON.stringify(exactNotifs)); 
+        if (exactNotifs.exact_alarm !== 'granted') { //=== 'prompt'
+          exactNotifs = await LocalNotifications.changeExactNotificationSetting();
+          console.log('ExactNotificationSetting::requestP',JSON.stringify(exactNotifs))
+        }
+      
+        if (exactNotifs.exact_alarm !== 'granted') {
+          //throw new Error('User denied permissions!');
+          console.log('ExactNotificationSetting::NOPE', exactNotifs.exact_alarm);
+        }
+      }
+      
      //await PushNotifications.register();
     }
-    //todo** separate the two for clarity...
+    //umm would to pull below out due to chrome?!? >>not invoked but redundant--toREmove
+    notifClicked(notifUrl) {
+      console.log("notifClicked::WOAH >>clicked on notif:", notifUrl);
+      var creating = chrome.tabs.create({
+        url: notifUrl
+      });
+      console.log("clicked on notif:", notifUrl); //notifUrl == notifId
+      //console.log(creating); 
+      //creating.then((e) => {
+      //  console.log("after clicking", e); //just to see
+      //});
+      chrome.notifications.clear(notifUrl); //clear notifId
+    }
+    /*
+    //errors out at .create in (Vue)
+    //same error here in JS? >>yup
+    chrome.notifications.create(data.url, {
+        "type": data.type,
+        "iconUrl": chrome.runtime.getURL("icons/manga-48.png"), //chrome.extension.getURL("icons/manga-48.png"),
+        "title": data.title,
+        "message": data.content
+      });
+    */
+
+    //todo** separate the two listeners for clarity...if needed
     async addListeners() { //= async () => { //
     
+      //for web >>not needed tho...
+      if (platform == "web") {
+        //console.log('CapacitorNotificationsWeb::addListeners>> ',platform)
+
         await LocalNotifications.addListener('localNotificationReceived', notification => {
-            console.log('localNotificationReceived>>', JSON.stringify(notification)); //title, body, largeBody,etc,...
+            console.log('localNotificationReceived', JSON.stringify(notification)); //title, body, largeBody,etc,...
             //why undefined the second time?!?
             //should prolly remove if have repeats?!?
             if (notification !== undefined){
@@ -108,8 +163,8 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
                 this.lastSeen = null //reset
 
               }else{ //see if in delivered /pending?
-                console.log('localNotificationReceived>>UNDEFINED..inDeliv/pending?',JSON.stringify(this.deliveredNotifications),JSON.stringify(this.pending))
-                //then?!? toSee**
+                console.log('localNotificationReceived>>UNDEFINED..inDeliv/pending?',notification,JSON.stringify(this.deliveredNotifications),JSON.stringify(this.pending))
+                //then?!? toReview**
 
               }
 
@@ -136,13 +191,53 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
             ////when it's start > should perhaps create End notif
 
         });
+        
+        //would below work? >>borks >> undefined onClicked :( 
+        //chrome.notifications.onClicked.addListener((notifId) =>{console.log('WOAH >>clicked on notif!!',notifId)}); //this.notifClicked
+        
+        //umm below work with webPlugin? >>nope!!
+        /*this.addListener('localNotificationReceived', notification => {
+          console.log('localNotificationReceived::WEB?!?>> ', JSON.stringify(notification));
+
+        });
+        
+        //or below? >>nope too //chrome.events.Event
+        this.addListener('NotificationClickedEvent', notification => {
+          console.log('localNotificationReceived::WEB?!?>> ', JSON.stringify(notification));
+
+        }); //btn clicked in notif with >> NotificationButtonClickedEvent
+
+        //oldie >>'onClosed'
+        this.addListener('chrome.notifications.onClosed', notification => {
+          console.log('localNotificationReceived::WEB?!?>> ', JSON.stringify(notification));
+
+        });
+        //onClicked
+        this.addListener('chrome.notifications.onClicked', notification => {
+          console.log('localNotificationReceived::WEB?!?>> ', JSON.stringify(notification));
+
+        });
+        //onButtonClicked
+        this.addListener('chrome.notifications.onButtonClicked', notification => {
+          console.log('localNotificationReceived::WEB?!?>> ', JSON.stringify(notification));
+
+        });*/
+
+        return
+      }
+
+      // for mobile_Android hannoying and not needed?!? >>toReview**
+      console.log('CapacitorNotificationsWeb::addListeners>>SKIPPED for ',platform)
+
     }
-    async getDeliveredNotifications() {//to catch any errors from getDeliveredNotifications.
+    
+
+    async getDeliveredNotifications() {//to catch any errors from getDeliveredNotifications...prolly
       let notificationList = null
       
       LocalNotifications.getDeliveredNotifications().then((res) => {
         console.log('getDeliveredNotifications',JSON.stringify(res)); //JSON.parse(JSON.stringify(notificationList))
-        console.log(res)
+        //console.log(res)
 
         notificationList = res //issue with const?!?
         //should check if in pending?!?
@@ -155,9 +250,8 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         console.log("getDeliveredNotifications>>ERROR",JSON.stringify(err))
         console.log(err)
       })
-      
-
-  }
+    
+    }
 
     /*async getDeliveredNotifications() { //= async () => 
         const notificationList = await LocalNotifications.getDeliveredNotifications();
@@ -172,35 +266,23 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
   
     async createChannel() { //= async () =>
         
-        if (platform != "web") {
-          let channels = await LocalNotifications.listChannels();
-          console.log('createChannel',JSON.stringify(channels)); //umm shouldnt the LocNotifs show up on second start >>yup does!!--bon prolly skip create again?
+      //mobile
+      if (platform !== "web") {
+        let channels = await LocalNotifications.listChannels();
+        console.log('createChannel',JSON.stringify(channels)); //umm shouldnt the LocNotifs show up on second start >>yup does!!--bon prolly skip create again?
           
-          //bon instead check for exactNotifSettings?
-          let permStatus = await LocalNotifications.checkExactNotificationSetting(); 
-          console.log('ExactNotificationSetting>>CheckP',JSON.stringify(permStatus)); 
-          if (permStatus.exact_alarm !== 'granted') { //=== 'prompt'
-              permStatus = await LocalNotifications.changeExactNotificationSetting();
-              console.log('ExactNotificationSetting::requestP',JSON.stringify(permStatus))
+        let doExist = false 
+        for (const index in channels.channels) {
+          if (channels.channels[index].id == 'LocNotifs'){
+            doExist = true
+            break
           }
-      
-          if (permStatus.exact_alarm !== 'granted') {
-              //throw new Error('User denied permissions!');
-              console.log('ExactNotificationSetting::NOPE', permStatus.exact_alarm);
-          }
+        }
 
-          let doExist = false 
-          for (const index in channels.channels) {
-              if (channels.channels[index].id == 'LocNotifs'){
-                doExist = true
-                break
-              }
-          }
-
-          if(doExist){
-            console.log('createChannel>>WOO LocNotifs exists!!')
-            return 
-          }
+        if(doExist){
+          console.log('createChannel>>WOO LocNotifs exists!!')
+          return 
+        }
           
           // channel with high importance..>>dont seem to help with wake device but oh well..
           await LocalNotifications.createChannel({
@@ -213,13 +295,15 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
             vibration:true
           })
 
-          let channelz = await LocalNotifications.listChannels();
-          console.log('createChannel>>channelz>>CREATED',JSON.stringify(channelz));
-        }
+        let channelz = await LocalNotifications.listChannels();
+        console.log('createChannel>>channelz>>CREATED',JSON.stringify(channelz));
+      }
+
+        //not possible for web!
     }
     async registerActions() {
       const actions = {
-        "ok":{id:'ok',title:'OK'}, //progress at startEvt
+        "start":{id:'start',title:'Start'}, //progress at startEvt 
         "add":{id:'add',title:'Add3'}, //addMins at endEvt
         "skip":{id:'skip',title:'Skip'}, //skip at startEvt
         "go":{id:'go',title:'Nav'}, //nav...
@@ -227,7 +311,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
 
       const startType = {
         id:'start',
-        actions:[actions['ok'],actions['skip']]
+        actions:[actions['start'],actions['skip']]
       }
       const endType = {
         id:'end',
@@ -235,71 +319,50 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
       }
       const navType = { //toSee if needed...
         id:'nav',
-        actions:[actions['ok'],actions['go']]
+        actions:[actions['start'],actions['go']]
       }
       
-      let toReg = {
-        types: [startType,endType,navType]
-        }
-      await LocalNotifications.registerActionTypes(toReg);
-      
-      //console.log('registerActions',JSON.stringify(toReg));
+      //mobile
+      if (platform != "web") {
+        let toReg = {
+          types: [startType,endType,navType]
+          }
+        await LocalNotifications.registerActionTypes(toReg);
+        
+        //console.log('registerActions',JSON.stringify(toReg));
+        return
+      }
+
+      //not possible for web!
     }
 
     async getPending() { //: Promise<PendingResult>
       const pending = await LocalNotifications.getPending();
       
-      console.log('getPending',JSON.stringify(pending)); //JSON.parse(JSON.stringify(notificationList))
+      console.log('getPending',JSON.stringify(pending));
     
-        for (const index in pending.notifications) {
-            //console.log('getPending:: Notif::AT?!? >> '+index,JSON.stringify(pending.notifications[index]))
+      for (const index in pending.notifications) {
+        //console.log('getPending:: Notif::AT?!? >> '+index,JSON.stringify(pending.notifications[index]))
             
-            //wrong at at this point colis!! >>"at":"Fri Nov 08 14:30:00 EST 2024"
-            let notif = pending.notifications[index]
-            let at = notif.schedule.at
-            let aty = Date.parse(at) //bon in epoch needing for new Date(aty)
-            let aty1 = new Date(at)  //huh seems good...
+        //at from mobile wrong colis!! >>"at":"Fri Nov 08 14:30:00 EST 2024"
+        let notif = pending.notifications[index]
+        let at = notif.schedule.at
+        let aty = Date.parse(at) //bon in epoch needing for new Date(aty)
+        let aty1 = new Date(at)  //huh seems good...
 
-            console.log('getPending:: Notif>> ',JSON.stringify(at),JSON.stringify(aty),JSON.stringify(new Date(aty)),JSON.stringify(aty1))
-            let diff = aty - Date.now()
-            if(diff <= 0){ //has passed
-              console.log('getPending:: SKIPPED oldy>> ',diff, JSON.stringify(at),JSON.stringify(aty),JSON.stringify(aty1))
-            }else{
-              //this.pending.push({...notif,schedule: { at: aty1 }}); //no need to re-add just schedule it.
-              LocalNotifications.schedule({notifications:[{...notif,schedule:{at: aty1},actionTypeId:'start'}]});
-            }
+        ////--instead of scheduling again >>leave notif as is! >>is shown!! 
+        ///--cancel the skipped oldy so that it's not seen again?
+        let diff = aty - Date.now()
+        if(diff <= 0){ //has passed
+          console.log('getPending:: SKIPPED oldy>> ',diff, JSON.stringify(at),JSON.stringify(aty),JSON.stringify(aty1))
+        }else{
+          //this.pending.push({...notif,schedule: { at: aty1 }}); //no need to re-add just schedule it.
+          console.log('getPending:: Notif>>WOULDA>> ',JSON.stringify(notif), JSON.stringify(at),JSON.stringify(aty),JSON.stringify(new Date(aty)),JSON.stringify(aty1))
+          //LocalNotifications.schedule({notifications:[{...notif,schedule:{at: aty1},actionTypeId:'start'}]});
         }
+      }
     }
-    //handling of multiple evts to schedule...
-    //toReview** if need dt--evts already have it!
-    scheduleLater(evts,dt){
-        //console.log('NotifHelper::scheduleLater',JSON.stringify(dt),JSON.stringify(evts))
-        
-        for (const e of evts) {
-            let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) - 1 }) //five minutes too much..see with one...
-            let aty = Date.parse(`${mid.date} ${mid.time}`) 
-            //let another = parseTimestamp(`${dt} ${e.start.time}`)
-            let aty1 = new Date(aty) //huh works!! >>or not as formatted wrong...
-            //let another1 = new Date(another) //null...should add now above? bof
-            //let at = new Date(getDayTimeIdentifier(mid)) //or getTimeIdentifier ? //+ 1000 * 100
-            let not = {
-                title: `Scheduled at ${whenFrmtTime(e.start.time)}`,
-                body: e.title,//'Body',
-                largeBody: `${e.title} from ${whenFrmtTime(e.start.time)} to ${whenFrmtTime(e.end.time)}`, //toSee
-                id: e.id, //umm could have others?!? toMonitor but should be unique per day? //1,
-                schedule: { at: aty1, allowWhileIdle: true, repeats:true },  //add count maybe? //use scheduleOn? prolly no need
-                //sound: './public/assets/sounds/alarm.aiff', //meh default
-                attachments: null,
-                actionTypeId: 'start',
-                iconColor:hexColor(e.bgcolor), //!e.bgcolor ? '#9d8802' : e.bgcolor.includes("-") ? '#9d8802' : e.bgcolor, // e.bgcolor ?? 'blue', //can break smh color.includes("-") //even normal named can be invalid color smh
-                extra: {duration:e.duration, scorey:e.score}, //null,
-                channelId:'LocNotifs' //could use default but prolly better to have custom one
-                //autoCancel
-              }
-            this.pending.push(not); //JSON.stringify(not)
-            //console.log('scheduleLater::Added>>'+e.title,JSON.stringify(not),JSON.stringify(aty),JSON.stringify(aty1),JSON.stringify(another),JSON.stringify(another1))
-        }
-    }
+
     async schedule(options) { //: ScheduleOptions : Promise<ScheduleResult>
         
         //console.log('schedule',JSON.stringify(options))
@@ -307,8 +370,10 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         .then((res) => {
             console.log("schedule>>good",JSON.stringify(res))
             console.log(res)
+            ////add to delivered as now now -toTest**
             this.deliveredNotifications.push(...options.notifications);
-            //also remove from pending--toTest**
+    
+            //potential remove from pending
             let oldy = this.pending.length
             this.pending = this.pending.filter(notification =>!options.notifications.find(n => n.id === notification.id))
             oldy != this.pending.length ? console.log("schedule>>PENDING change",oldy,this.pending.length) : console.log("schedule>>PENDING SAME", oldy,this.pending.length) // '' //JSON.stringify(res)
@@ -317,29 +382,70 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
             console.log(err)
             this.pending.push(...options.notifications);
         })
+
+        //nope error out with undefined
+        /*chrome.notifications.create(options.notifications[0].title, {
+          "type": 'basic',//data.type,
+          "iconUrl": options.notifications[0].title, //chrome.runtime.getURL("icons/manga-48.png"), //chrome.extension.getURL("icons/manga-48.png"),
+          "title": options.notifications[0].title,
+          "message": options.notifications[0].body
+        },
+        (notif) => {console.log("WOAH:: clicked on notif:", notif);}
+      );*/
+    }
+    // multiple evts to schedule later...
+    addPendingEvts(evts,dt){ //need dt?--evts already have it!--toReview**
+        //console.log('NotifHelper::addPendingEvts',JSON.stringify(dt),JSON.stringify(evts))
+        
+        for (const e of evts) {
+            let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) - 1 }) //try showing notif one minute in advance
+            let aty = Date.parse(`${mid.date} ${mid.time}`) 
+            //let another = parseTimestamp(`${dt} ${e.start.time}`)
+            let aty1 = new Date(aty) //huh works!! >>or not as formatted wrong...
+            //let another1 = new Date(another) //null...should add now above? bof
+            //let at = new Date(getDayTimeIdentifier(mid)) //or getTimeIdentifier ? //+ 1000 * 100
+            let not = {
+                title: `Evt starting:: ${whenFrmtTime(e.start.time)}`,
+                body: e.title,//'Body',
+                largeBody: `${e.title} from ${whenFrmtTime(e.start.time)} to ${whenFrmtTime(e.end.time)}`, //toSee** look
+                id: e.id, //umm could have others?!? toMonitor but should be unique per day? //1,
+                schedule: { at: aty1, allowWhileIdle: true },  //add count maybe? //use scheduleOn? prolly no need   // repeats:true >>>>huh that what's cause not scheduling on time?
+                //sound: './public/assets/sounds/alarm.aiff', //meh default
+                attachments: null,
+                actionTypeId: 'start',
+                iconColor:hexColor(e.bgcolor), //!e.bgcolor ? '#9d8802' : e.bgcolor.includes("-") ? '#9d8802' : e.bgcolor, // e.bgcolor ?? 'blue', //can break smh color.includes("-") //even normal named can be invalid color smh
+                extra: {duration:e.duration, scorey:e.score, end: e.end.time}, //null,
+                channelId: platform != "web" ? 'LocNotifs' : ''  //could use default but prolly better to have custom one(for android)
+                //autoCancel?(only for mobile)
+              }
+            this.pending.push(not); //JSON.stringify(not)
+            //console.log('addPendingEvts::Added>>'+e.title,JSON.stringify(not),JSON.stringify(aty),JSON.stringify(aty1),JSON.stringify(another),JSON.stringify(another1))
+        }
     }
 
-    schedulePending(){ //toReview
-        console.log('schedulePending!!',JSON.stringify(this.pending),this.deliveredNotifications.length)
-        for (const notification of this.pending) {
+    scheduleLater(){
+        //console.log('scheduleLater!!',JSON.stringify(this.pending.length),this.deliveredNotifications.length)
+        //for (const notification of this.pending) {
+            //umm no need to do one by one estiii...
             LocalNotifications.schedule({
-                notifications:[notification] 
+                notifications: [...this.pending] //prolly spread? //[notification] 
             }).then((res) => {
-              console.log("schedulePending>>good",JSON.stringify(res))
-              console.log(res)
-              //this.deliveredNotifications.push(notification); //prolly not yet?
+              console.log("scheduleLater>>good",JSON.stringify(res))
+              //console.log(res)
+
+              //prolly no add to delivered yet as later?
+              //this.deliveredNotifications.push(notification);
               
-              // remove from pending
-              //let oldy = this.pending.length
-              this.pending = this.pending.filter(e => e.id !== notification.id)
+              //remove from pending
+              //this.pending = this.pending.filter(e => e.id !== notification.id)
               //oldy != this.pending.length ? console.log("schedulePending>>PENDING change",oldy,this.pending.length) : console.log("schedulePending>>PENDING SAME", oldy,this.pending.length) // '' //JSON.stringify(res)
           }).catch((err) => {
-              console.log("schedulePending>>ERROR",err)
+              console.log("scheduleLater>>ERROR",err)
               console.log(err)
               //bon here just cancel it.
-              this.cancel(notification.id)
+              //this.cancel(notification.id)
           })
-        }
+        //}
     }
 
     async cancel(pendingID) { //: ScheduleResult  : Promise<void>
