@@ -184,6 +184,7 @@ import { applyClasses, applyStyles } from '../util/utiFunc'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
 import { isMobile } from '../util/isMobile'
+import { NotifActions } from '../../boot/actions'; //toSee if instantiate plugin
 
 /*const CURRENT_DAY = new Date()
 function getCurrentDay (day) {
@@ -219,18 +220,25 @@ export default {
       moods:ref({}),
       mobile: ref(false),
       //splitterModel: ref(70) // start at 70% >>redundant
+      todayEvts:ref({}) //just today--to update with notifs data
     }
   },
   beforeMount() {
     this.mobile = isMobile()
     this.loadEvts()
     this.constructTree()
+    this.dayNotifData()
   },
   //mounted() { //redundant--toRemove**
   //  console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
   //},
+
   beforeUnmount() {
     //console.log(`beforeUnmount...do anything?!?`)
+    //maybe clear notif storage?!?
+    //NotifActions.clearStorage().then((res)=>{
+    //  console.log("beforeUnmount::clearStorage",JSON.stringify(res))
+    //})
   },
   computed: {
     storedGoalsMap(){  //rename properly** todo
@@ -250,7 +258,7 @@ export default {
     label(){ //could move inline...
       return this.showTree ? "Hide Legend" :"Show Legend"
     },
-    allEvents(){
+    allEvents(){ //prolly dont update***
         return this.store.getAllDates
     },
     parentGoalsMap() {
@@ -267,9 +275,6 @@ export default {
       //console.log('parentGoalsMap', map) //JSON.stringify(e)
       return map
     },
-    //storedEvents(){ //redundant
-    //  return this.store.getSubGoals
-    //},
     eventsMap () {// convert the events into a map of lists keyed by date
       const map = {}
       this.events.forEach(event => {
@@ -300,20 +305,29 @@ export default {
     },
   },
   methods: {
-    classyColor(proppy){//bg-{color} or text-{color} in class
-      //console.log("classyColor",JSON.parse(JSON.stringify(proppy.details))) 
-      return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
+    reload() { //reload variables with stuff from storage...redundant toRemove** with changes in loadEvts()
+      //console.log("homeweekView::Reload") // yup does updates on removal of skipped 
+   
+      this.loadEvts(true) //flag to reset
     },
-    loadEvts(){
+    loadEvts(reload=false){
       let pMap = this.parentGoalsMap
       let mGoals = this.storedGoalsMap
-      let allEvts = this.allEvents
+      let allEvts = this.store.getAllDates //oldie that dont update >> this.allEvents
       
       if (mGoals && pMap) {
         if (allEvts) {
+          if (reload){
+            //console.log("homeweekView::loadEvts >>Reset...")
+            this.events = [] //reset
+            this.moods = {}  //umm should?
+          }
+
           for (let dateKey in allEvts) {
-            //console.log("allEvents:", dateKey, allEvts[dateKey])
             let dEvts = allEvts[dateKey]
+
+            dateKey == this.currentDate ? this.todayEvts = dEvts : '' //console.log("loadEvts>>skipped assign for: ", dateKey) // allEvts[dateKey]
+
             for (let evtId in dEvts) {
               let e = mGoals.get(parseInt(evtId))
               //console.log("eeee",evtId,e,parseInt(evtId))
@@ -348,8 +362,8 @@ export default {
                   id: e.id,
                   title: e.title,
                   details: detz, //`${eS.time} - ${eE.time}`, //oldie >> "from:"+ prt.title, 
-                  time: dEvts[evtId].time,//'10:00',
-                  duration: dEvts[evtId].duration, //120,
+                  time: dEvts[evtId].time,
+                  duration: dEvts[evtId].duration,
                   date: dateKey,//getCurrentDay(1),
                   bgcolor:prt.bgcolor //'orange'
                 })
@@ -361,6 +375,126 @@ export default {
       } else {
         console.log("ERROR--no parent or goals!!REVIEW**")
         return
+      }
+    },
+    dayNotifData(){
+
+      if (this.mobile){ //no need for browser
+        //NotifActions.doPrint() //huh gets called!!
+        
+        //NotifActions.doPrint().then((res)=>{ //even better!!!
+        //  console.log("homeView--beforeMount",JSON.stringify(res))
+        //})
+       //JSON.stringify(window.screen.orientation.type) //huh works!!
+
+        let mGoals = this.storedGoalsMap
+
+        NotifActions.getSkippedNotifs({date:this.currentDate}).then((res)=>{
+          //console.log("getSkippedNotifs of: "+this.currentDate,JSON.stringify(this.todayEvts),JSON.stringify(res))
+          let ids = res["skipped"]
+
+          if(ids && Object.keys(ids).length > 0){
+            //then retrieve and make remove from this.todayEvts
+            const toArray = []
+            //should be array..
+            for (let id of ids){ //oldie >>for (let key in ids){
+              //toArray.push(ids[key]); ////sortable.push([key, sched[key]]);
+              toArray.push([id.id, id.evt]) //no point for evt as should be empty
+            }
+
+            if (Object.keys(this.todayEvts).length > 0){
+              //console.log("WoooResults>> ",JSON.stringify(toArray), JSON.stringify(this.todayEvts)) // JSON.stringify(ids),
+              
+              let skipd = []
+              for (let key in this.todayEvts){
+                if(toArray.find(item => item[0] == key)){ //hopefully no cast needed?!?
+                  delete this.todayEvts[key]
+                  skipd.push(mGoals.get(parseInt(key))?.title ?? "") 
+                  console.log(`dayNotifData::deleteSkipped>> `+key,JSON.stringify(skipd))
+                }
+              }
+              //// save 
+              this.store.saveDailySchedule(this.currentDate,this.todayEvts)
+              // alert user 
+              this.$q.notify({
+                color: 'warning',
+                position: 'top',
+                message: `${skipd.join()} Skipped!!`,
+                caption: `${this.currentDate} Schedule updated with Skipped ${ids.length} removal`, //need ',' separator?
+                icon: 'thumb_down', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+                timeout: 3000 // time to display (in milliseconds)>>default is 5000 (5sec)
+                //group?: boolean | string | number;
+              })
+              //reset by clearing skip key..clearStorage would erase whole storage!!
+              //beware tho as does not remove other related keys--toReview**
+              NotifActions.clearStoreKey({key:"skip"}).then((res)=>{
+                console.log("dayNotifData::clearSkipKey",JSON.stringify(res))
+                //should reload...
+                //this.loadEvts() // work?!? >>nope smh
+                this.reload() //this works!!
+              })
+
+            }else{//prolly clear storage!!--toReview but easy for testing
+              console.log("GONCLEAR storage::mismatch!!")//, JSON.stringify(ids), JSON.stringify(this.todayEvts))
+              NotifActions.clearStorage().then((res)=>{
+                console.log("dayNotifData::clearStorage",JSON.stringify(res))
+              })
+            }
+            
+          }
+        }).catch((err) => {
+            console.log("dayNotifData::getSkippedNotifs>>ERROR",err)
+            console.log(err)
+        })
+
+        NotifActions.getNotes().then((res)=>{ //use date too? toReview**
+          //console.log("getNotes>>",JSON.stringify(res)) //getNotes>> {"notes":[{"id":5,"note":"Test test"}]}
+          
+          if ("notes" in res){
+            let notes = res["notes"]
+            const ids = []
+            //console.log("getNotes>>",JSON.stringify(notes)) //bon isArray
+            if(Array.isArray(notes)){
+              let wnote = []
+              for (let note of notes){ //object using >>  for (let key in this.todayEvts)
+                if(note.id in this.todayEvts){ //huh no type issue
+                  let clone = Object.assign({},{...this.todayEvts[note.id], notes:note.note})
+
+                  console.log("dayNotifData::Setting Note>>",JSON.stringify(clone),JSON.stringify(this.todayEvts[note.id]))
+                  
+                  this.todayEvts[note.id] = clone 
+                  wnote.push(mGoals.get(parseInt(note.id))?.title ?? "")
+                  ids.push(note.id)
+                }else{//could happen if evt deleted?!? toMonitor**
+                  console.log("getNotes>>ERROR note Evts not found "+note.id,JSON.stringify(note),JSON.stringify(this.todayEvts))
+                }
+              }
+
+              //// save 
+              this.store.saveDailySchedule(this.currentDate,this.todayEvts)
+              this.$q.notify({
+                color: 'positive',
+                position: 'top',
+                message: `${wnote.join()} Evts had notes added!!`,
+                //caption: `${this.currentDate} Schedule updated with Skipped ${ids.length} removal`, //need ',' separator?
+                icon: 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+                timeout: 3000 // time to display (in milliseconds)>>default is 5000 (5sec)
+                //group?: boolean | string | number;
+              })
+              //console.log("dayNotifData::Saving Schedule>>",JSON.stringify(this.todayEvts))
+            }else{//umm handle?!? do what?!?
+              console.log("getNotes>>ERROR not array",JSON.stringify(notes),Array.isArray(notes))
+            }
+
+            //reset storeKey--todo** pass in 
+            NotifActions.clearStoreKey({key:"notey",ids:ids}).then((res)=>{
+              console.log("dayNotifData::clearNoteKey",JSON.stringify(res))
+                //should reload...
+                //this.loadEvts() // work?!? >>nope smh
+                this.reload() //this works!!
+              })
+          }
+        })
       }
     },
     constructTree(){
@@ -405,6 +539,10 @@ export default {
       }
       return events.sort(sorty)
     },
+    classyColor(proppy){//bg-{color} or text-{color} in class
+      //console.log("classyColor",JSON.parse(JSON.stringify(proppy.details))) 
+      return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
+    },
     badgeClasses (event, type) {
       return applyClasses(event, type)
     },
@@ -418,7 +556,6 @@ export default {
       this.$refs.calendar.moveToToday()
     },
     onPrev () {
-      //console.log('onPrev', this.currentDate)
       this.$refs.calendar.prev()
     },
     onNext () {

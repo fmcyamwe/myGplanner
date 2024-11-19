@@ -24,7 +24,7 @@ function createPerson(name) {
 //for a scheduledEvt...
 //could pose problem with access & update?
 //--todo** populate for other stuff with OrigGoal
-export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored per day!
+export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored per day!--toRename** as more like enrich
     let _data = data;
     let _id = OrigGoal.id;
     let _goal = OrigGoal;

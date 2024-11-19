@@ -243,8 +243,8 @@
                     </q-card-actions>
                    
                     <q-card-actions align="around"><!--label="Next" thumb_up  flat-->
-                      <q-btn outline push no-caps no-wrap @click="morphClose" icon="close" color="red" align="between"/>
-                      <q-btn elevated push @click="nextMorph" no-caps no-wrap align="between">Actions &gt;</q-btn>
+                      <q-btn outline push no-caps no-wrap @click="morphClose" icon="close" color="red" align="between" class="q-mx-xs"/>
+                      <q-btn elevated push @click="nextMorph" no-caps no-wrap align="between" class="q-mx-xs">Actions &gt;</q-btn>
                     </q-card-actions>
                   </q-card>
                   <q-card
@@ -310,7 +310,7 @@
                   </div>
                   
                   <div class="row justify-center">
-                      <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 90vh;"><!--height: 600px;-->
+                      <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 600px;"><!--height: 90vh;-->
                         <q-calendar-day
                           ref="calendar"
                           view="day"
@@ -553,6 +553,15 @@ data () {
 
   const lastTarget = ref(null) //for drag/drop highlight.
 
+  //wonder if would work.. >> const dismiss = $q.notify({...}) 
+  //const dismiss = this.$q.notify({ //these below are used for grouping
+  //    position: 'top',
+  //    message: '',
+  //    multiLine: true,
+      //caption: '',
+      //actions:
+  //})  //bon fires for every notif shown?!?
+
   return {
     splitterPage: ref(35), // start--left side--before at 35%
     splitterLegend:ref(40),
@@ -623,7 +632,7 @@ beforeUnmount() {
   } else {
     doContinue() 
   }
-  
+
     //this.daSchedule.scheduleLater()
 },
 computed: {
@@ -765,6 +774,17 @@ computed: {
   },
 },
 methods:{
+  dismissy() { //huh seems to run when notif is shown?!? cause of const? //redundant as doesnt hide notif smh
+    //dismiss() //huh works same as below
+    
+    //this.$q.notify({ //these below are used for grouping
+    //  position: 'top',
+    //  message: '',
+    //  multiLine: true,
+      //caption: '',
+      //actions:
+    //})
+  },
   moveFab (ev) {
     //console.log("moveFab...",ev,this.draggingFab,this.fabPos)
     this.draggingFab = ev.isFirst !== true && ev.isFinal !== true
@@ -787,10 +807,13 @@ methods:{
     return this.daSchedule.showEvtNoteScoreMobile(id)
   },
   selectedTimeInterval(){ //updates when placed here smh
+    console.log("selectedTimeInterval", this.targetDrop.timestamp.time ?? "","starts>> "+this.startEndTimes)
     return this.targetDrop.timestamp.time //?? ''
   },
   hasUnsavedChanges(){
     return this.daSchedule.hasUnsavedChanges()
+    //console.log("hasUnsavedChanges", e)
+    //return e
   },
   adjustCurrentTime() {
     const now = parseDate(new Date())
@@ -1529,6 +1552,10 @@ methods:{
     let mess = `Schedule saved for ${this.currentDate}`
     noTimes ? mess+= ` \nExcept for ${noTimes} without time!` : ''
     this.doNotify(mess, noTimes ? "info" : "positive")
+    //this.$q.notify({}) //just to hide it faster esti>>meh weird notif in bottom
+    
+    //this.dismissy() //prolly this one?
+
     this.resetFilter() //meh
   },
   addNewToSchedule(targetDrop, item){
@@ -2830,7 +2857,7 @@ methods:{
   onAddHocEvent(goalTitle, parentGoal, own, interval,useBalance){
     //console.log('onAddHocEvent',goalTitle, parentGoal, own, interval,useBalance)
     if (!this.possibleRange){
-      //console.log("umm onAddHocEvent... not a range selection", this.startEndTimes)  //just in case it's single cell selction
+      console.log("umm onAddHocEvent... not a range selection", this.startEndTimes)  //just in case it's single cell selction
       this.possibleRange = this.startEndTimes
     }
     if (goalTitle.trim() == ""){
@@ -3322,8 +3349,8 @@ methods:{
       this.lastTarget = null
     }   
   },
-  closeDialogWithReset(){// same as closingDialog but with cleanup & reset >>redundant?
-    //console.log('closeDialogWithReset')
+  closeDialogWithReset(){// same as closingDialog but with cleanup & reset >>redundant prolly
+    console.log('closeDialogWithReset')
     this.showEvtDialog = false
     //this.reset() //should? could impact when have selection?
     //this.doCleanup()
@@ -3582,13 +3609,13 @@ methods:{
       }
       
       if(!this.mousedown) {
-      let rangy = this.startEndTimes
-      if (rangy[1] == rangy[0]){ //to keep selection range in case of adding new event ad hoc!
-          //console.log("DIDNT change", rangy)
-          return
-      }
-      this.possibleRange = rangy
-      console.log('onMouseUpTime range change', this.possibleRange)
+        let rangy = this.startEndTimes
+        if (rangy[1] == rangy[0]){ //to keep selection range in case of adding new event ad hoc!
+            //console.log("DIDNT change", rangy)
+            return
+        }
+        this.possibleRange = rangy
+        console.log('onMouseUpTime range change', this.possibleRange)
       }
   },
   onMouseMoveTime ({ scope, event }) { //fires lots! when not on top of an event!

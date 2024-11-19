@@ -54,6 +54,7 @@ export default class daySchedule {
       this.savedRawEvts = []
 
       this.unsavedChanges = false //easier logic for toggling saveScheduleBtn--toUse**
+      this.dayWithDeleted = false //sheesh to help with above when enrichAddToSchedule encounters deleted goals smh
 
       this.usingMoods = {} //:ref({}),  //ref(null)
 
@@ -66,7 +67,7 @@ export default class daySchedule {
 
       this.mobile = isMobile
             
-      Repo.initialize()
+      Repo.initialize() //if didnt do this would later access even work?!? prolly not?
 
       //console.log("NEW daySchedule>>",JSON.stringify(LocNotifications.getState()))
     }
@@ -169,9 +170,12 @@ export default class daySchedule {
     saveBtnEnabled(){ //should use hasUnsavedChanges() below
       return this.disableSaveSchedule
     }
-    hasUnsavedChanges(){ // || or && ? toReview**
-      let cS = this.getEventsForDate(this.currentDate) //not too much?!?
-      return this.unsavedChanges || (cS && Object.keys(cS).length != this._dailyScheduled.size) //was prolly wrong >>(this.savedRawEvts && Object.keys(this.savedRawEvts).length != this._dailyScheduled.size)
+    hasUnsavedChanges(){
+      //console.log("daySchedule::hasUnsavedChanges", this._dailyScheduled.size,this.unsavedChanges)
+      let hasEvts = this.getEventsForDate(this.currentDate)
+      let diff = (hasEvts && Object.keys(hasEvts).length != this._dailyScheduled.size && !this.dayWithDeleted) ?? false //not too much?!? >>wrong eval caused by deleted goals so this._dailyScheduled.size != rawSaved smdh >>also need nullish ?? when no schedule
+     // console.log("daySchedule::hasUnsavedChanges", this._dailyScheduled.size,this.unsavedChanges,diff,this.dayWithDeleted) //Object.keys(hasEvts).length ?? 100
+      return this.unsavedChanges || diff //(cS && Object.keys(cS).length != this._dailyScheduled.size) //was prolly wrong >>(this.savedRawEvts && Object.keys(this.savedRawEvts).length != this._dailyScheduled.size)
     }
     fetchGoalsTree(){
       return Repo.constructTree()
@@ -250,7 +254,7 @@ export default class daySchedule {
 
       return Repo.storedAlternatives().sort(sorty)
     }
-    getEventsForDate(dt){ //smh just for alts!!
+    getEventsForDate(dt){
       return Repo.getDataForDate(dt)
     }
     updateDaySchedule(dt,toSave){//also just for alts smh
@@ -316,7 +320,7 @@ export default class daySchedule {
       
       return mappyA
     }*/
-    schedEvtWithProps(evt,startAt,EndAt){
+    schedEvtWithProps(evt,startAt,endAt){
       if (!evt.getPGoal()) {console.log(`schedEvtWithProps:: ERROR no parentGoal`,evt.data);return}
 
       let raw = evt.data()  //OR use this.getGoal() for title and inDefaults, etc.,..
@@ -348,7 +352,7 @@ export default class daySchedule {
 
       //ret.for = evt.duration, //redundant...
       ret.start = startAt
-      ret.end = EndAt
+      ret.end = endAt
 
       let detz = `Of '${pGoal.title.trim()}' :: ${whenFrmtTime(ret?.time)} -> ${ret?.duration}min -- ${ret?.inDefaults ? 'Dft:':':'}${ret?.canMove ? ':Mv:':':'}${ret?.isAlternative ? ':Alt':':'}`
 
@@ -698,6 +702,7 @@ export default class daySchedule {
         //skip deleted evts--should review and try to save them for summary?!?--especially when have notes?!?
         if (!originalG) {
           console.log(`enrichAddToSchedule:: ERROR No goal found for key: ${key}...skipping!`)//,toH)
+          this.dayWithDeleted = true
           continue
         }
 
@@ -806,9 +811,10 @@ export default class daySchedule {
       return toRet
     }
     loadEvtsForDay(sameDay){
-      if (!sameDay){ 
+      if (!sameDay){
         this.resetSchedule(true) //first clear for new different date!
         this.unsavedChanges = false
+        this.dayWithDeleted = false
       }
 
       //console.log('loadEvtsForDay--FOR date',d,this.currentDate,this.savedRawEvts)
@@ -2046,12 +2052,13 @@ export default class daySchedule {
             this.showMobileDialog[entry] = !hasEnd //umm toTest if toggle too*** //false
           }
           //nothing to do for end..prolly
-          hasStart ? this.showNotification(val) : '' //console.log(`updateMinEndNowBtn..hasEND..no Notif?`,LocNotifications.getState())
+          //hasStart ? this.showNotification(val) : '' //console.log(`updateMinEndNowBtn..hasEND..no Notif?`,LocNotifications.getState())
+          this.showNotification(val, hasEnd) //small test to see input for end...
           break
         }
       }
     }
-    showNotification(evt){
+    showNotification(evt,useEnd){
       //let at = new Date(Date.now() + 1000 * 100) //adds timezone utc and seem in future smh
       let n = addToDate(parseDate(new Date()),{ minute: 1})
       //let aty = Date.parse("2024-11-07 05:53:58")/1000;//new Date(this.getTimeyNumber(n))
@@ -2059,18 +2066,19 @@ export default class daySchedule {
       let aty1 = new Date(aty)
       //let aty2 = new Date(aty/1000) //way in past
       //console.log("showNotification::AT", JSON.stringify(at),JSON.stringify(n),JSON.stringify(aty),JSON.stringify(aty1))//,JSON.stringify(aty2))//,JSON.stringify(compareTime))
-            
-      //LocNotifications dont seem to attach listeners(for web!--toReview maybe)
+
+      let title = useEnd ? `Evt Ending ${whenFrmtTime(evt.end.time)}` : `Evt Starting ${whenFrmtTime(evt.start.time)}`
+
       LocNotifications.schedule({
         notifications: [{
-            title: `Evt Starting ${whenFrmtTime(evt.start.time)}`,
+            title: title,//`Evt Starting ${whenFrmtTime(evt.start.time)}`,
             body: evt.title,//'Body',
             id: evt.id, //umm could have others?!? toMonitor but should be unique //1,
             largeBody: `${evt.title} from ${whenFrmtTime(evt.start.time)} to ${whenFrmtTime(evt.end.time)}`, //toSee
             schedule: { at: aty1 }, //for web could use .on?:{ScheduleOn} ? //count:3, toTry** on web?
             //sound: './public/assets/sounds/alarm.aiff', //meh shouldnt be available..default to system
-            attachments: null,
-            actionTypeId: 'start',//'',
+            //attachments: null,
+            actionTypeId: useEnd ? 'atEnd' : 'atStart',//'',
             iconColor:hexColor(evt.bgcolor), //!evt.bgcolor ? '#9d8802' : evt.bgcolor.includes("-") ? '#9d8802' : evt.bgcolor, //'blue',
             extra: {duration:evt.duration, scorey:evt.score}, //null
             //autoCancel >>only for mobile

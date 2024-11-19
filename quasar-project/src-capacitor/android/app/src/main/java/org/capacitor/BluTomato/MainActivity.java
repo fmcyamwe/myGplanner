@@ -24,6 +24,8 @@ public class MainActivity extends BridgeActivity {
       ////and prolly override gradle build dependencies>>meh
       //registerPlugin(testyOne.class);
 
+      registerPlugin(MyNotifActions.class);
+
       super.onCreate(savedInstanceState);
 
         // Initializes the Bridge >>complains..and deprecated
@@ -40,11 +42,11 @@ public class MainActivity extends BridgeActivity {
       super.onResume();
     }
 
-    @Override
+    /*@Override
     public void onRestart() {
       Logger.error("FLO-TAG","onRestart?!?",null);
       super.onRestart();
-    }
+    }*/
 
     @Override
     public void onDestroy() {
@@ -70,6 +72,7 @@ public class MainActivity extends BridgeActivity {
       //LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
 
       //getApplicationContext().startService()
+
       super.onStop();
     }
 

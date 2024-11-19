@@ -283,14 +283,13 @@
                                     :min="5"
                                     :max="120"
                                     :thickness="0.34"
-                                    :step="5"
                                     v-model="duration"
                                     show-value
                                     size="5em"
                                     color="teal"
                                     trackColor="grey-3"
                                     class="q-ma-md center"
-                                    />
+                                    /><!--:step="5" meh could be whatev-->
                                 </div>
                                 
                                 <div class="atRight col-6 q-mt-md">
@@ -339,7 +338,7 @@
                                 <br>
                             
                                 <div style="clear: both;">
-                                    <q-input v-model="score" 
+                                    <q-input v-model="score"
                                     filled
                                     label-slot
                                     hint="format: #on#"
@@ -355,6 +354,11 @@
                                         </div>
                                     </template>
                                     </q-input>
+
+                                    <q-badge color="secondary" class="q-mx-sm"><!--conveys better? yup-->
+                                    Model: {{ scoreRange.min }}on{{ scoreRange.max }}
+                                    </q-badge>
+                                    <q-range v-model="scoreRange" label :step="1" :min="0" :max="10" :inner-min="1" :inner-max="9" markers color="green"/>
                                 </div>
 
                                 <br>
@@ -577,6 +581,7 @@ export default {
         const priority = ref(3)
         const duration = ref(15) //min of 15
         const score = ref('')
+        const scoreRange = ref({min: 0, max: 9}) //visual of score...
         const moods = ref(null)
         const canMove = ref(false)
         const inDefaults = ref(false) //NOT by default?!?
@@ -622,8 +627,14 @@ export default {
         watchEffect(() => {
             // tracks A0 and A1
             //A2.value = A0.value + A1.value
-            howThis.value = mainGoals.value  //does track changes but redundant with `allMGoals` above
-            
+            //howThis.value = mainGoals.value  //does track changes but redundant with `allMGoals` above
+    
+            scoreRange.value = parseScore() //would work?!? or need to pass in score.value? >>seems to work
+
+            //score.value = scoreRange.value.min+"on"+scoreRange.value.max  //this? >>nope >>see if placed in own watchEffect? >>yeee works
+        })
+        watchEffect(() => {
+            score.value = scoreRange.value.min+"on"+scoreRange.value.max
         })
 
         /*const subbyGoals = computed((id) => {
@@ -653,9 +664,17 @@ export default {
             return goalType.value === 'line' ? "Reset ALL" : `Reset ${goalType.value}`
         }
 
-        //function constructTree(){
-        //    treeGoals.value = store.fetchGoalsTree()    
-        //}
+        function parseScore(){
+            const tokens = score.value.split(/on/) 
+            if (tokens.length != 2) {//should be at most two variables....
+                //console.log(`parseScore error? >>${t}`, tokens)  
+                //return -89 //guardrails to distinguish with potensh error below*** could still fail with 'one' though smh..toReview***
+                return {min: 0, max: 9}
+            }
+            //console.log(`parseScore for ${t}`, tokens)
+            //return tokens[1] - tokens[0]  //should hopefully be in order....AND be digits!!
+            return {min: tokens[0], max: tokens[1]}
+        }
 
         function resetGsAndColors(){
             let sorty = (a, b) => { //by earliest id! >>can be wrong! >>see goalStorage file
@@ -663,11 +682,11 @@ export default {
                 if (a.id == b.id) return 0
                 if (a.id < b.id) return -1
             }
-            let sortByPrio = (a, b) => { return b.priority - a.priority  //largest to lowest
+            let sortByPrio = (a, b) => { return b.priority - a.priority}  //largest to lowest
                 //if (a.priority > b.priority) return 1
                 //if (a.priority == b.priority) return 0
                 //if (a.priority < b.priority) return -1
-            }
+            //}
 
             mainGoals.value = store.getMainGoals
             subGoals.value = store.getSubGoals
@@ -1261,7 +1280,7 @@ export default {
             mainGoals,
             subGoals,
             allMGoals,howThis,
-            //daRefs:hRefs,
+            scoreRange,
             expanded, //see if can trigger close >>does!
             buttonLabel,
             tab,

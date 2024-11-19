@@ -328,7 +328,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         //return JSON.parse($q.localStorage.getItem(`${aDate}`))
         let savedDates = this.getAllDates
         if (savedDates) {  //doCopy ?
-            return savedDates[`${aDate}`]
+            return savedDates[`${aDate}`] //?? null //ummm?
         }
     }
 

@@ -302,20 +302,21 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         //not possible for web!
     }
     async registerActions() {
-      const actions = {
+      const actions = { 
         "start":{id:'start',title:'Start'}, //progress at startEvt 
         "add":{id:'add',title:'Add3'}, //addMins at endEvt
         "skip":{id:'skip',title:'Skip'}, //skip at startEvt
         "go":{id:'go',title:'Nav'}, //nav...
+        "note":{id:'note',title:'Notey',input:true},//add input?: boolean; (IOS) >>huh works!!
       }
 
       const startType = {
-        id:'start',
-        actions:[actions['start'],actions['skip']]
+        id:'atStart',
+        actions:[actions['add'],actions['start'],actions['skip']] //umm could add multi actions? >> yup!!
       }
       const endType = {
-        id:'end',
-        actions:[actions['add'],actions['go']]
+        id:'atEnd',
+        actions:[actions['note']]
       }
       const navType = { //toSee if needed...
         id:'nav',
@@ -401,20 +402,25 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
             let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) - 1 }) //try showing notif one minute in advance
             let aty = Date.parse(`${mid.date} ${mid.time}`) 
             //let another = parseTimestamp(`${dt} ${e.start.time}`)
-            let aty1 = new Date(aty) //huh works!! >>or not as formatted wrong...
+            let aty1 = new Date(aty) //huh works!! 
             //let another1 = new Date(another) //null...should add now above? bof
             //let at = new Date(getDayTimeIdentifier(mid)) //or getTimeIdentifier ? //+ 1000 * 100
+    
+            let midEnd = addToDate(parsed(dt), { minute: parseTime(e.end.time)})
+            let atyEnd = Date.parse(`${midEnd.date} ${midEnd.time}`)
+            let aty1End = new Date(atyEnd) //to avoid calculating this for End notif
+            //console.log('NotifHelper::addPendingEvts',JSON.stringify(aty1),JSON.stringify(aty1End))
             let not = {
-                title: `Evt starting:: ${whenFrmtTime(e.start.time)}`,
-                body: e.title,//'Body',
-                largeBody: `${e.title} from ${whenFrmtTime(e.start.time)} to ${whenFrmtTime(e.end.time)}`, //toSee** look
+                title: `'${e.title}' Starting at ${whenFrmtTime(e.start.time)}`,
+                body: ` Be/Do '${e.title}' for ${e.duration} mins`,//starting:: ${whenFrmtTime(e.start.time)} //e.title,
+                largeBody: ` Be/Do '${e.title}' (${e.score}) from ${whenFrmtTime(e.start.time)} to ${whenFrmtTime(e.end.time)}`, //toSee** look
                 id: e.id, //umm could have others?!? toMonitor but should be unique per day? //1,
                 schedule: { at: aty1, allowWhileIdle: true },  //add count maybe? //use scheduleOn? prolly no need   // repeats:true >>>>huh that what's cause not scheduling on time?
                 //sound: './public/assets/sounds/alarm.aiff', //meh default
-                attachments: null,
-                actionTypeId: 'start',
+                //attachments: null,
+                actionTypeId: 'atStart',
                 iconColor:hexColor(e.bgcolor), //!e.bgcolor ? '#9d8802' : e.bgcolor.includes("-") ? '#9d8802' : e.bgcolor, // e.bgcolor ?? 'blue', //can break smh color.includes("-") //even normal named can be invalid color smh
-                extra: {duration:e.duration, scorey:e.score, end: e.end.time}, //null,
+                extra: {duration:e.duration, scorey:e.score, end: aty1End, endsAt:whenFrmtTime(e.end.time), name:e.title}, //e.end.time //null,
                 channelId: platform != "web" ? 'LocNotifs' : ''  //could use default but prolly better to have custom one(for android)
                 //autoCancel?(only for mobile)
               }
@@ -428,7 +434,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         //for (const notification of this.pending) {
             //umm no need to do one by one estiii...
             LocalNotifications.schedule({
-                notifications: [...this.pending] //prolly spread? //[notification] 
+                notifications: [...this.pending]  //[notification] 
             }).then((res) => {
               console.log("scheduleLater>>good",JSON.stringify(res))
               //console.log(res)
