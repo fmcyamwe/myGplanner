@@ -15,7 +15,7 @@
         />
         <i class="row justify-center q-pa-sm">Click on Day header for that day's Moods </i>
         <div class="row justify-center">
-            <div class="q-px-md" style="display: flex; max-width: 800px; width: 100%;height: 500px;overflow: auto;"><!--class="row justify-center items-center" use 'no-scroll' to disallow scrolling border: 1px solid #ddd>>-->
+            <div class="q-px-md" style="display: flex; max-width: 800px; width: 100%;height: 500px;"><!--overflow: auto; class="row justify-center items-center" use 'no-scroll' to disallow scrolling border: 1px solid #ddd>>-->
                 <q-calendar
                 ref="calendar"
                 v-model="currentDate"
@@ -37,6 +37,8 @@
                 @click-head-intervals="onClickHeadIntervals"
                 @click-date="onClickDate"
                 @click-time="onClickTime"
+
+                :column-count="3" ?!?
                 -->
                 <template #head-day-event="{ scope: { timestamp } }">
                   <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
@@ -177,7 +179,8 @@ import {
   isBetweenDates,
   parsed,
   diffTimestamp,
-  parseTime
+  parseTime,
+  getTimeIdentifier
 } from '@quasar/quasar-ui-qcalendar/src/index.js'
 //import NavigationBar from '../../components/NavigationBar.vue'
 import { applyClasses, applyStyles } from '../util/utiFunc'
@@ -207,20 +210,23 @@ export default {
     //const draggedItem = ref(null)
     //const targetDrop = ref(null)
     const $q = useQuasar()
-
+    
     return {
       store:useGoalStore(),
       calendar: ref(null),
       currentDate: ref(today()),
       events: [],
-      mostEvts:5, //huh just to set the interval-height for proper spacing..default 5 or things are squished badly when empty
       treeGoals:ref([]),
       expanded:ref([]), //to hold expanding parentGoals...
       showTree:ref(false),
       moods:ref({}),
       mobile: ref(false),
-      //splitterModel: ref(70) // start at 70% >>redundant
-      todayEvts:ref({}) //just today--to update with notifs data
+      todayEvts:ref({}), //just today--to update with notifs data
+      mostEvts:ref(5), //huh just to set the interval-height for proper spacing..default 5 or things are squished badly when empty
+      intervalMins:ref(15), //interval-minutes >>oldie default== 30mins
+      intervals:ref(48), //interval-count >> should be calculated to show all of weekly scheduled for good minimal spacing--
+      earliestStart:ref(0), //i.e interval-start for ealiest evt--to use with interval-count for proper view of week...umm have to be number(like intervalID methink)
+      testEarliest:ref(null),//should use above but test for now...
     }
   },
   beforeMount() {
@@ -232,6 +238,13 @@ export default {
   //mounted() { //redundant--toRemove**
   //  console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
   //},
+  mounted() {
+    console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
+    NotifActions.addListeners()//.then((res)=>{
+      //console.log(`listener work?`,JSON.stringify(res)) //toSee
+    //})
+    //NotifActions.addListener() //toSee straight invoke of baseclass?
+  },
 
   beforeUnmount() {
     //console.log(`beforeUnmount...do anything?!?`)
@@ -281,8 +294,8 @@ export default {
         if (!map[ event.date ]) {
           map[ event.date ] = []
         }
-
-        event.sortTime = addToDate(parsed(event.date), { minute: parseTime(event.time) }) //sheesh too much?
+        //sheesh too much? >>prolly as could do it earlier in loadEvts()--toTest**
+        //event.sortTime = addToDate(parsed(event.date), { minute: parseTime(event.time) }) 
 
         map[ event.date ].push(event)
 
@@ -337,18 +350,20 @@ export default {
                 let eS = addToDate(parsed(dateKey), { minute: parseTime(dEvts[evtId].time)})
                 let eE = addToDate(eS, { minute: parseInt(dEvts[evtId].duration)})
                 //let notes = dEvts[evtId]?.notes
+                
                 let detz = ''
                 if(dEvts[evtId].notes !== void 0 && dEvts[evtId]?.notes !== ''){
                   //console.log(`loadEvts::notes>>`,dEvts[evtId]?.notes, e.score,dEvts[evtId]?.atScore)
                   
-                  detz = [`${eS.time} - ${eE.time}`,
+                  detz = [`${eS.time} - ${eE.time}`, 
                   `${dEvts[evtId]?.atScore ?? ''} >> ${e.score}`, //\n\r
                   `${dEvts[evtId]?.notes}`].join("\n\r") //\r not even needed it seems mais bon!
                   //detz = `${dEvts[evtId]?.notes}` //``+ "&#013;&#010;"+   //nope no multiLine*** smh 
 
                 } else{
-                  detz =  `${eS.time} - ${eE.time}`
+                  detz =  `${eS.time} - ${eE.time}`  //oldie >> "from:"+ prt.title, 
                 }
+
                 if(dEvts[evtId].byMood !== void 0){
                   //console.log(`loadEvts::has moods>>`,dateKey,evtId,dEvts[evtId].byMood)
                   if(!this.moods[dateKey]){
@@ -357,15 +372,21 @@ export default {
                   this.moods[dateKey].push(...dEvts[evtId].byMood)
                 }
 
+                if(!this.testEarliest){ //test to find earliest--set dummy val here
+                  console.log(`loadEvts::testEarliest>> ${e.id}: `+e.title,JSON.stringify(dateKey),JSON.stringify(eS.time))
+                  this.testEarliest = eS
+                }
+
                 //todo**review look of title,details info! especially with tooltips for header vs body evt!***
                 this.events.push({
                   id: e.id,
                   title: e.title,
-                  details: detz, //`${eS.time} - ${eE.time}`, //oldie >> "from:"+ prt.title, 
+                  details: detz, 
                   time: dEvts[evtId].time,
                   duration: dEvts[evtId].duration,
                   date: dateKey,//getCurrentDay(1),
-                  bgcolor:prt.bgcolor //'orange'
+                  bgcolor:prt.bgcolor, //'orange'
+                  sortTime:eS  //used later for sorting--toTest**
                 })
               } //else{console.log(`ERROR: ${evtId} no exist!! on`,dateKey)}// when deleted >> toHANDLE***
             }
@@ -390,24 +411,23 @@ export default {
         let mGoals = this.storedGoalsMap
 
         NotifActions.getSkippedNotifs({date:this.currentDate}).then((res)=>{
-          //console.log("getSkippedNotifs of: "+this.currentDate,JSON.stringify(this.todayEvts),JSON.stringify(res))
+          //: "+this.currentDate,JSON.stringify(this.todayEvts),JSON.stringify(res))
           let ids = res["skipped"]
 
-          if(ids && Object.keys(ids).length > 0){
+          if(Array.isArray(ids) && ids.length > 0){ //Object.keys(ids).length > 0
             //then retrieve and make remove from this.todayEvts
-            const toArray = []
-            //should be array..
-            for (let id of ids){ //oldie >>for (let key in ids){
+            //const toArray = []
+            //should be array >>below redundant
+            //for (let id of ids){ //oldie >>for (let key in ids){
               //toArray.push(ids[key]); ////sortable.push([key, sched[key]]);
-              toArray.push([id.id, id.evt]) //no point for evt as should be empty
-            }
+              //toArray.push([id.id, id.evt]) //no point for evt as should be empty
+            //}
 
             if (Object.keys(this.todayEvts).length > 0){
-              //console.log("WoooResults>> ",JSON.stringify(toArray), JSON.stringify(this.todayEvts)) // JSON.stringify(ids),
-              
+              console.log("WoooResults>> ",JSON.stringify(ids), JSON.stringify(this.todayEvts))
               let skipd = []
-              for (let key in this.todayEvts){
-                if(toArray.find(item => item[0] == key)){ //hopefully no cast needed?!?
+              for (let key in this.todayEvts){ //should prolly loop on ids instead? todo**
+                if(ids.find(item => item == key)){ //hopefully no cast needed?!?
                   delete this.todayEvts[key]
                   skipd.push(mGoals.get(parseInt(key))?.title ?? "") 
                   console.log(`dayNotifData::deleteSkipped>> `+key,JSON.stringify(skipd))
@@ -415,36 +435,35 @@ export default {
               }
               //// save 
               this.store.saveDailySchedule(this.currentDate,this.todayEvts)
-              // alert user 
-              this.$q.notify({
-                color: 'warning',
-                position: 'top',
-                message: `${skipd.join()} Skipped!!`,
-                caption: `${this.currentDate} Schedule updated with Skipped ${ids.length} removal`, //need ',' separator?
-                icon: 'thumb_down', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-                timeout: 3000 // time to display (in milliseconds)>>default is 5000 (5sec)
-                //group?: boolean | string | number;
+              // alert user //better to show one by one for clarity
+              skipd.forEach(title => {
+                this.$q.notify({
+                  color: 'warning',
+                  position: 'top',
+                  message:  `'${title}' Evt Skipped!`,//`${skipd.join()} Skipped!!`, //need ',' separator?
+                  caption: `${this.currentDate} Schedule updated with removal`,// '${title}' removal`,
+                  icon: 'thumb_down', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+                  timeout: ids.length > 1 ? 2000 : 3000 // time to display (in milliseconds)>>default is 5000 (5sec)
+                  //group?: boolean | string | number;
+                })
               })
-              //reset by clearing skip key..clearStorage would erase whole storage!!
-              //beware tho as does not remove other related keys--toReview**
+              
               NotifActions.clearStoreKey({key:"skip"}).then((res)=>{
                 console.log("dayNotifData::clearSkipKey",JSON.stringify(res))
-                //should reload...
-                //this.loadEvts() // work?!? >>nope smh
-                this.reload() //this works!!
+                //reload...
+                this.reload()
               })
 
-            }else{//prolly clear storage!!--toReview but easy for testing
+            }else{//prolly clear/erase whole storage!!--toReview but easy for testing
               console.log("GONCLEAR storage::mismatch!!")//, JSON.stringify(ids), JSON.stringify(this.todayEvts))
               NotifActions.clearStorage().then((res)=>{
                 console.log("dayNotifData::clearStorage",JSON.stringify(res))
               })
             }
-            
           }
         }).catch((err) => {
             console.log("dayNotifData::getSkippedNotifs>>ERROR",err)
-            console.log(err)
+            //console.log(err)
         })
 
         NotifActions.getNotes().then((res)=>{ //use date too? toReview**
@@ -472,6 +491,7 @@ export default {
 
               //// save 
               this.store.saveDailySchedule(this.currentDate,this.todayEvts)
+
               this.$q.notify({
                 color: 'positive',
                 position: 'top',
@@ -495,12 +515,26 @@ export default {
               })
           }
         })
+
+        //not important...BUT should clear storage tho...todo**
+        NotifActions.getStarted().then((res)=>{
+          console.log("dayNotifData::getStarted",JSON.stringify(res))
+          if ("started" in res){
+            let ids = res["started"]
+            if(Array.isArray(ids) && ids.length > 0){
+              NotifActions.clearStoreKey({key:"start"}) //ids:ids
+            }
+          }
+        })
+        
       }
     },
     constructTree(){
       this.treeGoals = this.store.fetchGoalsTree()
     },
-    getEvents (dt) {// get all events for the specified date
+    getEvents (dt) {
+      // get all events for the specified date
+      //gets called too much methink? at least 4 times during rendering!!!
 
       let sorty = (a, b) => {//sort by earlier timestamp!
         let timeDiff = diffTimestamp(a.sortTime,b.sortTime) 
@@ -534,10 +568,33 @@ export default {
       //console.log(`getEvents ${dt}`, events.length) //number of evts scheduled on this day...
       //can use to calculate largest interval height and set it dynamically to see all events properly >> if too many add more height space..
       if (events.length > this.mostEvts){
-        //console.log(`getEvents hiiigh ${dt}`,events.length)
-        this.mostEvts = this.mobile ? events.length+5 : events.length
+        console.log(`getEvents hiiigh ${dt}`,events.length, this.mobile)
+        this.mostEvts = this.mobile ? events.length + 5 : events.length
       }
-      return events.sort(sorty)
+    
+      //return events.sort(sorty)
+      //find if first is ealiest before returning--toSee**
+      events.sort(sorty)
+      //this.isEarlier(events[0]?.sortTime ?? null) //nullish for empty
+      return events
+    },
+    isEarlier(testTime){
+      let comp = this.getTimeyNumber(testTime)
+      let current = this.getTimeyNumber(this.testEarliest)
+      //also check that returned !==false
+      //if(targetStart > schedEvtStart) //LATER than scheduled evt
+      console.log(`isEarlier::testEarliest>> ${testTime?.time ?? 'EMPTY'}: ${this.testEarliest.time}`,JSON.stringify(comp),JSON.stringify(current))
+      //see if not called too much? 
+      ///>>at least gets called with one earliest elt per day 
+      ///BUT getEvents() gets called too much during rendering?!?(4 times at least!!)
+      //toReview**
+      return 
+    },
+    getTimeyNumber(timey) { 
+      if (timey !== null) {
+        return getTimeIdentifier(timey) //use time as no point to use date--huh just concats hour & time without ':'
+      }
+      return false
     },
     classyColor(proppy){//bg-{color} or text-{color} in class
       //console.log("classyColor",JSON.parse(JSON.stringify(proppy.details))) 
@@ -561,21 +618,6 @@ export default {
     onNext () {
       this.$refs.calendar.next()
     },
-    /*onClickInterval (data) {//The interval area
-      console.log('onClickInterval', data)
-      //events.value.unshift(`click:interval: ${JSON.stringify(data)}`)
-    },
-    onClickDate (data) { //The date button in format YYYY-MM-DD
-      console.log('onClickDate', data)
-      //events.value.unshift(`click:date: ${JSON.stringify(data)}`)
-    },
-    onClickTime (data) {//The slotted area to side of intervals
-      console.log('onClickTime', data)
-      //events.value.unshift(`click:time: ${JSON.stringify(data)}`)
-    },
-    onClickHeadIntervals (data) { //The header area above the intervals
-      console.log('onClickHeadIntervals', data)
-    },*/
     onClickHeadDay ({ scope, event }) { //date header where the date is....
       let d = scope.timestamp.date
       let hasM = this.moods[d]
@@ -607,7 +649,22 @@ export default {
     onChange (data) { //runs first after loading/reload > right after beforeMount() and before mounted()
       this.mostEvts = 5 //to update the interval-height
       //console.log('onChange', JSON.stringify(data))
-    }
+    },
+    /*onClickInterval (data) {//The interval area
+      console.log('onClickInterval', data)
+      //events.value.unshift(`click:interval: ${JSON.stringify(data)}`)
+    },
+    onClickDate (data) { //The date button in format YYYY-MM-DD
+      console.log('onClickDate', data)
+      //events.value.unshift(`click:date: ${JSON.stringify(data)}`)
+    },
+    onClickTime (data) {//The slotted area to side of intervals
+      console.log('onClickTime', data)
+      //events.value.unshift(`click:time: ${JSON.stringify(data)}`)
+    },
+    onClickHeadIntervals (data) { //The header area above the intervals
+      console.log('onClickHeadIntervals', data)
+    },*/
   }
 }//)
 

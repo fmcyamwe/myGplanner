@@ -312,7 +312,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
 
       const startType = {
         id:'atStart',
-        actions:[actions['add'],actions['start'],actions['skip']] //umm could add multi actions? >> yup!!
+        actions:[actions['start'],actions['skip']] //umm could add multi actions? >> yup!! //actions['add'],
       }
       const endType = {
         id:'atEnd',
@@ -357,8 +357,9 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         if(diff <= 0){ //has passed
           console.log('getPending:: SKIPPED oldy>> ',diff, JSON.stringify(at),JSON.stringify(aty),JSON.stringify(aty1))
         }else{
-          //this.pending.push({...notif,schedule: { at: aty1 }}); //no need to re-add just schedule it.
           console.log('getPending:: Notif>>WOULDA>> ',JSON.stringify(notif), JSON.stringify(at),JSON.stringify(aty),JSON.stringify(new Date(aty)),JSON.stringify(aty1))
+          this.pending.push({...notif,schedule: { at: aty1 }}); 
+          //re-add in case of schedule change
           //LocalNotifications.schedule({notifications:[{...notif,schedule:{at: aty1},actionTypeId:'start'}]});
         }
       }
@@ -396,7 +397,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
     }
     // multiple evts to schedule later...
     addPendingEvts(evts,dt){ //need dt?--evts already have it!--toReview**
-        //console.log('NotifHelper::addPendingEvts',JSON.stringify(dt),JSON.stringify(evts))
+        console.log('NotifHelper::addPendingEvts',JSON.stringify(dt),JSON.stringify(evts))
         
         for (const e of evts) {
             let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) - 1 }) //try showing notif one minute in advance

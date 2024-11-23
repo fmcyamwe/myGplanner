@@ -10,14 +10,6 @@
 
         <q-card v-if="showPickyDialog">
           <div class="q-ma-md event-select">
-            <!--<select-event
-              :unscheduled="allUnscheduled"
-              :unscheduledParents="unscheduledPGoals"
-              :toBalance="balance"
-              :at="selectedTime"
-              @on-Pick-Event="onAddClicked"
-              @do-Cancel="onCancelBtn"
-            />-->
             <altSelectEvent
               :allUnscheduled="unscheduledGoals"
               :unscheduledParents="unscheduledParents"
@@ -35,10 +27,11 @@
               :mainGoals="parentGoals"
               :toBalance="balance"
               :at="selectedTime"
+              :timeRange="isTimeRange"
               @save-Event="adHocNewEvent"
               @do-Cancel="onCancelBtn"
             />
-            <q-space/><!--better here?!?-->
+            <q-space/>
           </div>
           <!--<q-space/>toSee look with space...nothing here-->
         </q-card>
@@ -50,7 +43,10 @@
           <q-card-actions align="center">
             <q-btn push label="Ad hoc" no-wrap no-caps color="primary" align="between" @click="onChooseAdHoc"/>
             <q-btn push label="Existing" no-wrap no-caps color="primary" align="between" @click="onChooseExisting"/>
-          </q-card-actions>        
+          </q-card-actions> 
+          <span v-if="isTimeRange.isSame">
+            **{{ isTimeRange.onMobile ? 'Click on a ': 'Drag mouse to a '}}different interval for range(Ad hoc)**
+          </span>      
         </q-card>
     </q-dialog>
 </template>
@@ -72,7 +68,8 @@ export default {
     parentGoals: Array,
     canBeScheduled: Array, //array of objects...
     balance:Number,
-    selectedTime:String //for adhoc selected time
+    selectedTime:String, //for adhoc selected time
+    isTimeRange:Object, //mobile time range..valid for adhoc only...
   },
   data(){
     return{
@@ -124,44 +121,6 @@ export default {
         return this.canBeScheduled
       }
     },
-    /*unscheduledPGoals:{ //redundant --toRemove**
-      get(){
-        //console.log(`unscheduledPGoals`,JSON.parse(JSON.stringify(this.unscheduledP)))
-        //umm try to turn into array here mayhaps?--not too expensive?
-        let ret = []
-        for (let key in this.unscheduledP){ //this.unscheduledP
-          ret.push(this.unscheduledP[key]) //this.unscheduledP
-        }
-        //console.log(`unscheduledPGoals`,JSON.parse(JSON.stringify(this.unscheduledP)),JSON.parse(JSON.stringify(ret)))
-        doLog(`schedDialog::unscheduledPGoals`,this.unscheduledP,ret) //JSON.parse(JSON.stringify(this.unscheduledP)),JSON.parse(JSON.stringify(ret))
-        return ret //this.unscheduledP
-      },
-      //set(value){ //no need..
-      //  
-      //}
-    },*/
-    /*allUnscheduled:{
-        get(){
-          //console.log(`allUnscheduled`,JSON.parse(JSON.stringify(this.canBeScheduled)), JSON.parse(JSON.stringify(this.parentGoals)) )
-
-          this.canBeScheduled.forEach((obj) => { //have to use deep-copy here as reference make changes saved to localStorage --toReview***
-
-            let a = this.parentGoals.find(item => item.id == obj.parentGoal)
-            
-            a ? obj.color = a.bgcolor : obj.color = ''
-            obj.pg = a?.title.trim() //useful for label--could move into this.unscheduledP ? toReview**
-            obj.ic = a?.icon //toSee if can use instead of 'pg' above..toReview**
-
-            //this.unscheduledP.push({id:a?.id,title:a?.title.trim()}) //toSee** if anything else..or could just push whole pGoal?
-            !this.unscheduledP[a?.id] ? this.unscheduledP[a?.id] = {id:a?.id,title:a?.title.trim()} : '' //console.log(`allUnscheduled..present!`,this.unscheduledP[a?.id])
-            //if(!this.unscheduledP[a?.id]){
-            //}
-          })
-
-          //console.log(`allUnscheduled..AFTER..needed?`,JSON.parse(JSON.stringify(this.canBeScheduled)))
-          return this.canBeScheduled
-        },
-    }*/
   },
   methods: {
     onAddClicked(toAdd,forceFlag,useBalance,newDura){
@@ -169,9 +128,9 @@ export default {
       this.$emit('onPickEvent',toAdd,forceFlag,useBalance,newDura)
       this.reset()
     },
-    adHocNewEvent(aTitle, daP, own, duration,useBalance) {
+    adHocNewEvent(aTitle, daP, own, duration,useBalance,manualDura) {
       //console.log(`addAdHocEvent..emitting`,aTitle, daP, own, duration)
-      this.$emit('adHocEvent',aTitle, daP, own, duration,useBalance)
+      this.$emit('adHocEvent',aTitle, daP, own, duration,useBalance,manualDura)
       this.reset() 
     },
     onChooseExisting(){ // hide the main dialog and show the pickEvent dialog

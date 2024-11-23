@@ -1,7 +1,10 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
+    <q-header elevated reveal :revealOffset="100">
+      <q-toolbar><!--class="navbar"
+        :class="{ 'navbar--hidden': !showNavbar }"
+        @click.prevent="clicked"
+        -->
         <q-toolbar-title class="g-planner">
           My G. Planner
         </q-toolbar-title>
@@ -78,6 +81,32 @@ export default defineComponent({
   setup () {
     return {
       essentialLinks: linksList,
+      showNavbar: true,
+      lastScrollPosition: 0
+    }
+  },
+  mounted(){
+    console.log("onMounted")
+    //window.addEventListener('scroll', this.onScroll)
+  },
+  beforeUnmount(){
+    //window.removeEventListener('scroll', this.onScroll)
+  },
+  methods:{
+    clicked(){
+      console.log("clicked")
+    },
+    onScroll () {
+      // Get the current scroll position
+      const currentScrollPosition = window.scrollY || document.documentElement.scrollTop
+      // Because of momentum scrolling on mobiles, we shouldn't continue if it is less than zero
+      if (currentScrollPosition < 0) {
+        return
+      }
+      // Here we determine whether we need to show or hide the navbar
+      this.showNavbar = currentScrollPosition < this.lastScrollPosition
+      // Set the current scroll position as the last scroll position
+      this.lastScrollPosition = currentScrollPosition
     }
   }
 })
@@ -85,6 +114,22 @@ export default defineComponent({
 <style scoped lang="sass">
 .g-planner
   padding: 0 1.5em 0 1.5em
+.navbar
+  height: 60px
+  width: 100vw
+  background: hsl(200, 50%, 50%)
+  position: fixed
+  box-shadow: 0 2px 15px rgba(71, 120, 120, 0.5)
+  transform: translate3d(0, 0, 0)
+  transition: 0.1s all ease-out
+
+.navbar.navbar--hidden
+  box-shadow: none
+  transform: translate3d(0, -100%, 0)
+
+.dummy-nav
+  height: 60px
+  width: 100vw
 
 .home-view
   &:active,

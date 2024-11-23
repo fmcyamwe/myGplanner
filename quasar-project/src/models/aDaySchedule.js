@@ -70,6 +70,7 @@ export default class daySchedule {
       Repo.initialize() //if didnt do this would later access even work?!? prolly not?
 
       //console.log("NEW daySchedule>>",JSON.stringify(LocNotifications.getState()))
+      
     }
     //showyReloadBtn(){ //works!
     //  return this.showReloadBtn
@@ -834,7 +835,7 @@ export default class daySchedule {
         canContinue:true
       }
     }
-    onChangeViewDate(toDate){ //same as loadForDate()
+    onChangeViewDate(toDate){
       let sameDay = toDate == this.currentDate
       //console.log('onChangeViewDate >>',JSON.parse(JSON.stringify(this.currentDate)), toDate,noChange)
       this.currentDate = toDate
@@ -866,13 +867,17 @@ export default class daySchedule {
        LocNotifications.addPendingEvts(toSchedLater,this.currentDate)
        //console.log("addPendingEvts >> #"+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
 
-       LocNotifications.scheduleLater() //meh should do with above in one step...toReview**
+       //avoid unnecessary plugin schedule call--toConfirm** that no pending in state?
+       toSchedLater.length > 0 ? LocNotifications.scheduleLater() : '' //console.log("scheduleLater >> nothing to scheduleLater")
        
        console.log("scheduleLater >> #"+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
       }else{
         //should do in future?!? >> just push?!?  toReview**..
         console.log('scheduleLater >>IN FUTURE...what to do?!?',this.currentDate)
       }
+    }
+    removeScheduledNotif(id){ //removing notification of removed evt
+      LocNotifications.cancel(id) //toTest
     }
     resetSchedule(skipMoods=false){
       //console.log('resetSchedule >>',skipMoods)
@@ -1457,7 +1462,6 @@ export default class daySchedule {
       let isArray = Array.isArray(euhOverlaps)
       if(!euhOverlaps || isArray){
         //this.doLog(`onAdHocEvent::Overlaps!!`,euhOverlaps) //JSON.parse(JSON.stringify(euhOverlaps) 
-        
         let ret = {
           overlaps: euhOverlaps,
           canContinue:false,
@@ -1698,7 +1702,12 @@ export default class daySchedule {
           //toSee about using alternative>>but nah
         }
   
-        //todo** check if !this.tooClose to midnight
+        //check if !this.tooClose to midnight as ends up in infinite loop
+        if(this.pastMidnight(overlappedEvtNew,overlappedEvt.duration)){
+          if (doNotif){doNotif(`'${overlappedEvt?.title}' bleeds PAST Midnight ${dName} for ${dragTimeInterval}...Returning!!`)}
+          return
+        }
+
         let anyOtherOverlap = this.hasOverlappingEvent(overlappedEvtID, overlappedEvtNew,addToDate(overlappedEvtNew, { minute: overlappedEvt.duration})) // overlappedEvt.for)
         let sizey = anyOtherOverlap.length
         if(sizey > 0) {
@@ -1896,10 +1905,34 @@ export default class daySchedule {
       //this.showScoreBtn = inPast ? false : true
       //this.showPrioBtn = inPast ? false : true
     }
+    pastMidnight(timey, duration){
+      let compareTime = addToDate(timey,{ minute: 0})
+      //let tTime = this.getTimeNumber(compareTime)
+      
+      let e = addToDate(timey, { day: 1}) //this proper to use next day's
+      let midnightiey = new Date(e.date)
+      
+      midnightiey.setHours( 24 )
+      midnightiey.setMinutes( 0 )
+      midnightiey.setSeconds( 0 )
+      midnightiey.setMilliseconds( 0 )
+      
+      let middy = parseDate(midnightiey)
+      
+      let isClose = Math.floor((diffTimestamp(compareTime,middy)/1000)/60)  //minutes till midnight
+      
+      if (isClose < duration) {//so when isClose < duration, then would bleed into next day!!--Dont allow!!!
+        console.log("pastMidnight eh...:(",isClose) // e, midnightiey
+        return true 
+      }
+      return false
+    }
+
     tooClose(timey, duration){ //too close to other evt--within 10min OR near end of day and could go into next...
 
-      let compareTime = addToDate(timey,{ minute: 0})
+      /*let compareTime = addToDate(timey,{ minute: 0})
       let tTime = this.getTimeNumber(compareTime)
+      let eTime = this.getTimeNumber(addToDate(compareTime, { minute: duration })) //this.getTimeNumber(compareTime)
       
       let e = addToDate(timey, { day: 1}) //this proper to use next day's
       let midnightiey = new Date(e.date)
@@ -1916,26 +1949,59 @@ export default class daySchedule {
       if (isClose < duration) {//so when isClose < duration, then would bleed into next day!!--Dont allow!!!
         console.log("tooClose to midnight eh...:(",isClose) // e, midnightiey
         return true 
-      }
-       //diffTimestamp(now,endTime) //endTimes < now would be that evt hasnt ended! 
-      let toRet = false
+      }*/
+
+     if(this.pastMidnight(timey, duration)){
+      return true 
+     }
+     
+     //todo** should put rest below into another method to be explicit
+     //also checks overlaps in one go
+
+      let compareTime = addToDate(timey,{ minute: 0})
+      let tTime = this.getTimeNumber(compareTime)
+
+      let endCompareTime = addToDate(compareTime, { minute: duration })
+      let eTime = this.getTimeNumber(endCompareTime)
+      
+      //diffTimestamp(now,endTime) //endTimes < now would be that evt hasnt ended! 
+      //let toRet = false
+      let tooClose = []
+      let overlaps = []
   
       //check scheduled higher than timey BUT very close..
+      //umm only start tho?!? huh..toReview**
       this._dailyScheduled.forEach((value, key, map)=> {
         let eStart = this.getTimeNumber(value.start)
-        //let eEnd = this.getTimeNumber(value.end) //no need 
-        //let hasEnded = tTime >= eEnd
+        let eEnd = this.getTimeNumber(value.end)
+        
         let diff = eStart - tTime
         let another = diffTimestamp(compareTime,value.start) //,true flag to discard earlier evts!!! //using timey is same!
         let bo = Math.floor((another/1000)/60)
   
         if (bo <= 10 && diff > 0){ //have to use duration to discard those in past? >>nah could just check negative!!
-          //console.log("tooClose...:("+key,diff,another,bo)
-          toRet = key  //meh overwrites but oh well!
+          console.log("tooClose...:("+key,diff,another,bo)
+          //toRet = key  //meh overwrites but oh well!
+          tooClose.push(key) //bon use array
+        }
+        //start is later than Scheduled end OR end is earlier than scheduled start
+        let hasEndedOrBefore = tTime >= eEnd || eTime <= eStart
+
+        //if(hasEndedOrBefore){
+        //  console.log(`Scheduled ${value?.title} is before or after`,compareTime.time,value.start.time, endCompareTime.time,value.end.time,bo)
+        if(!hasEndedOrBefore){
+          let surrounding = (eStart >= tTime && eTime >= eEnd)
+          let surrounded = (tTime >= eStart && eTime <= eEnd) //redundant? sched already there...meh
+          console.log(`Scheduled '${value?.title}' PROLLY overlap?`,"At: "+value.start.time +" vs "+compareTime.time,"Ends: "+ value.end.time+ " vs "+endCompareTime.time,surrounding,surrounded)
+          overlaps.push({inConflict:key, surround:surrounding || surrounded})
         }
       })
   
-      return toRet
+      //return toRet
+      return {
+        tooClose:tooClose,
+        overlap:overlaps
+      }
     }
     changeEvtTime(draggedItem, targetDrop,choice =''){
       //console.log("changeEvtTime: "+choice,targetDrop,draggedItem)
@@ -2150,8 +2216,6 @@ export default class daySchedule {
       }
       
       let compareTime = addToDate(now,{ minute: 0})
-      //let tTime = this.getTimeNumber(compareTime)
-      //let diff = tTime - this.getTimeNumber(starty)
 
       //this seems better!
       let another = diffTimestamp(starty,compareTime) //,true flag to discard earlier evts!!!

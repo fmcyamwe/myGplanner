@@ -135,8 +135,6 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function editMainGoal(id,title,details,color,priority,icon=null){
         
-        //console.log("editMainGoal", id+ ' ' + title + ' ' + details + ' ' + color + ' ' +priority+' ' +icon,iconParse(icon))
-        
         let current = this.getMainGoals
         //let found = false  //flag for success/found?!? >>return it?!? tbd**
 
@@ -266,11 +264,30 @@ export const useGoalStore = defineStore('allGoals', () => {
         for( var i = 0; i < current.length; i++){ 
             if ( current[i].id === goalId) { 
                 current.splice(i, 1); 
-                //console.log("removeSubgoal spliced!")
+                //console.log("removeSubgoal spliced! ",goalId)
             }
         }
         $q.localStorage.set('subGoals', JSON.stringify(current))
+
+        //remove to prevent wrong association with new goal of same id!
+        //borks tho so have to export...toReview**
+        ////removeDeletedGoal(goalId)
         return current
+    }
+
+    function removeDeletedGoal(id){ //bon borking force to export this function
+        //console.log("removeDeletedGoal",id)
+        let savedDates = this.getAllDates //huh why borks here?!?!(encountered same issue b4--see below )
+        //could do straight access maybe? meh>>alright to be explicit with function export.....
+        for (let dateKey in savedDates) {
+            let onDay = savedDates[dateKey]
+            if (id in onDay){
+                delete onDay[id] //`${aDate}`
+                console.log("removeDeletedGoal deleted id: "+id,dateKey)
+            }
+        }
+
+        $q.localStorage.set("AllDates", JSON.stringify(savedDates))
     }
 
     function removeMaingoal(goalId, clearSubToo) {// if 'clearSubToo' to also remove the subgoals >>redundant...
@@ -698,7 +715,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         //getHeaders, 
         getMainGoals,
         getSubGoals,
-        //getSubGoalsByParent,
+        removeDeletedGoal,
         getAllDates,
         //getBalance,
         currentBalance,

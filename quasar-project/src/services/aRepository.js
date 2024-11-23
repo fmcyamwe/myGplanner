@@ -14,7 +14,6 @@ import { deepCopy,parseScore } from '../pages/util/utiFunc'
 //have list of allDates,pGoals and subGoals
 //access model objects(Events,Goals,Schedule)
 
-
 //too many exported functions?!?
 
 //change value to reference
@@ -26,6 +25,21 @@ let _store; //same concern as above...global?
 //Privates should start with #. They are only accessible from inside the class.
 //same with methods that start with # >> #fixWaterAmount(value) {}
 
+const Singleton = (function() {
+    let instance;
+  
+    function createInstance() {
+      const object = {
+        // Define your object properties and methods here
+      };
+      return object;
+    }
+  
+    return {
+      getInstance: createInstance
+    };
+  })();
+  
 export function initialize() { 
     _repositoryData = {};
     _store = useGoalStore();

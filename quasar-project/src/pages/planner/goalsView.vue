@@ -19,7 +19,9 @@
                     <q-list bordered>
                         <q-item v-if="allMGoals && allMGoals.length > 0">
                             <q-item-section>
-                            <q-item-label overline class="q-mx-lg q-px-md row justify-center" style="max-width:100%;font-weight: bolder;">Swipe to Edit or Delete Goal</q-item-label>
+                            <q-item-label overline class="q-mx-lg q-px-md row justify-center no-wrap" style="max-width:100%;font-weight: bolder;">
+                                Swipe to Edit/Delete SubGoal
+                            </q-item-label>
                             </q-item-section>
                             <q-separator spaced />
                         </q-item>
@@ -52,7 +54,7 @@
                                 </div>
                                 <div class="row">
                                     <q-btn v-if="expanded[goal.id]"
-                                    label="Edit goal" 
+                                    label="Edit Pgoal" 
                                     type="reset" 
                                     color="secondary"
                                     padding="sm"
@@ -171,7 +173,7 @@
                     <div class="q-pb-md" align="center">
                         ** Goals named the same can be auto-solved in Overlaps! **<q-tooltip>Title names are substring/included of/in each other</q-tooltip>
                     </div>
-                    <q-card class="no-margin">
+                    <q-card class="no-margin scroll">
                         <q-form @submit="onSubmit" class="form">
                             <div class="q-gutter-sm q-mx-auto">
                                 <strong class="typey"><em>Goal Type:</em></strong>
@@ -192,12 +194,13 @@
                             
                             <q-select v-if="showSubG"
                                 class="q-mx-md q-pa-sm"
+                                style="text-align: center;"
                                 v-model="pGoal"
                                 :options="mainGoals"
                                 option-value="id"
                                 option-label="title"
                                 label="Parent Goal"
-                                popup-content-class="q-px-md"
+                                popup-content-class="q-mx-md"
                                 popup-content-style="text-align: center;"
                                 />
             
@@ -207,62 +210,6 @@
                                 label="Description"
                                 class="col q-mx-sm q-pa-md"
                             />
-
-                            <div v-if="!showSubG" class="col q-mx-sm">
-                                <q-select
-                                v-model="bgcolor"
-                                :options="avColors"
-                                :color="bgcolor"
-                                label="Color"
-                                popup-content-class="q-px-md"
-                                popupContentStyle="text-align: center;"
-                                class="q-mx-sm q-pb-md"
-                                >
-                                    <template v-slot:label>
-                                        <div class="row items-center all-pointer-events q-mx-xs">
-                                        <q-icon class="q-mx-xs" :color="bgcolor" size="24px" name="palette" />
-                                        Color
-                                        <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Subgoals color group</q-tooltip>
-                                        </div>
-                                    </template>
-                                </q-select>
-
-                                <q-input
-                                    filled
-                                    v-model.number="priority"
-                                    type="number"
-                                    label="Priority"
-                                    hint="0 to 10"
-                                    class="q-mx-sm q-pb-md"
-                                    :rules="[ val => val && val > 0 && val <=10 || 'hint hint!!']"
-                                />
-
-                                <br>
-                                <div v-if="currentIcon">
-                                    <!--add style class >> todo** -->
-                                    Icon: <i :class="currentIcon" ></i>
-                                    <br>
-                                    <q-toggle
-                                    v-model="changeIcon"
-                                    label="Change Icon?"
-                                    left-label
-                                    />
-                                </div>
-
-                                <!--<q-icon :name="icon" /> :icon="icon"-->
-                                
-                                <Vue3IconPicker v-if="!currentIcon || changeIcon" 
-                                v-model="icon" 
-                                placeholder="Goal icon" 
-                                class="q-gutter-md q-mb-lg"
-                                valueType="name"
-                                @click="()=>{ hello2(icon,{})}"
-                                :displaySearch="false"/> 
-                                <!-- valueType as name important as default is svg
-                                //bon review placement as doesnt show all of dialog --show search ?
-                                can use click to increase scroll page maybe?!?
-                                -->
-                            </div>
 
                             <div v-if="showSubG" class="q-gutter-sm">
                                 <q-input 
@@ -280,16 +227,17 @@
                                     <div class="atLeft col-6 q-mt-md"> 
                                     Duration (min)
                                     <q-knob
+                                    v-model="duration"
                                     :min="5"
                                     :max="120"
-                                    :thickness="0.34"
-                                    v-model="duration"
+                                    :thickness="0.5"
                                     show-value
-                                    size="5em"
+                                    rounded
+                                    size="6em"
                                     color="teal"
                                     trackColor="grey-3"
-                                    class="q-ma-md center"
-                                    /><!--:step="5" meh could be whatev-->
+                                    style="margin: 0 auto;"
+                                    /><!--class="q-ma-md center":step="5" meh could be whatev..size="75px"? "0.34"-->
                                 </div>
                                 
                                 <div class="atRight col-6 q-mt-md">
@@ -350,7 +298,7 @@
                                         <div class="row items-center all-pointer-events q-mx-xs">
                                         <!--<q-icon class="q-mx-xs" color="deep-orange" size="24px" name="mail" /> -->
                                         Score (hover for more info)
-                                        <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Progress/Rating to next level of Mastery</q-tooltip>
+                                        <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Progress/Rating to close gap between Min && Max values</q-tooltip><!--to next level of Mastery-->
                                         </div>
                                     </template>
                                     </q-input>
@@ -402,6 +350,78 @@
                                     </template>
                                 </q-select>
                                 <br>
+                            </div>
+
+                            <div v-else class="col q-mx-sm"><!-- was >> v-if="!showSubG" >>this for Pgoal -->
+                                <q-select
+                                v-model="bgcolor"
+                                :options="avColors"
+                                :color="bgcolor"
+                                label="Color"
+                                popup-content-class="q-mx-md"
+                                popupContentStyle="text-align: center;"
+                                class="q-mx-sm q-pb-md"
+                                >
+                                    <template v-slot:label>
+                                        <div class="row items-center all-pointer-events q-mx-xs">
+                                        <q-icon class="q-mx-xs" :color="bgcolor" size="24px" name="palette" />
+                                        Color
+                                        <q-tooltip class="bg-grey-8" anchor="top left" self="bottom left" :offset="[0, 8]">Subgoals color group</q-tooltip>
+                                        </div>
+                                    </template>
+                                    <template v-slot:option="scope">
+                                       <!--<span :style="{ color: scope.opt }">{{ scope.opt }}</span> //span squishes stuff-->
+                                        <!--<div :style="{ color: scope.opt }">{{scope.opt }}</div> -->
+                                        <!-- renders but need hexColor() for some colors>>huh below click works!!-->
+                                        <q-item :style="{ color: hexyColor(scope.opt) }" clickable @click.prevent="() => {bgcolor = scope.opt }" v-close-popup>
+                                            <q-item-section style="text-align: center;">
+                                            <q-item-label>{{ scope.opt }}</q-item-label>
+                                            </q-item-section>
+                                        </q-item>
+                                    </template>
+                                </q-select>
+
+                                <q-input
+                                    filled
+                                    v-model.number="priority"
+                                    type="number"
+                                    label="Priority"
+                                    hint="0 to 10"
+                                    class="q-mx-sm q-pb-md"
+                                    :rules="[ val => val && val > 0 && val <=10 || 'hint hint!!']"
+                                />
+
+                                <br>
+                                <div v-if="currentIcon">
+                                    Icon: <i :class="currentIcon" id="i-icon"></i>
+                                    <br><!--:icon="icon" OR with import:<Icon :data="icon" :size="24" color="#124ebb"></Icon> -->
+                                    <q-icon :name="currentIcon" id="q-icon" />
+                                    <br>
+                                    <q-toggle
+                                    v-model="changeIcon"
+                                    label="Change Icon?"
+                                    left-label
+                                    />
+                                </div>
+
+                                <div :class="changeIcon ? 'q-mb-md iconPickWrap' : 'doHide'"> <!--bon class like this works...just keeps height tho...-->
+                                    <Vue3IconPicker v-if="changeIcon" 
+                                v-model="icon" 
+                                placeholder="Select icon" 
+                                class="iconPick"
+                                valueType="name"
+                                :displaySearch="true"
+                                @click.prevent="()=>{ hello2(icon,{})}" 
+                                /> 
+                                <!-- valueType as name important as default is svg
+                                //bon review placement as doesnt show all of dialog --show search ?
+                                can use click to increase scroll page maybe?!? 
+                                @click="()=>{ hello2(icon,{})}" 
+                                v-close-popup doesnt work :(
+                                !currentIcon || 
+                                -->
+                                </div>
+                                
                             </div>
 
                             <div class="q-ml-sm q-mb-md q-gutter-md">
@@ -539,8 +559,7 @@
                             </div>
                         </div>
                     </q-slide-transition>
-                </q-tab-panel>
-                
+                </q-tab-panel>        
               </q-tab-panels>
    
             </div>
@@ -553,8 +572,8 @@
 import { computed, ref, onBeforeMount, onBeforeUnmount, watchEffect } from 'vue'  //nextTick, onMounted
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
-import { pGColors } from '../util/utiFunc'
- import { Vue3IconPicker } from 'vue3-icon-picker'
+import { pGColors,hexColor } from '../util/utiFunc'
+ import { Vue3IconPicker } from 'vue3-icon-picker' //can import Icon  to use and show the selected icon OR parse the name first as done at goalStorage level smh
  import 'vue3-icon-picker/dist/style.css'
 
 
@@ -581,7 +600,7 @@ export default {
         const priority = ref(3)
         const duration = ref(15) //min of 15
         const score = ref('')
-        const scoreRange = ref({min: 0, max: 9}) //visual of score...
+        const scoreRange = ref({min: 1, max: 9}) //visual of score...
         const moods = ref(null)
         const canMove = ref(false)
         const inDefaults = ref(false) //NOT by default?!?
@@ -590,9 +609,9 @@ export default {
         const goalType = ref('line') //so nothing is selected at first
         const pGoal = ref(null)
 
-        const icon = ref(null) // icon of parent goal --toRename** >> pGIcon
+        const icon = ref(null) //toSee with default //null // icon of parent goal --toRename** >> pGIcon
         const changeIcon = ref(false) //
-        const currentIcon = ref(null) //with above to proper show/hide icon on edit/add parentGoal
+        const currentIcon = ref('fas fa-utensils') //null //with above to proper show/hide icon on edit/add parentGoal
 
         const howThis = ref(null) //watchEffect testing...not bad--toRemove
 
@@ -602,10 +621,6 @@ export default {
         const expanded = ref({})//ref(false)
 
         const buttonLabel = ref('Submit')
-
-        //const treeGoals = ref([])
-        //const expandedNodes = ref([]) //tree nodes expanded...
-        //const selected = ref(null) //for edit testing...
 
         const tab = ref('GList') //start with all Goals tab //Goal
         
@@ -637,23 +652,11 @@ export default {
             score.value = scoreRange.value.min+"on"+scoreRange.value.max
         })
 
-        /*const subbyGoals = computed((id) => {
-            //if(!subGoals.value) return []
-            return subGoals.value.filter(event => event.parentGoal == id)
-        })*/
-
-        //see if these two below can be used?toTest
-        //const addMainG = () => store.addMainGoal() // use action..also that ';' be problem? nope
-        //const addSubG = () => store.addSubGoal()
 
         onBeforeMount(() => { //was onMounted
             //let e = new Date(Date.now() + 1000 * 100)
             //console.log(`the component is now mounted.`,e)
             resetGsAndColors()
-
-            //constructTree() //redundant as not used...
-
-            //console.log(`the component is now mounted.`,currentColors, avColors.value)
         })
 
         //onBeforeUnmount(() => {
@@ -697,14 +700,13 @@ export default {
 
                     currentColors.push(item.bgcolor)
                 })
-            }//else{
-             //   console.log(`resetGsAndColors::Empty MainGoals`,mainGoals.value)
-             //   return
-            //}
+            }
+
             let c = pGColors()
             
             avColors.value = c.filter(item => !currentColors.find(o => o == item)) //filter out already taken colors...
             
+            bgcolor.value = avColors.value[0] //default to first available--otherwise white..
             mainGoals.value.sort(sortByPrio)
 
             //console.log(`resetGsAndColors`,JSON.parse(JSON.stringify(mainGoals.value))) //allMGoals
@@ -852,6 +854,7 @@ export default {
         }
 
         function doReset () {
+            //umm kinda redundant to check goalType as not visible...oh well
             if (goalType.value === 'main') {
                 
                 $q.dialog({
@@ -863,6 +866,7 @@ export default {
                     store.resetMain()
                     store.resetSub()//should Also remove the subgoals!!---makes sense
                     errorNotify(`Reset All Goals`,'top','thumb_up','positive')
+                    reload()
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                 })
@@ -879,7 +883,8 @@ export default {
                     //console.log("Resetting all goals")
                     store.resetAll()
                     errorNotify(`Reset ALL`,'top','thumb_up','positive')
-                    //should also reload page ***TODO***
+                    //should also reload page
+                    location.reload(); //meh whole page reload but should do
                 }).onCancel(() => {
                     console.log('Cancelled!!')
                 })
@@ -898,7 +903,7 @@ export default {
             let pId = pGoal.value//umm should be present...toMonitor**
             if (goalType.value ==='main') {
                 if(updatingSubG && pId?.id == updatingSubG){ //second check just in case...
-                    store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
+                    store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value,icon.value ?? currentIcon.value) //use selected icon as icon would be null
                     
                     expanded.value[pId?.id] = false
                 } else{
@@ -936,8 +941,8 @@ export default {
             }
 
             if (goalType.value === 'main') {
-                console.log("onSubmit::main",goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
-                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
+                //console.log("onSubmit::main",goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
+                store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value,icon.value ?? currentIcon.value) //use selected icon just in case
             } else {
                 if (time.value == ''){
                     warnNotify(`Schedule Time not set...Will need manual Scheduling!!`)
@@ -1021,10 +1026,11 @@ export default {
 
             $q.notify('Delete action triggered for:'+id)
 
-            //console.log("reloadin...", subGoals.value)
+
+            store.removeDeletedGoal(id) //JSON.stringify(store.getAllDates) works but shouldnt access while modifying..prolly
     
             //e.reset() //just reset how things looked--not helpful
-            reload() //updates?!?
+            reload()
         }
 
         function onLeftEdit ({reset},subId, pID) {
@@ -1110,10 +1116,9 @@ export default {
                 bgcolor.value = pGoally.bgcolor
                 priority.value = pGoally.priority
 
-                icon.value = pGoally.icon  //empty when not in list smh
+                //icon.value = pGoally.icon  //empty when not in list >>BUT better for selection with picker
                 currentIcon.value = pGoally.icon 
-                //--might have to choose another icon(or leave as is to not change? toReview**) OR hide it? forcing to delete....
-                
+               
                 expanded.value[id] = !expanded.value[id] //toggle back to close for any potential update...no need?
 
                 updatingSubG = id  //for submit...redundant tho? toReview***
@@ -1159,15 +1164,9 @@ export default {
 
         function reload() { //reload variables with stuff from storage...
             //console.log("reloadin...")
-            mainGoals.value = store.getMainGoals
-            subGoals.value = store.getSubGoals
-
-            //treeGoals.value = store.fetchGoalsTree() //redundant
-            
-            //window.location.reload() //so inelegant
-
-            //console.log("reloadin...", subGoals.value,mainGoals.value,treeGoals.value)
-            
+            //mainGoals.value = store.getMainGoals
+            //subGoals.value = store.getSubGoals
+            resetGsAndColors() //should actually use this >>way better too
         }
 
         function softReset(){ //for when changing goalType..keep stuff...toReview--especially when in edit***
@@ -1183,7 +1182,8 @@ export default {
 
             inDefaults.value = inDefaults.value || false
 
-            console.log("softResetting...with label as>>", buttonLabel.value) //toSee***
+            console.log("softResetting...with label as>>", buttonLabel.value)
+           
         }
 
         function doCancel(){//just wrapper to reset goalPage ...
@@ -1199,7 +1199,7 @@ export default {
             //goalType.value = 'line' //huh makes it unselectable smh
             pGoal.value = null
             details.value = ''
-            bgcolor.value = ''
+            bgcolor.value = '' //should reset to first avail below //avColors.value[0]
             canMove.value = false
             inDefaults.value = false
             isAlternative.value = false
@@ -1208,9 +1208,9 @@ export default {
 
             updatingSubG = null
 
-            icon.value = null
-            changeIcon.value = false //prolly no need but just in case 
-            currentIcon.value = null
+            icon.value = null //better to keep it null
+            changeIcon.value = false
+            currentIcon.value = 'fas fa-utensils'
 
             resetGsAndColors()
             //constructTree() //redundant
@@ -1237,6 +1237,9 @@ export default {
 
             //return `'text-white bg-'}${att.toLocaleLowerCase()} `  //row items-center ${proppy.isChildren ? 'text-' :  //oldie >> bg-${proppy.color}
         }
+        function hexyColor(c){
+            return hexColor(c);
+        }
 
         function niceyLabel(att){
             let when = (timey) => {
@@ -1249,11 +1252,71 @@ export default {
             return `${att}${when(att)}`
 
         }
-        function hello(value,fn){
-            console.log("HELLO",value)
+        function emptyIcons(){ //toDetermine when icon parsing has failed and icon label is empty >>bof no luck smh
+            
+            let iIcon = document.getElementById("i-icon") //const be hannoying
+            let qIcon = document.getElementById("q-icon")
+
+            console.log("emptyIcons::q-icon",qIcon.children.length,qIcon.checkVisibility(), JSON.stringify(qIcon.innerHTML),JSON.stringify(qIcon.getBoundingClientRect()))
+            console.log("emptyIcons::i-icon",iIcon.children.length,iIcon.checkVisibility(),JSON.stringify(iIcon.innerHTML),JSON.stringify(iIcon.getBoundingClientRect()))
+            
+            //huh would check like below work?!? >>nah jquery methink
+            //if ($('#q-icon').height() === 0 || $('#q-icon').width() === 0) { //height &width
+            //    console.log("emptyIcons::q-icon NO HEIGHT",qIcon.clientHeight,qIcon.clientWidth)
+            //}
+            
+
+            //if ($('#q-icon').children().length === 0) {//child nodes
+            //    console.log("emptyIcons::NO CHILDs q-icon",qIcon.childElementCount)
+            //}
+            if(qIcon.children.length === 0){
+                console.log("emptyIcons::q-icon has NONE",qIcon.tagName,qIcon.outerHTML,JSON.stringify(qIcon.classList)) //classlist not up to date seems?!?
+                //qIcon.getHTML is undefined
+            }
+            //if ($('#i-icon').html() === "") { //innerHtml
+            //    console.log("emptyIcons::i-icon EMPTY",iIcon.getHTML())
+            //}
+            
+            if(iIcon.innerHTML.trim() == ""){
+                console.log("emptyIcons::i-icon HTML EMPTY",iIcon.nodeName,iIcon.tagName,iIcon.outerHTML,JSON.stringify(iIcon.classList))
+            }
+            
+            
         }
-        function hello2(value,reset){
-            console.log("HELLO2",value)
+        function iconParse (name) { //from goalStorage....prolly better to bring here...user could change icon if not showing?!?
+
+            if (name.indexOf('-') > -1){ //check that it has already that '-' >>no further parsing needed...prolly 
+                //console.log("iconParse::GOOD?",name)
+                return name 
+            }
+
+            let a = name.replace(/\W+/g, " ") 
+            .split(/ |\B(?=[A-Z])/)
+            .map(word => word.toLowerCase())
+            //.join('-') //have to check length for fas/fab smh
+            let useFas = false
+            if (a.length > 1){
+                console.log("iconParse::FAS",a) //not always smh i.e "fas fa-handshake" 'fas fa-amazon-pay' should be 'fab fa-amazon-pay' --toReview** 
+                useFas = true
+            }
+            a = a.join('-')
+
+            return a.includes('regular') ? 'far fa-'+a.replace("-regular", "") : useFas ? 'fas fa-'+a : 'fab fa-'+a  // oldie >> 'fab fa-'+a  >> fab prefix tend to not show?....toReview** or use excludeIcons
+        }
+
+        function hello2(value,reset){ 
+            //just to update and reset view smh
+            
+            if (value){
+                let parsed = iconParse(value)
+                currentIcon.value = parsed
+                changeIcon.value = false //reset to hide select and hide ugly empty space 
+                //EXCEPT that cannot do a second selection so have to reset icon value as well below smh
+                icon.value = null
+                console.log("HELLO2",value, parsed) //bon todo** check those that dont show up>>maybe tell user to reselect?
+            }
+
+            //emptyIcons() //just to see >>no go...cant check innerHtml to see if shown or not and size remains constant smh...
         }
         function errorNotify(mess){ //position='top',icon=null,color='negative'
             doNotify(mess,'top','report_problem','negative')
@@ -1274,17 +1337,17 @@ export default {
         }
 
         return {
-            hello,hello2,
+            hello2,hexyColor,
             enableAdmin,step,mainGJson,subGJson,allJson, isImporting,AdminLabel,showGoalsArea,
             showSubG,
             mainGoals,
             subGoals,
             allMGoals,howThis,
             scoreRange,
-            expanded, //see if can trigger close >>does!
+            expanded,
             buttonLabel,
             tab,
-            moods, //expandedNodes,treeGoals,selected,
+            moods,
             goalTitle,details,bgcolor,time,priority,duration,score,canMove,goalType,pGoal,inDefaults,avColors,isAlternative,
             hasSubG,resetLabel,icon,changeIcon,currentIcon,
             doPrint,doReset,doImport,resetBoxes,
@@ -1301,6 +1364,22 @@ export default {
     flex-direction: column;
     justify-content: center;
 }
+
+.iconPickWrap { //wonder if could put iconPick under here?
+    height: 50px;
+    overflow-y: visible;
+}
+.iconPick {
+    width: 100%;
+    min-height: 500px;
+    overflow-y: auto;
+    border-color: #555;
+}
+
+.doHide {
+    display: none;
+}
+
 .page--table {
   .page {
     &__table {
@@ -1322,11 +1401,11 @@ export default {
   transform: translateX(30px);
 }
 /* ensure leaving items are taken out of layout flow so that moving
-   animations can be calculated correctly.-boof not that needed prolly
+   animations can be calculated correctly.-boof not that needed prolly--umm actually needed?*/
 .dalist-leave-active {
     position: absolute;
 }
-*/
+
 .atLeft {
     float:left
 }

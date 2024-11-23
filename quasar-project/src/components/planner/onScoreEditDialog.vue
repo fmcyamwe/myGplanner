@@ -1,37 +1,38 @@
 <template>
     <q-dialog v-model="show" class="mobile-only" transition-show="rotate" transition-hide="rotate" @before-hide="gonHide"> 
       <q-card class="my-card-mobile"> <!--bg-secondary -->
-          <div class="q-ma-md title"> Notey & Score :: {{title}}</div>
+          <div class="q-ma-md title">:: Notey & Score ::</div>
+          <div class="q-gutter-md q-ma-md evtTitle text-weight-bold">{{title}}</div>
           
           <q-card-section class="q-gutter-md">
-            <q-input v-model="aScore" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
-            <!--
-              <template #after>
-              <q-btn
-              flat dense color="positive" icon="check_circle"
-              @click.stop.prevent="scope.set"
-              />
-              <q-separator :vertical="true"/>
-                  <q-btn
-                  label="Del"
-                  flat dense color="negative" icon="delete_forever"
-                  @click="onDelete"
-                  />
-            </template> -->
+            <q-input 
+            v-model="aScore"
+            dense 
+            hint="format: #on#" 
+            label-slot
+            :error="errorScore" 
+            :error-message="errorMessageScore">
+              <template v-slot:label>
+                <div class="evtTitle q-mb-lg q-mx-md"> Score </div>
+              </template>
             </q-input>
           </q-card-section>
   
           <q-card-section class="q-gutter-md">
-            <!--braaa class="q-ml-md" max-width: 250px q-gutter-md -->
+            <!--braaa label="Note"-->
             <q-input
             filled
             v-model="aNote"
-            label="Note"
+            label-slot
             autogrow
             lazy-rules
             item-aligned
             :rules="[ val => val && val.length > 0 || 'Add a note...']"
-            />
+            >
+              <template v-slot:label>
+                <div class="q-mb-lg q-mx-md"> Note </div>
+              </template>
+            </q-input>
           </q-card-section>
   
           <q-separator dark />
@@ -161,8 +162,9 @@ import { defineComponent,ref } from 'vue'
 })
 </script>
 <style lang="sass" scoped>
-.inputBtn
+.evtTitle
   text-align: center
+
 .title
   position: relative
   display: flex

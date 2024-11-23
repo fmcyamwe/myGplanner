@@ -41,7 +41,6 @@
           
           touch-position make dialog smaller...class="poppy" not needed prolly
 
-          v-model="aScore"
           :validate="scoreValidation" 
           @hide="scoreValidation">> validate function doesnt work...validate on set()
           
@@ -52,23 +51,23 @@
 
         <!--class='my-card' -->
           <q-card class="bg-secondary text-white">
-            <div class="title"> NoteyOnScore :: {{title}}</div>
+            <div class="title">:: NoteyOnScore ::</div>
+            <div class="q-gutter-md q-ma-md inputBtn text-weight-bold">{{title}}</div><!--toSee on diff line -- class="title"-->
 
             <q-card-section class="q-gutter-md">
-              <q-input v-model="scope.value" dense hint="format: #on#" :error="errorScore" :error-message="errorMessageScore">
-              <!--
-                <template #after>
-                <q-btn
-                flat dense color="positive" icon="check_circle"
-                @click.stop.prevent="scope.set"
-                />
-                <q-separator :vertical="true"/>
-                    <q-btn
-                    label="Del"
-                    flat dense color="negative" icon="delete_forever"
-                    @click="onDelete"
-                    />
-              </template> -->
+              <q-input 
+              v-model="scope.value" 
+              dense
+              label-slot
+              hint="format: #on#"
+              :error="errorScore" 
+              :error-message="errorMessageScore">
+                <template v-slot:label>
+                  <div class="row items-center all-pointer-events q-mx-xs">
+                    <!--<q-icon class="q-mx-xs" color="deep-orange" size="24px" name="mail" /> -->
+                       Score
+                  </div>
+                </template>
               </q-input>
             </q-card-section>
     
@@ -113,7 +112,7 @@ import { defineComponent,ref } from 'vue'
 
   export default defineComponent ({  //this be Options Vue notation
     name: 'GoalyEnd',
-    props: {  //too much? should use a data object?
+    props: { 
       disabledScore: Boolean, //score popup-edit enabled or not--toRename**
       title: String,
       id: Number,
@@ -186,7 +185,7 @@ import { defineComponent,ref } from 'vue'
           this.aScorey(value) ? this.daScore = value : console.log(`setting invalid aScore?`, value, this.daScore) //todo** try to bring attention to errors before clicking saveBtn
           //console.log(`aScore valid?`,e,this.daScore, this.aNote)
           
-          //this.daScore = value
+          this.daScore = value //allow correction..toTest**...
           
          
         },

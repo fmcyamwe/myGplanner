@@ -29,7 +29,10 @@ export class MyNotifActions extends WebPlugin {
             //bon leaving it blank like for getNotes below
         };
     }
-    //getStarted?!?
+    
+    async getStarted() {
+        return {}
+    }
 
     async getNotes(){
         return { 
@@ -49,6 +52,20 @@ export class MyNotifActions extends WebPlugin {
         return {
             value: '',
         };
+    }
+
+    async addListeners() { 
+        await super.addListener("pauseReceived",()=> {
+            console.log('pauseReceived!!!'); //JSON.stringify(notification)
+            return{
+                uhuh:"oui?"
+            }
+        })
+    }
+ 
+
+    addyListeners() {
+
     }
 
 

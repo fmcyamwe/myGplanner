@@ -206,13 +206,18 @@
                     style="width: 59%; border-top-left-radius: 2em"
                   ><!--absolute-top-left-->
                     
-                      <scheduleDayLabel
-                      :doShow="treeGoals.length > 0"
-                      :balanceLabel="labelBalance()"
-                      :scheduleLabel="labelScheduled()"
-                      :hasUnsaved="hasUnsavedChanges()"
-                      />
-                  
+                    <scheduleDayLabel
+                    :doShow="treeGoals.length > 0"
+                    :balanceLabel="labelBalance()"
+                    :scheduleLabel="labelScheduled()"
+                    :hasUnsaved="hasUnsavedChanges()"
+                    />
+          
+                    <q-card-actions align="around"><!--label="Next" thumb_up  flat-->
+                      <q-btn outline push no-caps no-wrap @click="morphClose" icon="close" color="red" align="between" class="q-mx-xs"/>
+                      <q-btn elevated push @click="nextMorph" no-caps no-wrap align="between" class="q-mx-xs">Actions &gt;</q-btn>
+                    </q-card-actions>
+
                     <q-card-actions align="center">
                       <q-btn
                       label="SaveSchedule"
@@ -227,25 +232,8 @@
                       no-caps
                       @click.prevent="() => {doSaveSchedule(); morphClose() }"
                       />
-                      <!--better align with above smh
-                      <sched-btn
-                      text-label="SaveSchedule"
-                      class="q-mt-md"
-                      style="text-align: center;"
-                      text-color="white"
-                      @do-btn-action="() => {doSaveSchedule(); morphClose() }"
-                      push
-                      :dense="false"
-                      />-->
-                      <!--:text-color="saveScheduleDisabled ? 'grey' : 'blue'" 
-                      :disable="saveScheduleDisabled" >> shouldnt disable here...
-                      -->
                     </q-card-actions>
                    
-                    <q-card-actions align="around"><!--label="Next" thumb_up  flat-->
-                      <q-btn outline push no-caps no-wrap @click="morphClose" icon="close" color="red" align="between" class="q-mx-xs"/>
-                      <q-btn elevated push @click="nextMorph" no-caps no-wrap align="between" class="q-mx-xs">Actions &gt;</q-btn>
-                    </q-card-actions>
                   </q-card>
                   <q-card
                     v-morph:card2:mygroup:500.tween="morphGroupModel"
@@ -290,7 +278,7 @@
                       <q-btn flat label="Close" no-caps no-wrap @click="nextMorph" />
                     </q-card-actions>
                   </q-card>
-                </q-page-sticky>
+                  </q-page-sticky>
                 </div>
                   <navigation-bar
                   @today="onToday"
@@ -310,7 +298,7 @@
                   </div>
                   
                   <div class="row justify-center">
-                      <div class="q-gutter-md" style="display: flex; max-width: 800px; width: 100%; height: 600px;"><!--height: 90vh;-->
+                      <q-scroll-area class="q-gutter-sm" style="display: flex; max-width: 800px; width: 90%; height: 90vh;"><!--height: 90vh; >> overflow: auto;? with class="q-px-md"-->
                         <q-calendar-day
                           ref="calendar"
                           view="day"
@@ -477,7 +465,7 @@
                               </template>
                             </template>
                         </q-calendar-day>
-                      </div>
+                      </q-scroll-area>
                   </div> 
                   <br>      
               </template>
@@ -488,7 +476,8 @@
           :canBeScheduled="canbeScheduled"
           :balance="currentBalance"
           :selectedTime="selectedTimeInterval()"
-          @ad-hoc-event="onAddHocEvent"
+          :isTimeRange="selectedTimeRange()"
+          @ad-hoc-event="onAddyHocEvent"
           @on-pick-event="onPickEvent"
           @euh-hidin="closingDialog"
           />        
@@ -539,7 +528,7 @@ components: {
   scheduleDayLabel: defineAsyncComponent(() => import('../../components/planner/dayLabels.vue'))
 },
 data () {
-  let possibleRange = null //for adhoc scheduling...keep track of selected time range
+  //let possibleRange = null //for adhoc scheduling...keep track of selected time range
 
   let intervalId = null
   const $q = useQuasar()
@@ -570,7 +559,7 @@ data () {
     showTree: ref(false), //showing Legend Tree
     treeGoals:ref([]), 
     expanded:ref([]), //to hold expanding pGoal nodes...
-
+    possibleRange:null, ////for adhoc scheduling...keep track of selected time range >>moved here smh
     filter : ref([]),
     filterRef : ref(null),
     //matchingMoodNodes : ref(0), //for filtered nodes...meh hard to reset...
@@ -611,7 +600,7 @@ mounted() {
   this.adjustCurrentTime()
   // adjust the time every minute
   this.intervalId = setInterval(() => {
-      this.adjustCurrentTime()
+    this.adjustCurrentTime()
   }, 60000)
 },
 beforeUnmount() {
@@ -620,20 +609,25 @@ beforeUnmount() {
     let doContinue = () => {
       this.daSchedule.scheduleLater()
     }
+
+    let noSave =() =>{
+      console.log("dayView::beforeUnmount...no saving requiered")
+    }
     
     let doSave = () => {
       setTimeout(doContinue, 1000);
       this.daSchedule.saveDaySchedule()
     }
 
+   //when cx has some unsaved changes!
   //bon save?--does ask when already on homeview page tho...--toReview** 
-  if(!this.saveScheduleDisabled){ //handle when cx has some unsaved changes!
-      this.confirmAction('',`Save changes of day: ${this.currentDate} before Nav away?`,"Save",doSave, doContinue)
+  if(this.hasUnsavedChanges()){ //handle 
+      this.confirmAction('',`Save changes of day: ${this.currentDate} before Nav away?`,"Save",doSave, noSave)
   } else {
     doContinue() 
   }
 
-    //this.daSchedule.scheduleLater()
+  //this.daSchedule.scheduleLater()
 },
 computed: {
   chosenScoreLabel() {
@@ -746,27 +740,38 @@ computed: {
   startEndTimes() { 
       const dates = []
       if (this.anchorDayTimeIdentifier !== false && this.otherDayTimeIdentifier !== false) {
-      if (this.anchorDayTimeIdentifier <= this.otherDayTimeIdentifier) {
-          //console.log("startEndTimes..anchor <= otherDayTime",getDateTime(this.anchorTimestamp),getDateTime(this.otherTimestamp))
-          dates.push(getDateTime(this.anchorTimestamp), getDateTime(this.otherTimestamp))
-      }
-      else {
-          //console.log("startEndTimes..otherDayTime <= anchor",getDateTime(this.anchorTimestamp),getDateTime(this.otherTimestamp))
-          dates.push(getDateTime(this.otherTimestamp), getDateTime(this.anchorTimestamp))
-      }
+        if (this.anchorDayTimeIdentifier == this.otherDayTimeIdentifier) {
+          //case of single selection...no add extra 15 min as messes up in calendar //202411220100
+          //console.log("startEndTimes..OUUU same",this.anchorDayTimeIdentifier, this.otherDayTimeIdentifier)
+          //bon kinda redundant anyway as no change here...
+          dates.push(getDateTime(this.anchorTimestamp),getDateTime(this.otherTimestamp))
+          return dates
+        }
+
+        //timeRange...prolly >> have to add 15 mins to end time for proper selection!!
+        //BUT this kinda messes up how shown in calendar so have to manually add smh
+        if (this.anchorDayTimeIdentifier < this.otherDayTimeIdentifier) { //was <= 
+          //console.log("startEndTimes..anchor < otherDayTime",getDateTime(this.anchorTimestamp),getDateTime(this.otherTimestamp),getDateTime(addToDate(this.otherTimestamp, { minute: 15})))
+          dates.push(getDateTime(this.anchorTimestamp),getDateTime(this.otherTimestamp))
+          //getDateTime(addToDate(this.otherTimestamp, { minute: 15}))
+        }else {
+          //console.log("startEndTimes..otherDayTime < anchor",getDateTime(this.otherTimestamp),getDateTime(addToDate(this.anchorTimestamp, { minute: 15})))
+          dates.push(getDateTime(this.otherTimestamp),getDateTime(this.anchorTimestamp))
+          //getDateTime(addToDate(this.anchorTimestamp, { minute: 15}))
+        }
       }
       return dates
   },
   anchorDayTimeIdentifier() {
-      if (this.anchorTimestamp !== null) {
+    if (this.anchorTimestamp !== null) {
       return getDayTimeIdentifier(this.anchorTimestamp)
-      }
-      return false
+    }
+    return false
   },
   otherDayTimeIdentifier() {
-      if (this.otherTimestamp !== null) {
+    if (this.otherTimestamp !== null) {
       return getDayTimeIdentifier(this.otherTimestamp)
-      }
+    }
       return false
   },
   eventsMap () {
@@ -806,9 +811,40 @@ methods:{
   showEvtMobile(id){
     return this.daSchedule.showEvtNoteScoreMobile(id)
   },
-  selectedTimeInterval(){ //updates when placed here smh
-    console.log("selectedTimeInterval", this.targetDrop.timestamp.time ?? "","starts>> "+this.startEndTimes)
-    return this.targetDrop.timestamp.time //?? ''
+  selectedTimeInterval(){ //updates when placed here smh 
+    //For timeRange, start is wrong as last clicked interval is end
+    //console.log("selectedTimeInterval", this.targetDrop.timestamp.time ?? "","starts>> "+this.startEndTimes)
+    return this.targetDrop.timestamp.time
+  },
+  selectedTimeRange(){ //for timeRanges...mobile mostly
+    console.log("selectedTimeRange", this.startEndTimes,(this.currentDate + " "+this.targetDrop.timestamp.time),this.possibleRange ?? "")
+    //
+    //let startDiff = (this.currentDate + " "+this.targetDrop.timestamp.time) != this.startEndTimes[0] //or split to get time?!? meh good enough
+    //let endDiff = (this.currentDate + " "+this.targetDrop.timestamp.time) != this.startEndTimes[1]
+    //getDateTime(addToDate(this.anchorTimestamp, { minute: 10}))
+
+    let s = this.possibleRange ? this.possibleRange[0] ?? this.startEndTimes[0] : this.startEndTimes[0] //null //desktop
+    let e = this.possibleRange ? this.possibleRange[1] ?? this.startEndTimes[1] : this.startEndTimes[1] //null
+    let isSame = s == e  //easier compare than above concat
+    let dura = 0 //easier to calc dura here too...
+
+    //add to end for precise range selection
+    if(!isSame){
+      let tempS = addToDate(parseTimestamp(s), { minute: 0})
+      let tempE = addToDate(parseTimestamp(e), { minute: 15})
+
+      dura =  Math.floor((diffTimestamp(tempS, tempE)/1000)/60)
+      e = getDateTime(tempE) //getDateTime(addToDate(parseTimestamp(e), { minute: 15}))
+    }
+
+    //console.log("selectedTimeRange>> "+isSame,dura, s,e)
+    return {
+      start:s,//this.startEndTimes[0],
+      end:e,//this.startEndTimes[1],
+      isSame:isSame, //startDiff || endDiff //normally diff from start as targetDrop is end BUT can also be inverse when range going up
+      duration:dura,
+      onMobile:this.mobile //meh to avoid importing in dialog just to check this...
+    }
   },
   hasUnsavedChanges(){
     return this.daSchedule.hasUnsavedChanges()
@@ -1602,14 +1638,16 @@ methods:{
 
     if(targetDrop && draggedItem){
       let dragged = draggedItem.evt
-      let isClose = this.daSchedule.tooClose(targetDrop, dragged.duration) //
+      let isClose = this.daSchedule.tooClose(targetDrop, dragged.duration)
       if(isClose){
-        console.log("doDroppy::tooClose to>>",isClose) //could happen when dropping next to scheduled...
+        //console.log("doDroppy::tooClose to>>",isClose) //could happen when dropping next to scheduled...
         if(isClose === true){
           this.doNotify("Dropping event TOO close to midnight!")
           this.reset() //onDrop
           return
         }
+        console.log("doDroppy::tooClose OVERLAP?",JSON.stringify(isClose))
+        //canDropEvent below could be skipped by checking this--toDo**
       }
 
       if (draggedItem.type == 'tree-item'){
@@ -2834,42 +2872,213 @@ methods:{
     let durationChange = newDura != addE.duration  //parseInt ?
 
     let isClose = this.daSchedule.tooClose(this.targetDrop.timestamp, durationChange ? newDura : addE.duration) 
-    //could prolly do midnight check faster as Start/End times could be:[2345 20]  with endTime being smaller when shouldnt** 
+    //could prolly do midnight check faster as Start/End times could be:[2345 20]  with endTime being smaller when shouldnt>>uncertain ordering tho
     
     if(isClose){
-      console.log("onPickEvent::tooClose check FAIL!",isClose) 
+      //console.log("onPickEvent::tooClose check FAIL!",isClose) 
       if(isClose === true){
         this.doNotify("Picking event TOO close to midnight!")
         this.reset() //onPickEvent
         return          
       }
-
-      if(doForce){ 
-        this.doNotify(`'${addE.title.trim()}' TOO close Buuut..FORCING!`,"warning","top")
-      } else{
-        this.withActionNotify(`'${addE.title.trim()}' TOO close to an Evt!!`,function(){console.log('onPickEvent::Force eh');doContinue()})
-        return 
+      console.log("onPickEvent::tooClose OVERLAP?",JSON.stringify(isClose))
+      let hasOverlaps = isClose?.overlap
+      let tooClose = isClose?.tooClose
+      if (hasOverlaps.length > 0 || tooClose.length > 0) { //todo** add guardrails
+        console.log("onPickEvent::tooClose close",hasOverlaps.length,tooClose.length)
+        if(doForce){ 
+          this.doNotify(`'${addE.title.trim()}' TOO close Buuut..FORCING!`,"warning","top")
+        } else{
+          this.withActionNotify(`'${addE.title.trim()}' TOO close to an Evt!!`,function(){console.log('onPickEvent::Force eh');doContinue()})
+          return 
+        }
       }
     }
     
     doContinue()
   },
-  onAddHocEvent(goalTitle, parentGoal, own, interval,useBalance){
+  //rework of onAddHocEvent...
+  onAddyHocEvent(goalTitle, parentGoal, own, interval,useBalance,manualDura){
     //console.log('onAddHocEvent',goalTitle, parentGoal, own, interval,useBalance)
-    if (!this.possibleRange){
-      console.log("umm onAddHocEvent... not a range selection", this.startEndTimes)  //just in case it's single cell selction
-      this.possibleRange = this.startEndTimes
-    }
+    
     if (goalTitle.trim() == ""){
       this.doNotify("Empty Goal title...")
       this.closingDialog()//this.showEvtDialog = false
       this.reset() //AddHocEvent
       return
     }
+    //before dialog reset >> get proper start time.
+    let selectedRange = this.selectedTimeRange()
+    console.log('onAddyHocEvent >>',goalTitle,manualDura,interval,JSON.stringify(selectedRange))
+    //this.closingDialog() //yup reset for next access with start&end empty >> {"isSame":true,"duration":0}
+    //this.onAddHocEvent(goalTitle, parentGoal, own, interval,useBalance,manualDura)
     
+    let startAt = null
+    let dura = 0
+    if (!this.possibleRange){ //should use this?!?
+      console.log("umm onAddyHocEvent... not a range selection: "+manualDura,interval, this.startEndTimes)  //single cell selection
+      startAt = parseTimestamp(this.startEndTimes[0])
+      dura = interval 
+    }else{
+      //use selectedRange
+      if(selectedRange){
+        startAt = parseTimestamp(selectedRange?.start ?? this.startEndTimes[0]) //nullish just in case...
+        dura = manualDura ? interval : selectedRange.duration 
+      }else{
+        console.log("onAddyHocEvent::ERROR for range selection")
+        //return? toSee as shouldnt get here...
+      }
+    }
+
+    this.closingDialog() //close dialog asap as keeps showing  >>resets !!selectedRange!!
+
+    const doSaveGoal = () => {
+      //should save regardless?!? toReview**
+      let id = this.daSchedule.saveNewGoal(startAt,goalTitle, parentGoal, own,dura)
+      console.log("onAddyHocEvent::doSaveGoooooal "+id,startAt.time)
+      this.doNotify(`AdHoc Evt '${goalTitle}' Stored!`,"positive",'top')
+      return id
+    }
+
+    let cleanup = () => {
+      this.closingDialog() //here just in case
+      this.constructTree() //update to show newest
+      this.reset() //to clear this.possibleRange for next use--causes issue when this.closingDialog() invoked later!!
+      if(this.mobile){
+        this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
+      }
+    }
+
+    const saveAndSchedule = () => {
+      let subID = doSaveGoal()
+      if (subID === 0 || subID) {
+        let res = this.daSchedule.onAdHocEvent(subID,startAt,useBalance,this.doNotifyTimeout) //doNotify
+      
+        if (!res.canContinue){ //&& !anyOverlap.overlaps
+          console.log("onAddyHocEvent::OVERLAPS?",JSON.parse(JSON.stringify(res)))
+          if (res.overlaps == null){
+            this.doNotify("Error Adding this event :(", "negative")
+            console.log("onAddyHocEvent::ERROR not found?")
+            return
+          } else {
+            if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "warning",'top')}
+            cleanup()
+            return this.handleOverlaps(res.overlaps,'adHocEvt') //adHocEvt
+          }
+        } //else{
+          //this.constructTree() //update to show newest
+          //this.reset() //to clear this.possibleRange for next use--causes issue when this.closingDialog() invoked later!!
+          //if(this.mobile){
+          //  this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
+          //}
+          cleanup()
+          return
+        //}
+      } else{ //can happen if takes too long to create parent--specially for 'self'
+        console.log("onAddyHocEvent::BOO ERROR no subID :(",subID)
+        this.doNotify("Error adding :(  Add Evt by select!", "negative")  //Error creating and adding this event :(
+        cleanup()
+      }
+    }
+
+    let isClose = this.daSchedule.tooClose(startAt, dura)
+    if(isClose){ 
+      //console.log("onAddyHocEvent::tooClose check FAIL!!",isClose)
+      if (isClose === true){
+        this.doNotify(`'${goalTitle}' Not added as over midnight!`)
+        this.closingDialog()
+        this.reset()
+        return
+      }
+      //implicit force add---toReview** as shouldnt when surround overlaps
+      console.log("onAddyHocEvent::tooClose OVERLAP?",JSON.stringify(isClose))
+      
+      let hasOverlaps = isClose?.overlap
+      let tooClose = isClose?.tooClose
+      if (hasOverlaps.length > 0 || tooClose.length > 0) { //add guardrails? todo**
+        let surr = hasOverlaps.filter(item => item.surround == true)
+        if (surr){
+          this.withActionNotify(`'${goalTitle}' Surround a Scheduled Evt!! Dismiss to Save...`,
+          function(){saveAndSchedule()},
+          null,null, //color and position
+          function(){doSaveGoal();cleanup()}) //console.log('onAddyHocEvent::dismiss-Save?');
+          return
+        }
+        
+        //mostly wouldnt get here as surround takes precedence...also tooClose just checks evt start
+        this.doNotify(`'${goalTitle}' too close to a scheduled Evt--Forcing!!`,"warning")
+        saveAndSchedule()
+        return
+      }
+      
+    }
+
+    //console.log('onAddyHocEvent::WOOUH no closeness issue!')
+
+    //close dialog >>resets !!selectedRange!!
+    //this.closingDialog()
+    saveAndSchedule()
+    return
+  
+    /*
+    //should save regardless?!? toReview**
+    let subID = this.daSchedule.saveNewGoal(startAt,goalTitle, parentGoal, own,dura)
+
+    //then add to schedule
+    //also subID could be === 0 smh
+    if (subID === 0 || subID) {
+
+      let res = this.daSchedule.onAdHocEvent(subID,startAt,useBalance,this.doNotifyTimeout) //doNotify
+      
+      if (!res.canContinue){ //&& !anyOverlap.overlaps
+        console.log("onAddyHocEvent::OVERLAPS?",JSON.parse(JSON.stringify(res)))
+        if (res.overlaps == null){
+          this.doNotify("Error Adding this event :(", "negative")
+          console.log("onAddyHocEvent::ERROR not found?")
+          return
+        } else {
+          if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "warning",'top')}
+          cleanup()
+          return this.handleOverlaps(res.overlaps,'adHocEvt') //adHocEvt
+        }
+      } else{
+        //console.log("onAddHocEvent::ALLGOOD",res,this.possibleRange)
+        //this.constructTree() //update to show newest
+        //this.reset() //to clear this.possibleRange for next use
+        //if(this.mobile){
+        //  this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
+        //}
+        cleanup()
+      }
+    } else{ //can happen if takes too long to create parent--specially for 'self'
+      console.log("onAddyHocEvent::BOO ERROR no subID :(",subID)
+      this.doNotify("Error adding :(  Add Evt by select!", "negative")  //Error creating and adding this event :(
+    }
+    */
+  },
+  /*onAddHocEvent(goalTitle, parentGoal, own, interval,useBalance,manualDura){
+    //console.log('onAddHocEvent',goalTitle, parentGoal, own, interval,useBalance)
+    
+    if (goalTitle.trim() == ""){
+      this.doNotify("Empty Goal title...")
+      this.closingDialog()//this.showEvtDialog = false
+      this.reset() //AddHocEvent
+      return
+    }
+
+    if (!this.possibleRange){
+      console.log("umm onAddHocEvent... not a range selection: "+manualDura,interval, this.startEndTimes)  //just in case it's single cell selction
+      this.possibleRange = this.startEndTimes
+    }else{
+      console.log('onAddHocEvent',goalTitle,JSON.stringify(this.selectedTimeRange()))
+    }
+    let toUse = 0
+    manualDura && interval > 15 ? toUse = interval : toUse = 0 
     let timeStart = parseTimestamp(this.possibleRange[0])
-    //let tosee = parsed(this.possibleRange[0])
-    let timeEnd = interval > 15 ? addToDate(timeStart, { minute: parseInt(interval)}) : addToDate(parseTimestamp(this.possibleRange[1]), { minute: 15}) 
+    let timeEnd = !manualDura ? addToDate(parseTimestamp(this.possibleRange[1]), { minute: 15}) //extra 15
+    : addToDate(timeStart, { minute: parseInt(toUse)})  //umm 15 here too?
+    
+    //: addToDate(parseTimestamp(this.possibleRange[1]), { minute: 15}) 
     //oldie >> 15 mins for when single timeslot selection
 
     //below redundant when set the interval...smh
@@ -2886,7 +3095,7 @@ methods:{
       //implicit force add
       this.doNotify(`'${goalTitle}' too close to a scheduled Evt--Forcing!!`,"warning")
     }
-    this.closingDialog()//this.showEvtDialog = false  //close dialog
+    this.closingDialog() //close dialog
 
     let subID = this.daSchedule.saveNewGoal(timeStart,goalTitle, parentGoal, own,duration)//interval
 
@@ -2920,7 +3129,7 @@ methods:{
       console.log("onAdHocEvent::BOO ERROR no subID :(",subID)
       this.doNotify("Error adding :(  Add Evt by select!", "negative")  //Error creating and adding this event :(
     }
-  },
+  },*/
   onEndNow(id){
       const doRemove = () =>{
         //console.log(`onEndNow::removing and saving!`,id)
@@ -3018,17 +3227,18 @@ methods:{
             this.daSchedule.addToBalance(evt)
             this.doNotify(`Balance change after removing '${evt.title}'`,"warning",'top')
           }
-
+          
           this.doSaveSchedule() //this.daSchedule.saveDaySchedule()
+          //try to clear any pending notification too...
+          wasSaved ? this.daSchedule.removeScheduledNotif(evt.id) : console.log("removeEvtInSchedule::Evt Wasnt Saved so no notif removal")
           return
         }
+
         this.daSchedule.toggleActionBtns(true,'view')
       }
       let cancelled = () => {
         console.log('Cancelled remove..')
         this.reset()
-        //should toggle the note dialog?
-        this.closingDialog() //nope doesnt close noteDialog
       }
       
       let pickAlt = () => {
@@ -3361,6 +3571,21 @@ methods:{
   },
   closingDialog(){
     this.showEvtDialog = false
+    //have to actually reset the anchorTimestamp & otherTimestamp as basis for selectedTimeInterval smh
+    //only when it was a range otherwise could be starting a range select >>also go together!!
+    if(!this.anchorTimestamp || !this.otherTimestamp){
+      //borks when previously erased >>just return
+      console.log('closingDialog NULL TIMEYS',JSON.stringify(this.anchorTimestamp),JSON.stringify(this.otherTimestamp))
+      return
+    }
+
+    if(getDateTime(this.anchorTimestamp) != getDateTime(this.otherTimestamp)) {
+      //console.log('closingDialog on Raaange!!', this.anchorTimestamp?.time, this.otherTimestamp?.time)
+      this.anchorTimestamp = null 
+      this.otherTimestamp = null
+      this.possibleRange = null //also
+    }
+    
   },
   doLog(mess,data){
     console.log(mess, JSON.parse(JSON.stringify(data)))
@@ -3582,7 +3807,7 @@ methods:{
   ///Mouse event handler for range selection
   onMouseDownTime ({ scope, event }) {
       //console.log('onMouseDownTime', this.mobile)//,{ scope, event })
-      if (isLeftClick(event)) {
+    if (isLeftClick(event)) {
       //console.log('onMouseDownTime and its a leftClick event')
       if (this.mobile === true
           && this.anchorTimestamp !== null
@@ -3596,7 +3821,7 @@ methods:{
       this.mouseDown = true
       this.anchorTimestamp = scope.timestamp
       this.otherTimestamp = scope.timestamp
-      }
+    }
   },
   //this actually unfurl(destructure) the data parameter in two with those {}
   //can also further destructure keeping only needed variables with { scope: { timestamp } }
@@ -3619,7 +3844,7 @@ methods:{
       }
   },
   onMouseMoveTime ({ scope, event }) { //fires lots! when not on top of an event!
-  //console.log('onMouseMoveTime', { scope, event })
+    //console.log('onMouseMoveTime', { scope, event })
     if (this.mobile !== true && this.mouseDown === true) {
       this.otherTimestamp = scope.timestamp
     }
@@ -4191,6 +4416,7 @@ methods:{
       //group?: boolean | string | number; >> : false, // required to be updatable
       timeout:timeout? timeout : 5000,  //// number >> time to display (in milliseconds)>>default is 5000
       multiLine: true,  //for larger text
+      classes: 'myNotification'
       //actions: [  //for btn action
       //    { label: 'Reply', color: 'yellow', handler: () => { /* ... */ } }
       //  ]
@@ -4205,9 +4431,9 @@ methods:{
       message: messg,
       multiLine: true,  //for larger text--seems better!
       timeout: 2000,
-      icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+      icon: colorNotif == undefined ? 'report_problem' : 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+      classes: 'myNotification' //see if goes dissapears fast?
       //group?: boolean | string | number;
-      
     })
   },
   doNotifyCaption(messg, cap, colorNotif = undefined, position = 'top'){
@@ -4217,24 +4443,30 @@ methods:{
       message: messg,
       caption:cap,
       multiLine: true,  //for larger text--seems better!
-      icon: colorNotif == undefined ? 'report_problem' : 'thumb_up' //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+      icon: colorNotif == undefined ? 'report_problem' : 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+      classes: 'myNotification'
       //group?: boolean | string | number;
       //timeout?: number; // time to display (in milliseconds)>>default is 5000
     })
   },
-  withActionNotify(messg, actionHandler = null, colorNotif = undefined, position = 'top',dismiss = null){
+  withActionNotify(messg, actionHandler = null, colorNotif = null, position = null,dismiss = null){
     this.$q.notify({
-      color: colorNotif !== undefined ? colorNotif : 'negative',
-      position: position,
+      color: colorNotif ? colorNotif : 'negative',
+      position: position ? position : 'top',
       message: messg,
-      icon: colorNotif == undefined ? 'report_problem' : 'thumb_up',   //others >> warning || thumb_up || tag_faces
+      icon: colorNotif ? 'thumb_up' : 'report_problem',   //others >> warning || thumb_up || tag_faces
+      classes: 'myNotification',
+      multiLine: true,
       //group: group, //boolean | string | number;
      //timeout: timeout ?? 5000, // time to display (in milliseconds)>>default is 5000
-      //closeBtn:"Okey",
-      onDismiss:dismiss, //no need for ()
-      actions: [ //toReview** send label and handler from caller....
-          { label: 'Force?', color: 'yellow', handler: () => { 
+      //closeBtn:"Dismiss", //"Okey",
+      //onDismiss:dismiss, //no need for ()
+      actions: [ //toReview** send label and handler from caller
+          {label: 'Force?', color: 'yellow', handler: () => { 
             if(actionHandler){actionHandler()}else{console.log('withActionNotify::ActionHandler::NOTHING...')}
+          }},
+          {label: 'Dismiss', color: 'grey', handler: () => { //kinda hijack to handle cancel
+            if(dismiss){dismiss()}else{console.log('withActionNotify::dismissHandler::NOTHING...')}
           }}
         ]
     })
@@ -4341,6 +4573,9 @@ methods:{
 
 .forMobile
   display: none
+
+.myNotification
+  transition: 0.1s ease all
 
 @media (max-width: 500px)
   .instru

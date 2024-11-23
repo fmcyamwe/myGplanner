@@ -79,6 +79,13 @@ public class MainActivity extends BridgeActivity {
   @Override
   public void onPause() {
     Logger.error("FLO-TAG","onPause?!?",null);
+    MyNotifActions.getMyNotifActionsInstance();
+    MyNotifActions notifPlugin = MyNotifActions.getMyNotifActionsInstance();
+    if (notifPlugin != null) {
+      //access issue smh
+      //notifPlugin.notifyListeners("pauseReceived", notification, true);
+      notifPlugin.listenez(); //this works
+    }
     super.onPause();
   }
 }
