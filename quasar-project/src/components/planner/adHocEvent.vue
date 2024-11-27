@@ -65,7 +65,7 @@
         <div class="row"><!--v-if="!useTimeRange && manualDura"-->
             Duration (min)
           <q-knob
-            :min="15"
+            :min="5"
             :max="120"
             :thickness="0.5"
             :disable="!manualDura"
@@ -128,7 +128,7 @@ export default {
     return {
       aTitle: "",
       daP: null, //huh seems to work! an m surprised it show the correct stuff even!
-      own: "misc",
+      own: "misc", //default
       duration: 5,
       useBalance: false,
       atTime: whenFrmtTime(this.at),
@@ -141,13 +141,18 @@ export default {
     "saveEvent",
     "doCancel",
   ],
-  mounted() { //umm no need for onMounted import ...also better visibility imo
-    //console.log(`mounted`,this.useTimeRange)
+  mounted() { //umm no need for onMounted import above ...also better visibility imo
     if (!this.useTimeRange){
       //this.doManual = true
       this.manualDura = true //huh both work
     }else{
       this.currentDura = this.timeRange.duration
+    }
+    //console.log(`adHocEvent::mounted`,JSON.stringify(this.pGoals))
+    let Misc = this.pGoals.find(item => item.title =="Misc")
+    if(Misc){
+      console.log(`adHocEvent::mounted::MISC exists`,JSON.stringify(Misc))
+      this.daP = Misc //bon toTest**..should check own !='misc'? toSee
     }
   },
   computed: {
@@ -187,7 +192,7 @@ export default {
           ? this.daP == null
             ? "Defaut Misc. Parent"
             : "Of Parent Goal"
-          : "Select Parent Goal"; //umm sheesh
+          : "By Own Self"; //umm sheesh
       },
     },
     useTimeRange:{

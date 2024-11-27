@@ -99,7 +99,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         if(!current){
             console.log("umm no mainGoals...adding")
             $q.localStorage.set('mainGoals', JSON.stringify([{
-                id: 0,
+                id: 1,
                 title: goal.trim(),
                 details: details,
                 priority: priority,
@@ -115,7 +115,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         //should try to have id that is larger that largest id as can assign id that is lower and mess up sorting when showing goals...todo**
         // toReview if newID*2 is better
         while (current.some(item => item.id === newID)) { // || newID === 0 // make sure not zero esti! but prolly screw things
-            newID = Math.floor(Math.random() * (newID*2)) //oldie >> 1000
+            newID = Math.ceil(Math.random() * (newID*2)) //hopefully no zero with ceil? OR use Math.floor((Math.random() * (newID*2)) + 1);
             //console.log("an item had the same id...using random", newID)
         }
         current.unshift({ //unshift better in case id 0 was deleted!
@@ -161,7 +161,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         //let id = current !== null ? current.length + 1 : 0
         if(!current){
             $q.localStorage.set('subGoals', JSON.stringify([{
-                id: 0,
+                id: 1,
                 parentGoal:pGoal,
                 title: title.trim(),
                 score: score,
@@ -178,7 +178,7 @@ export const useGoalStore = defineStore('allGoals', () => {
         let newID = current.length + 1
 
         while (current.some(item => item.id === newID)) { // || newID === 0
-            newID = Math.floor(Math.random() * (newID*2)) //oldie >> 1000
+            newID = Math.ceil(Math.random() * (newID*2)) //oldie >> 1000
             //console.log("an subgoal item had the same id...using random", newID)
         }
 
@@ -233,7 +233,9 @@ export const useGoalStore = defineStore('allGoals', () => {
 
     function resetSub() {
         $q.localStorage.remove('subGoals')
-        console.log("removed all subGoals")
+        $q.localStorage.remove('AllDates')
+        //$q.localStorage.removeItem('AllDates')
+        console.log("removed all subGoals",$q.localStorage.has('AllDates'))
     }
 
     function resetAll() {

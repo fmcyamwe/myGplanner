@@ -30,9 +30,13 @@ export class MyNotifActions extends WebPlugin {
         };
     }
     
-    async getStarted() {
+    async getStartEndTimes() { //combine Start and EndTimes
         return {}
     }
+    
+    //async getEndTimes() {
+    //    return {}
+    //}
 
     async getNotes(){
         return { 
@@ -61,11 +65,6 @@ export class MyNotifActions extends WebPlugin {
                 uhuh:"oui?"
             }
         })
-    }
- 
-
-    addyListeners() {
-
     }
 
 

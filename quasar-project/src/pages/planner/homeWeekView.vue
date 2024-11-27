@@ -27,8 +27,8 @@
                 transition-prev="slide-right"
                 transition-next="slide-left"
                 no-active-date
-                :interval-minutes="30"
-                :interval-count="48"
+                :interval-minutes="15"
+                :interval-count="96"
                 :interval-height="mostEvts * 3"
                 @change="onChange"
                 @click-head-day="onClickHeadDay"
@@ -37,8 +37,9 @@
                 @click-head-intervals="onClickHeadIntervals"
                 @click-date="onClickDate"
                 @click-time="onClickTime"
-
-                :column-count="3" ?!?
+                interval-minutes  > 30 
+                interval-count >48 
+                :column-count="3" >>nah same day
                 -->
                 <template #head-day-event="{ scope: { timestamp } }">
                   <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
@@ -178,6 +179,7 @@ import {
   parseTimestamp,
   isBetweenDates,
   parsed,
+  parseDate,
   diffTimestamp,
   parseTime,
   getTimeIdentifier
@@ -187,7 +189,7 @@ import { applyClasses, applyStyles } from '../util/utiFunc'
 import { useGoalStore } from 'stores/goalStorage'
 import { useQuasar } from 'quasar'
 import { isMobile } from '../util/isMobile'
-import { NotifActions } from '../../boot/actions'; //toSee if instantiate plugin
+import { NotifActions } from '../../boot/actions';
 
 /*const CURRENT_DAY = new Date()
 function getCurrentDay (day) {
@@ -235,24 +237,28 @@ export default {
     this.constructTree()
     this.dayNotifData()
   },
-  //mounted() { //redundant--toRemove**
-  //  console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
+  //mounted() {
+  //  let a = this.store.getAllDates
+  //  console.log(`mounted`,JSON.stringify(a))
   //},
-  mounted() {
-    console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
-    NotifActions.addListeners()//.then((res)=>{
-      //console.log(`listener work?`,JSON.stringify(res)) //toSee
+  //mounted() {
+  //  console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
+    //NotifActions.addListeners()//.then((res)=>{
+      //console.log(`listener work?`,JSON.stringify(res)) //nope just invoke plugin method
     //})
-    //NotifActions.addListener() //toSee straight invoke of baseclass?
-  },
 
-  beforeUnmount() {
+    //NotifActions.addListener("pauseReceived",()=> {
+    //  console.log(`listener work?`) //huh straight invoke of baseclass works!
+    //})
+  //},
+
+  //beforeUnmount() {
     //console.log(`beforeUnmount...do anything?!?`)
     //maybe clear notif storage?!?
     //NotifActions.clearStorage().then((res)=>{
     //  console.log("beforeUnmount::clearStorage",JSON.stringify(res))
     //})
-  },
+  //},
   computed: {
     storedGoalsMap(){  //rename properly** todo
         const map = new Map()
@@ -409,14 +415,14 @@ export default {
        //JSON.stringify(window.screen.orientation.type) //huh works!!
 
         let mGoals = this.storedGoalsMap
+        console.log("dayNotifData",JSON.stringify(this.todayEvts))
 
         NotifActions.getSkippedNotifs({date:this.currentDate}).then((res)=>{
-          //: "+this.currentDate,JSON.stringify(this.todayEvts),JSON.stringify(res))
+
           let ids = res["skipped"]
 
           if(Array.isArray(ids) && ids.length > 0){ //Object.keys(ids).length > 0
-            //then retrieve and make remove from this.todayEvts
-            //const toArray = []
+            
             //should be array >>below redundant
             //for (let id of ids){ //oldie >>for (let key in ids){
               //toArray.push(ids[key]); ////sortable.push([key, sched[key]]);
@@ -424,14 +430,25 @@ export default {
             //}
 
             if (Object.keys(this.todayEvts).length > 0){
-              console.log("WoooResults>> ",JSON.stringify(ids), JSON.stringify(this.todayEvts))
+              console.log("WoooResults>> ",JSON.stringify(ids))
               let skipd = []
-              for (let key in this.todayEvts){ //should prolly loop on ids instead? todo**
-                if(ids.find(item => item == key)){ //hopefully no cast needed?!?
+              
+              /*for (let key in this.todayEvts){ //should prolly loop on ids instead >> yup
+                if(ids.find(item => item === key)){ //hopefully no cast needed?!? >>lool DEF needed or its skipped smh || using  '===' doesnt work either!!
                   delete this.todayEvts[key]
                   skipd.push(mGoals.get(parseInt(key))?.title ?? "") 
-                  console.log(`dayNotifData::deleteSkipped>> `+key,JSON.stringify(skipd))
+                  console.log(`dayNotifData::deleteSkipped WOOO CAST>> `+key) //,JSON.stringify(ids))
                 }
+              }*/
+
+              for (let id of ids){
+                if(id in this.todayEvts){
+                  delete this.todayEvts[id]
+                  skipd.push(mGoals.get(parseInt(id))?.title ?? "") 
+                  console.log(`dayNotifData::deleteSkipped>> `+id,JSON.stringify(skipd))
+                 }else{
+                  console.log(`dayNotifData::Skipped NOT FOUND?!? `+id,JSON.stringify(skipd))
+                 }
               }
               //// save 
               this.store.saveDailySchedule(this.currentDate,this.todayEvts)
@@ -440,25 +457,25 @@ export default {
                 this.$q.notify({
                   color: 'warning',
                   position: 'top',
-                  message:  `'${title}' Evt Skipped!`,//`${skipd.join()} Skipped!!`, //need ',' separator?
+                  message:  `'${title}' Was Skipped!`,
                   caption: `${this.currentDate} Schedule updated with removal`,// '${title}' removal`,
                   icon: 'thumb_down', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-                  timeout: ids.length > 1 ? 2000 : 3000 // time to display (in milliseconds)>>default is 5000 (5sec)
+                  timeout: ids.length > 1 ? 2000 : 3000
                   //group?: boolean | string | number;
                 })
               })
               
               NotifActions.clearStoreKey({key:"skip"}).then((res)=>{
-                console.log("dayNotifData::clearSkipKey",JSON.stringify(res))
+                //console.log("dayNotifData::clearSkipKey",JSON.stringify(res))
                 //reload...
                 this.reload()
               })
 
             }else{//prolly clear/erase whole storage!!--toReview but easy for testing
-              console.log("GONCLEAR storage::mismatch!!")//, JSON.stringify(ids), JSON.stringify(this.todayEvts))
-              NotifActions.clearStorage().then((res)=>{
-                console.log("dayNotifData::clearStorage",JSON.stringify(res))
-              })
+              console.log("ERROR::storage::mismatch--SHOULD CLEAR!?!")//, JSON.stringify(ids), JSON.stringify(this.todayEvts))
+              //NotifActions.clearStorage().then((res)=>{
+              //  console.log("dayNotifData::clearStorage",JSON.stringify(res))
+              //})
             }
           }
         }).catch((err) => {
@@ -466,7 +483,7 @@ export default {
             //console.log(err)
         })
 
-        NotifActions.getNotes().then((res)=>{ //use date too? toReview**
+        NotifActions.getNotes().then((res)=>{ //use date too? prolly
           //console.log("getNotes>>",JSON.stringify(res)) //getNotes>> {"notes":[{"id":5,"note":"Test test"}]}
           
           if ("notes" in res){
@@ -479,12 +496,12 @@ export default {
                 if(note.id in this.todayEvts){ //huh no type issue
                   let clone = Object.assign({},{...this.todayEvts[note.id], notes:note.note})
 
-                  console.log("dayNotifData::Setting Note>>",JSON.stringify(clone),JSON.stringify(this.todayEvts[note.id]))
+                  //console.log("dayNotifData::Setting Note>>",JSON.stringify(clone),JSON.stringify(this.todayEvts[note.id]))
                   
                   this.todayEvts[note.id] = clone 
-                  wnote.push(mGoals.get(parseInt(note.id))?.title ?? "")
+                  wnote.push(`'${mGoals.get(parseInt(note.id))?.title ?? ""}'`)
                   ids.push(note.id)
-                }else{//could happen if evt deleted?!? toMonitor**
+                }else{//could happen if evt deleted?!? OR on a different day smh--toReview** using dates!!
                   console.log("getNotes>>ERROR note Evts not found "+note.id,JSON.stringify(note),JSON.stringify(this.todayEvts))
                 }
               }
@@ -508,24 +525,130 @@ export default {
 
             //reset storeKey--todo** pass in 
             NotifActions.clearStoreKey({key:"notey",ids:ids}).then((res)=>{
-              console.log("dayNotifData::clearNoteKey",JSON.stringify(res))
-                //should reload...
-                //this.loadEvts() // work?!? >>nope smh
-                this.reload() //this works!!
+              //console.log("dayNotifData::clearNoteKey",JSON.stringify(res))
+              //should reload...
+              //this.loadEvts() // work?!? >>nope smh
+              this.reload() //this works!!
               })
           }
         })
 
-        //not important...BUT should clear storage tho...todo**
-        NotifActions.getStarted().then((res)=>{
-          console.log("dayNotifData::getStarted",JSON.stringify(res))
-          if ("started" in res){
-            let ids = res["started"]
-            if(Array.isArray(ids) && ids.length > 0){
-              NotifActions.clearStoreKey({key:"start"}) //ids:ids
+        //combined start/end times to update evts...
+        NotifActions.getStartEndTimes().then((res)=>{
+          
+          if ("started" in res && "ended" in res){
+            let started = res["started"]
+            let ended = res["ended"]
+            //both should be arrays...
+            let bothArrs = Array.isArray(started) && Array.isArray(ended)
+            if(!bothArrs){
+              console.log("getStartEndTimes>>ERROR::not arrays?!?",started, ended)
+              //do anything else?
+              return
             }
-          }
+
+            if(Object.keys(this.todayEvts).length < 1 && (started.length > 0 || ended.length > 0 )){
+              console.log("ERROR::getStartEndTimes >>storage mismatch--CLEARING KEYS!!")
+              NotifActions.clearStoreKey({key:"start"}).then((res)=>{ //clear keys...not whole storage //clearStorage
+                console.log("dayNotifData::clearStoreKey>>Start",JSON.stringify(res))
+              }).then(()=>{//umm shouldnt put above?!?
+                console.log("dayNotifData::clearStoreKey>>End")
+                NotifActions.clearStoreKey({key:"end"})
+              })
+              return
+            }
+
+            if(started.length > 0 || ended.length > 0){
+              let startIDs = []
+              let endIDs = []
+              let modified = []
+              console.log("getStartEndTimes::",JSON.stringify(started),"ended>> "+JSON.stringify(ended))
+              for (let key in this.todayEvts){
+                let inStart = started.find(item => item.id == key)
+                let inEnd = ended.find(item => item.id == key)
+                let saved = this.todayEvts[key]
+                if(inStart && inEnd){ //received both notifs
+                  console.log(`getStartEndTimes>> Key: ${key} in BOTH!!`,JSON.stringify(inStart),JSON.stringify(inEnd))
+                  let aty1 = parseDate(new Date(inStart.startedAt))
+                  let atyEnd = parseDate(new Date(inEnd.endedAt))
+                  let eS = addToDate(parsed(this.currentDate), { minute: parseTime(saved.time)})
+                  //let eE = addToDate(eS, { minute: parseInt(saved.duration)})
+                  console.log(`getStartEndTimes>> ${inStart.id} was saved at`,eS.time,"for: "+saved.duration) //eE.time,
+
+                  //let another = diffTimestamp(eS, parseDate(aty1))
+                  let startDiff = Math.floor((diffTimestamp(eS, aty1))/1000/60) //how far is startedAt from original start
+                  //let endDiff = Math.floor((diffTimestamp(aty1,eE))/1000/60) //diff of actual start with original end
+                  //let actualEndDiff = Math.floor((diffTimestamp(eE,atyEnd))/1000/60)
+                  let actualDura = Math.floor((inEnd.endedAt - inStart.startedAt)/1000/60) 
+                  //console.log(inStart.id+" Actual startedAt and endedAt",aty1.time,atyEnd.time, startDiff,endDiff,actualEndDiff," with actualDura: "+actualDura)
+                  console.log(inStart.id+" Actual startedAt and endedAt",aty1.time,atyEnd.time, startDiff," with actualDura: "+actualDura)
+                  
+                  if (startDiff >= 3 || actualDura > saved.duration){//no need if was within reminder 3mins BUT should check that duration hasnt changed(add3 atEnd)
+                    let newTime = aty1.time 
+                    let clone = Object.assign({},{...saved, time:newTime, duration:actualDura})
+                    console.log("getStartEndTimes::Setting Started>> "+key,JSON.stringify(clone))
+                    this.todayEvts[key] = clone
+
+                    modified.push([`'${mGoals.get(parseInt(inStart.id))?.title ?? ""}' was modified!`,`Start time: ${newTime} with duration: ${actualDura}`]) //scheduling
+                  }
+
+                  startIDs.push(inStart.id)
+                  endIDs.push(inEnd.id)
+                }else if(inStart){ //got start but not end?
+                  //just check start and leave rest as is...prolly
+                  console.log(`dayNotifData::getStartEndTimes::Evt only IN START?!? `+key,JSON.stringify(inStart),inEnd)
+                  //startIDs.push(inStart.id) //prolly no erase yet as could be ongoing?!? Or never got the end notif for any reason....toReview**
+                }else if(inEnd){ //got end but not start?
+                  //so check if later than scheduled end--should add duration difference 
+                  //also have to use original time (safe assumption?)
+                  
+                  let eS = addToDate(parsed(this.currentDate), { minute: parseTime(saved.time)})
+                  let atyEnd = parseDate(new Date(inEnd.endedAt))
+                  //let end = new Date(inEnd.endedAt) //>>nope smh
+                  //let mid = new Date(this.currentDate).setMilliseconds(inEnd.endedAt) //no need to set other hours,minutes hopefully?
+                  //let end = parseDate(new Date(this.currentDate).setMilliseconds(inEnd.endedAt)) >>nope
+                  let actualDura = Math.floor((diffTimestamp(eS, atyEnd))/1000/60) //(inEnd.endedAt - inStart.startedAt)
+                  console.log(`dayNotifData::getStartEndTimes::Evt only IN END?! `+key,"dura as "+saved.duration,actualDura,JSON.stringify(inEnd),eS.time,atyEnd.time)
+                  //todo** check dura cause could be veeeery large (skip in that case)
+                  //modified.push([`'${mGoals.get(parseInt(inEnd.id))?.title ?? ""}' has changed duration!`,`Ended at time: ${atyEnd.time} with duration: ${actualDura}`])
+                  endIDs.push(inEnd.id)
+                }else{
+                  //no start or end notif received?!? >>leave as is(prolly for upcoming evts?) or those already ended and cleared(likely)
+                  console.log(`dayNotifData::getStartEndTimes>> Evt with no start or end!! `+key,JSON.stringify(this.todayEvts[key]))
+                }
+              }
+            
+              //save
+              this.store.saveDailySchedule(this.currentDate,this.todayEvts)
+
+              //notif to user...
+              modified.forEach(info => {
+                this.$q.notify({
+                  color: 'warning', //see about using custom color? toSee**
+                  position: 'top',
+                  message: info[0] ?? "",  
+                  caption: info[1] ?? "",//nullish just in case
+                  icon: 'tag_faces',
+                  timeout: modified.length > 1 ? 2000 : 3000 
+                  //group?: boolean | string | number;
+                })
+              })
+
+              
+              startIDs.length > 0 ? NotifActions.clearStoreKey({key:"start",ids:startIDs}) :""
+              endIDs.length > 0 ? NotifActions.clearStoreKey({key:"end",ids:endIDs}) : ""
+            }
+
+          }//else?
+        }).then(()=>{ //huh chaining does work
+          //console.log("dayNotifData::getStartEndTimes...RELOAD")
+          this.reload()
         })
+
+        //NotifActions.getEndTimes().then((res)=>{
+        //  console.log("dayNotifData::getEndTimes",JSON.stringify(res))
+          //then change duration...todo
+        //})
         
       }
     },
@@ -570,6 +693,7 @@ export default {
       if (events.length > this.mostEvts){
         console.log(`getEvents hiiigh ${dt}`,events.length, this.mobile)
         this.mostEvts = this.mobile ? events.length + 5 : events.length
+        //umm should increase when not too many events actually?!? toTest**
       }
     
       //return events.sort(sorty)

@@ -857,15 +857,15 @@ export default class daySchedule {
             //console.log("scheduleLater::NOTIME...skipped!",value.title,value.time,value.start.time)
           }else{
             let diffy = diffTimestamp(now,value.start)
-            if(diffy > 0){ //so evt has NOT started.
-              //console.log("scheduleLater::Evt NOT Started yet--gon schedule!",value.title,value.time)
-              toSchedLater.push(value)
+            if(diffy > 0){ //evt has NOT started.
+              //oldie >> toSchedLater.push(value)
+              toSchedLater.push({...value, parent:this.parentGoalById(value.parentGoal)?.title})
             }
           }
         })
 
        LocNotifications.addPendingEvts(toSchedLater,this.currentDate)
-       //console.log("addPendingEvts >> #"+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
+       //console.log("addPendingEvts >>",JSON.stringify(toSchedLater))
 
        //avoid unnecessary plugin schedule call--toConfirm** that no pending in state?
        toSchedLater.length > 0 ? LocNotifications.scheduleLater() : '' //console.log("scheduleLater >> nothing to scheduleLater")
@@ -1591,7 +1591,7 @@ export default class daySchedule {
               return Repo.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) 
               //canMove and notInDefaults.isAlternative when duration<30
             }else {
-              console.log("ERROR? no pID", pId)//could be 0!!! smh >>bon fixed in storage
+              console.log("ERROR? no pID", pId)//could be 0!!! smh
               return pId === 0 ? Repo.addSubGoal(pId,goalTitle,'1on5',timeStart.time, duration,true, false,duration<30) : null
               //return null 
             }
@@ -1697,7 +1697,7 @@ export default class daySchedule {
           \n doAdd?:${doAdd}`, overlappedEvtNew.time, 'alt:'+alternative.time) //'diffy='+diffy
 
           let diffy = diffTimestamp(alternative,overlappedEvtNew) 
-          let bo = diffy > 0 ? Math.floor((diffy/1000)/60) : 0
+          let bo = diffy > 0 ? Math.ceil((diffy/1000)/60) : 0
           console.log(`recurChangeTime::BACKWARD ${dName} for ${dragTimeInterval}`,bo)
           //toSee about using alternative>>but nah
         }
@@ -2098,10 +2098,6 @@ export default class daySchedule {
        this.disableSaveSchedule = true 
        this.showReloadBtn = false
        this.showClearBtn = toSave != null && !this.isViewingPast()
-
-       //schedule Notifs?!?--those upcoming only.
-       //LocNotifications.addPendingEvts(toSchedLater,this.currentDate)
-       //console.log("saveDaySchedule>>State "+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
     }
     //to enable/disable endButton...
     updateMinEndNowBtn(timey,hasEnd, hasStart){ 

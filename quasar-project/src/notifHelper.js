@@ -44,11 +44,11 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
       }
 
       this.checkPermissions();
-      this.addListeners();
+      this.addListeners(); //even this is redundant--toRemove
       this.createChannel();
       this.registerActions();
       this.getPending();  //bon get pending first
-      this.getDeliveredNotifications(); //redundant?!?
+      this.getDeliveredNotifications(); //redundant?!?--yup toRemove
     }
 
     doPrint(){
@@ -269,7 +269,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
       //mobile
       if (platform !== "web") {
         let channels = await LocalNotifications.listChannels();
-        console.log('createChannel',JSON.stringify(channels)); //umm shouldnt the LocNotifs show up on second start >>yup does!!--bon prolly skip create again?
+        console.log('createChannel',JSON.stringify(channels)); //umm shouldnt the LocNotifs show up on second start >>yup does!!--bon skip create again
           
         let doExist = false 
         for (const index in channels.channels) {
@@ -281,42 +281,44 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
 
         if(doExist){
           console.log('createChannel>>WOO LocNotifs exists!!')
-          return 
+          return
         }
           
-          // channel with high importance..>>dont seem to help with wake device but oh well..
-          await LocalNotifications.createChannel({
-            id:'LocNotifs',
-            name:'Notifs',
-            description:'Blu Notifs',
-            //sound:'' //should use default
-            importance:5, //int or default to 3
-            visibility:1,
-            vibration:true
-          })
+        // channel with high importance..>>dont seem to help with wake device but oh well..
+        await LocalNotifications.createChannel({
+          id:'LocNotifs',
+          name:'Notifs',
+          description:'Blu Notifs',
+          //sound:'' //should use default
+          importance:5, //int or default to 3
+          visibility:1,
+          vibration:true
+        })
 
         let channelz = await LocalNotifications.listChannels();
         console.log('createChannel>>channelz>>CREATED',JSON.stringify(channelz));
       }
 
-        //not possible for web!
+      //not possible for web!
     }
+
     async registerActions() {
       const actions = { 
         "start":{id:'start',title:'Start'}, //progress at startEvt 
-        "add":{id:'add',title:'Add3'}, //addMins at endEvt
+        "add":{id:'add',title:'Add3'}, //addMins at endEvt 
         "skip":{id:'skip',title:'Skip'}, //skip at startEvt
+        //"in":{id:'in',title:'In3'},//>actually reminder in start >>diff than addMins atEnd>> too much conflicts so removed
         "go":{id:'go',title:'Nav'}, //nav...
         "note":{id:'note',title:'Notey',input:true},//add input?: boolean; (IOS) >>huh works!!
       }
 
       const startType = {
         id:'atStart',
-        actions:[actions['start'],actions['skip']] //umm could add multi actions? >> yup!! //actions['add'],
+        actions:[actions['start'],actions['skip']] //umm could add multi actions? >> yup!! //,actions['in'],
       }
       const endType = {
         id:'atEnd',
-        actions:[actions['note']]
+        actions:[actions['note'],actions['add']]
       }
       const navType = { //toSee if needed...
         id:'nav',
@@ -327,11 +329,12 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
       if (platform != "web") {
         let toReg = {
           types: [startType,endType,navType]
-          }
-        await LocalNotifications.registerActionTypes(toReg);
+        }
+        //let result = await 
+        LocalNotifications.registerActionTypes(toReg).then(() => {
+          console.log('registerActions')//JSON.stringify(result));//toReg
+        })
         
-        //console.log('registerActions',JSON.stringify(toReg));
-        return
       }
 
       //not possible for web!
@@ -397,36 +400,41 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
     }
     // multiple evts to schedule later...
     addPendingEvts(evts,dt){ //need dt?--evts already have it!--toReview**
-        console.log('NotifHelper::addPendingEvts',JSON.stringify(dt),JSON.stringify(evts))
+        //console.log('NotifHelper::addPendingEvts',JSON.stringify(dt),JSON.stringify(evts))
         
         for (const e of evts) {
-            let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) - 1 }) //try showing notif one minute in advance
-            let aty = Date.parse(`${mid.date} ${mid.time}`) 
-            //let another = parseTimestamp(`${dt} ${e.start.time}`)
-            let aty1 = new Date(aty) //huh works!! 
-            //let another1 = new Date(another) //null...should add now above? bof
-            //let at = new Date(getDayTimeIdentifier(mid)) //or getTimeIdentifier ? //+ 1000 * 100
+          //console.log('NotifHelper::addPendingEvt',JSON.stringify(dt),JSON.stringify(e))
+        
+          let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) }) //- 1 //try showing notif one minute in advance? >>meh nah
+          let aty = Date.parse(`${mid.date} ${mid.time}`) 
+          //let another = parseTimestamp(`${dt} ${e.start.time}`)
+          let aty1 = new Date(aty) //huh works!! 
+          //let another1 = new Date(another) //null...should add now above? bof
+          //let at = new Date(getDayTimeIdentifier(mid)) //or getTimeIdentifier ? //+ 1000 * 100
     
-            let midEnd = addToDate(parsed(dt), { minute: parseTime(e.end.time)})
-            let atyEnd = Date.parse(`${midEnd.date} ${midEnd.time}`)
-            let aty1End = new Date(atyEnd) //to avoid calculating this for End notif
-            //console.log('NotifHelper::addPendingEvts',JSON.stringify(aty1),JSON.stringify(aty1End))
-            let not = {
-                title: `'${e.title}' Starting at ${whenFrmtTime(e.start.time)}`,
-                body: ` Be/Do '${e.title}' for ${e.duration} mins`,//starting:: ${whenFrmtTime(e.start.time)} //e.title,
-                largeBody: ` Be/Do '${e.title}' (${e.score}) from ${whenFrmtTime(e.start.time)} to ${whenFrmtTime(e.end.time)}`, //toSee** look
-                id: e.id, //umm could have others?!? toMonitor but should be unique per day? //1,
-                schedule: { at: aty1, allowWhileIdle: true },  //add count maybe? //use scheduleOn? prolly no need   // repeats:true >>>>huh that what's cause not scheduling on time?
-                //sound: './public/assets/sounds/alarm.aiff', //meh default
-                //attachments: null,
-                actionTypeId: 'atStart',
-                iconColor:hexColor(e.bgcolor), //!e.bgcolor ? '#9d8802' : e.bgcolor.includes("-") ? '#9d8802' : e.bgcolor, // e.bgcolor ?? 'blue', //can break smh color.includes("-") //even normal named can be invalid color smh
-                extra: {duration:e.duration, scorey:e.score, end: aty1End, endsAt:whenFrmtTime(e.end.time), name:e.title}, //e.end.time //null,
-                channelId: platform != "web" ? 'LocNotifs' : ''  //could use default but prolly better to have custom one(for android)
-                //autoCancel?(only for mobile)
-              }
-            this.pending.push(not); //JSON.stringify(not)
-            //console.log('addPendingEvts::Added>>'+e.title,JSON.stringify(not),JSON.stringify(aty),JSON.stringify(aty1),JSON.stringify(another),JSON.stringify(another1))
+          let midEnd = addToDate(parsed(dt), { minute: parseTime(e.end.time)})
+          let atyEnd = Date.parse(`${midEnd.date} ${midEnd.time}`)
+          let aty1End = new Date(atyEnd) //parsing issues in Android so calculating this here...
+        
+          let startsAt = whenFrmtTime(e.start.time)
+          let endsAt = whenFrmtTime(e.end.time)
+          let inPM = e.start.time.split(':')[0] >=12 ? "PM" : "AM" //just add into extra..redundant? toReview**
+          //console.log('NotifHelper::addPendingEvts '+e.id,inPM,JSON.stringify(aty1),JSON.stringify(aty1End))
+          let notif = {
+              title: `'${e.title}' Starting at ${startsAt}`,
+              body: `Be/Do '${e.title}' for ${e.duration} mins`,
+              largeBody: `Of '${e?.parent}' >> '${e.title}' (${e.score}) ends at ${endsAt}\n Dismiss for reminder`, //umm line break? 
+              id: e.id, //umm could have others?!? toMonitor but should be unique per day? //1,
+              schedule: { at: aty1, allowWhileIdle: true },  //add count maybe? //use scheduleOn? prolly no need   // repeats:true >>>>huh that what's cause not scheduling on time?
+              //sound: './public/assets/sounds/alarm.aiff', //meh default
+              //attachments: null,
+              actionTypeId: 'atStart',
+              iconColor:hexColor(e.bgcolor), //!e.bgcolor ? '#9d8802' : e.bgcolor.includes("-") ? '#9d8802' : e.bgcolor, // e.bgcolor ?? 'blue', //can break smh color.includes("-") //even normal named can be invalid color smh
+              extra: {duration:e.duration, scorey:e.score, end: aty1End, endsAt:endsAt, name:e.title, parent:e?.parent,startsAt:startsAt,around:inPM},
+              channelId: platform != "web" ? 'LocNotifs' : ''  //could use default but prolly better to have custom one(for android)
+              //autoCancel?(only for mobile)
+            }
+            this.pending.push(notif); //JSON.stringify(not)
         }
     }
 

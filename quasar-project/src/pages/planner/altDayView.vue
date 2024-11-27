@@ -199,6 +199,7 @@
                   <!--</Transition><q-fab></q-fab> use q-fab? also make first qCard show faster?  
                   :color="saveScheduleDisabled ? 'primary' : 'yellow'"
                   class="absolute-top-left q-mx-md unsavedu"
+                  
                   -->
                   <q-card
                     v-morph:card1:mygroup:500.tween="morphGroupModel"
@@ -224,7 +225,7 @@
                       color=""
                       text-color="white"
                       align="between"
-                      class="q-mt-md"
+                      class="q-ma-sm"
                       elevated
                       push
                       :dense="false"
@@ -297,8 +298,8 @@
                       </q-badge>
                   </div>
                   
-                  <div class="row justify-center">
-                      <q-scroll-area class="q-gutter-sm" style="display: flex; max-width: 800px; width: 90%; height: 90vh;"><!--height: 90vh; >> overflow: auto;? with class="q-px-md"-->
+                  <div class="row justify-center"><!--q-scroll-area doesnt allow for scroll to no me?!?-->
+                      <div class="q-gutter-sm" style="display: flex; max-width: 800px; width: 90%; height: 90vh;"><!--height: 90vh; >> overflow: auto;? with class="q-px-md"-->
                         <q-calendar-day
                           ref="calendar"
                           view="day"
@@ -465,7 +466,7 @@
                               </template>
                             </template>
                         </q-calendar-day>
-                      </q-scroll-area>
+                      </div>
                   </div> 
                   <br>      
               </template>
@@ -509,6 +510,7 @@ import { applyClasses, applyStyles, whenFrmtTime,parseScore,deepCopy,hexColor } 
 import { useQuasar } from 'quasar'  //Platform
 import daySchedule  from '../../models/aDaySchedule.js'
 import scheduleBy from '../../components/planner/scheduleByDialog.vue' //also craps out when in demand?
+import { NotifActions } from '../../boot/actions'; 
 
 function isLeftClick (e) {
   return e.button === 0
@@ -602,6 +604,16 @@ mounted() {
   this.intervalId = setInterval(() => {
     this.adjustCurrentTime()
   }, 60000)
+
+  NotifActions.addListener("pauseReceived",()=> {
+      //console.log(`altDayCalendar::listener work?`) //huh straight invoke of baseclass works!
+      this.daSchedule.scheduleLater() //umm not doing work twice with unmount? >> meh unmount doesnt run on pause
+    })
+},
+unmounted(){
+  //console.log(`altDayCalendar::unmounted NOW >> removinnn listeners`)
+  NotifActions.removeAllListeners() 
+  //do get it on weekView when not removed!!
 },
 beforeUnmount() {
   clearInterval(this.intervalId)
@@ -615,7 +627,7 @@ beforeUnmount() {
     }
     
     let doSave = () => {
-      setTimeout(doContinue, 1000);
+      setTimeout(doContinue, 500);
       this.daSchedule.saveDaySchedule()
     }
 
@@ -626,7 +638,6 @@ beforeUnmount() {
   } else {
     doContinue() 
   }
-
   //this.daSchedule.scheduleLater()
 },
 computed: {
@@ -1716,19 +1727,22 @@ methods:{
       let toAddPrt = this.daSchedule.parentGoalById(toAdd.parentGoal) //this.parentGoalsMap().get(toAdd.parentGoal)
       let scheduledPrt = this.daSchedule.parentGoalById(sched.parentGoal) //this.parentGoalsMap().get(currScheduled.parentGoal)
       
-      let pTitleCheck = this.titleIncludes(toAdd.title,scheduledPrt.title)
-      let pSTitleCheck = this.titleIncludes(sched.title,toAddPrt.title)
       //let toAddPrtInclud = toAdd.title.trim().toLowerCase().includes(scheduledPrt.title.trim().toLowerCase())
       //let scheduledPrtInclud = sched.title.trim().toLowerCase().includes(toAddPrt.title.trim().toLowerCase())
+      let {pTitleInc,pTitleIncd}  = this.titleIncludes(toAdd.title,scheduledPrt.title)
+      let {pSTitleInc,pSTitleIncd}  = this.titleIncludes(sched.title,toAddPrt.title)
       
-      if (pTitleCheck || pSTitleCheck){
+      //if (pTitleCheck || pSTitleCheck){ //oldie but object can contains all false... 
+      if(pTitleInc || pTitleIncd || pSTitleInc || pSTitleIncd){
         //should schedule the subGoal!!! (Next of 'Me Me' parent)
         // OR (if cant for any reason?!?)
         // one of the subGoals of the parent? (parentGoal 'Next' with subgoals-Jobs,Massage,PmP/Pilot,etc)
         //--which should be the one of scheduled or toAdd prolly
         //
-        console.log(`canAutoSchedule:: WOAH PARENT AUTO schedule?--TODO***`,pTitleCheck,pSTitleCheck)//toAddPrtInclud ? "toAdd: "+toAdd.title : toAddPrtInclud, scheduledPrtInclud ? "sched: "+sched.title : scheduledPrtInclud,"\nNormal AUTO>>", toAddInclud, scheduledInclud)//,'direction == surrounding? >>', aConf.direction == 'surrounding')
-
+        //console.log(`canAutoSchedule:: WOAH PARENT AUTO schedule?--TODO***`,this.mobile ? JSON.stringify(pTitleCheck): pTitleCheck,this.mobile ? JSON.stringify(pSTitleCheck) : pSTitleCheck)
+        //toAddPrtInclud ? "toAdd: "+toAdd.title : toAddPrtInclud, scheduledPrtInclud ? "sched: "+sched.title : scheduledPrtInclud,"\nNormal AUTO>>", toAddInclud, scheduledInclud)//,'direction == surrounding? >>', aConf.direction == 'surrounding')
+        console.log(`canAutoSchedule:: WOAH PARENT AUTO schedule?--TODO***`,toAdd.title+" <> "+sched.title,"Parents: "+toAddPrt.title+" <> "+scheduledPrt.title)
+        console.log(`canAutoSchedule:: WOAH PARENT AUTO schedule >>`,pTitleInc,pTitleIncd,pSTitleInc,pSTitleIncd)
         //return ...auto-schedule...for parents!!
       }
 
@@ -2163,7 +2177,7 @@ methods:{
     let toHandleSize = overlaps.length //Object.keys(overlaps).length //to skip extra confirm click when too many overlaps to solve!!
 
     overlaps.reverse() //bon as it's array now...
-    this.doLog("handleOverlaps::ORIGNL from: "+from+" >> "+toHandleSize,overlaps)
+    this.doLog("handleOverlaps::ORIGNL from: "+from+" >> "+toHandleSize,this.mobile ? JSON.stringify(overlaps) : overlaps)
     
     //const reversedKeys = Object.keys(overlaps).reverse() //bon just to resolve by earliest >> nope object still ordered by asc. numeric key
     //console.log("handleOverlaps..reversed",reversedKeys)
@@ -2909,7 +2923,7 @@ methods:{
     }
     //before dialog reset >> get proper start time.
     let selectedRange = this.selectedTimeRange()
-    console.log('onAddyHocEvent >>',goalTitle,manualDura,interval,JSON.stringify(selectedRange))
+    //console.log('onAddyHocEvent >>',goalTitle,manualDura,interval,JSON.stringify(selectedRange))
     //this.closingDialog() //yup reset for next access with start&end empty >> {"isSame":true,"duration":0}
     //this.onAddHocEvent(goalTitle, parentGoal, own, interval,useBalance,manualDura)
     
@@ -2935,7 +2949,7 @@ methods:{
     const doSaveGoal = () => {
       //should save regardless?!? toReview**
       let id = this.daSchedule.saveNewGoal(startAt,goalTitle, parentGoal, own,dura)
-      console.log("onAddyHocEvent::doSaveGoooooal "+id,startAt.time)
+      //console.log("onAddyHocEvent::doSaveGoooooal "+id,startAt.time)
       this.doNotify(`AdHoc Evt '${goalTitle}' Stored!`,"positive",'top')
       return id
     }
@@ -2990,12 +3004,13 @@ methods:{
         this.reset()
         return
       }
-      //implicit force add---toReview** as shouldnt when surround overlaps
-      console.log("onAddyHocEvent::tooClose OVERLAP?",JSON.stringify(isClose))
       
       let hasOverlaps = isClose?.overlap
       let tooClose = isClose?.tooClose
       if (hasOverlaps.length > 0 || tooClose.length > 0) { //add guardrails? todo**
+        //implicit force add---toReview** as shouldnt when surround overlaps
+        console.log("onAddyHocEvent::tooClose OVERLAP?",JSON.stringify(isClose))
+      
         let surr = hasOverlaps.filter(item => item.surround == true)
         if (surr){
           this.withActionNotify(`'${goalTitle}' Surround a Scheduled Evt!! Dismiss to Save...`,
@@ -3661,12 +3676,16 @@ methods:{
         //  this.adjustCurrentTime()
         //}
 
-        //if(this.currentDate == today()){//scrollTo current time today only
-        //  let timey = parseDate(new Date())
-        //  this.scrollToTime(timey,'slow')
-        //}
+        if(this.currentDate == today()){//scrollTo current time today only
+          let timey = parseDate(new Date())
+          this.scrollToTime(timey,'slow')
+        }
+        return
       }
     }
+    //bon when empty schedule || other days just scroll
+    let timey = parseDate(new Date())
+    this.scrollToTime(timey,'slow')
   },
   onDragStart(e, type, item) {
     //console.log('onDragStart',e,type, item)

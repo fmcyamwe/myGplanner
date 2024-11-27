@@ -85,10 +85,10 @@ export default defineComponent({
       lastScrollPosition: 0
     }
   },
-  mounted(){
-    console.log("onMounted")
+  //mounted(){
+  //  console.log("onMounted")
     //window.addEventListener('scroll', this.onScroll)
-  },
+  //},
   beforeUnmount(){
     //window.removeEventListener('scroll', this.onScroll)
   },

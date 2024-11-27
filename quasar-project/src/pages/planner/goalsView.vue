@@ -395,7 +395,7 @@
                                 <div v-if="currentIcon">
                                     Icon: <i :class="currentIcon" id="i-icon"></i>
                                     <br><!--:icon="icon" OR with import:<Icon :data="icon" :size="24" color="#124ebb"></Icon> -->
-                                    <q-icon :name="currentIcon" id="q-icon" />
+                                    <q-icon :name="currentIcon" id="q-icon" @click.prevent="(e)=>{ hello(e, currentIcon)}"  />
                                     <br>
                                     <q-toggle
                                     v-model="changeIcon"
@@ -411,6 +411,7 @@
                                 class="iconPick"
                                 valueType="name"
                                 :displaySearch="true"
+                                :excludeIcons="['Aws','Amazon','Ambulance']"
                                 @click.prevent="()=>{ hello2(icon,{})}" 
                                 /> 
                                 <!-- valueType as name important as default is svg
@@ -418,7 +419,7 @@
                                 can use click to increase scroll page maybe?!? 
                                 @click="()=>{ hello2(icon,{})}" 
                                 v-close-popup doesnt work :(
-                                !currentIcon || 
+                                excludeIcons works at least!!
                                 -->
                                 </div>
                                 
@@ -520,6 +521,12 @@
                                     </q-step>
                                 </q-stepper>
                             </div>
+                            
+                            <div v-if="!showGoalsArea" class="q-gutter-sm q-mx-auto">
+                               <!--<strong class="typey"><em>Goal Type:</em></strong>-->
+                             <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="main" label="Main goal" />
+                             <q-radio v-model="goalType" @click="softReset" class="q-pa-md" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="sub" label="Sub goal" />
+                            </div>
                             <div class="row justify-center q-pa-md">
                                 <q-btn
                                 class="q-mt-md"
@@ -528,7 +535,7 @@
                                 elevated
                                 label="Print"
                                 no-caps
-                                align="around"
+                                align="between"
                                 @click="doPrint"
                                 />
                                 <q-space/>
@@ -537,7 +544,7 @@
                                 color="white"
                                 text-color="red"
                                 elevated
-                                align="around"
+                                align="between"
                                 no-wrap
                                 no-caps
                                 :label="resetLabel()"
@@ -551,7 +558,7 @@
                                 color="white"
                                 text-color="red"
                                 elevated
-                                align="around"
+                                align="between"
                                 label="Import"
                                 no-caps
                                 @click="() => {showGoalsArea = true ; isImporting = true; step = 1}"
@@ -579,7 +586,7 @@ import { pGColors,hexColor } from '../util/utiFunc'
 
 export default {
     components: {
-        Vue3IconPicker //draggable
+        Vue3IconPicker
      },
     name: 'goalsPage',
     setup () {
@@ -664,7 +671,7 @@ export default {
         //})
 
         function resetLabel() {
-            return goalType.value === 'line' ? "Reset ALL" : `Reset ${goalType.value}`
+            return goalType.value === 'line' ? "Reset ALL" : `Reset ${goalType.value.toUpperCase()}`
         }
 
         function parseScore(){
@@ -860,7 +867,7 @@ export default {
                 $q.dialog({
                 title: 'Warning',
                 cancel: true,
-                message: `Reset all Parent Goals? remove subGoals as well!`
+                message: `Reset all Parent Goals? Removes subGoals as well!`
                 }).onOk(() => {
                     //store.removeMaingoal(id, false)
                     store.resetMain()
@@ -872,8 +879,10 @@ export default {
                 })
 
             } else if(goalType.value === 'sub') {
-                store.resetSub()
+                store.resetSub() //this also clears allDates...
+                reload()
                 errorNotify(`Reset Sub Goals`,'top','thumb_up','positive')
+                tab.value = "GList"  //nav to GList tab
             } else {
                 $q.dialog({
                 title: 'Warning',
@@ -892,22 +901,23 @@ export default {
         }
 
         function editSubGoal(){
-            if(updatingSubG){
+            if(updatingSubG || updatingSubG === 0){ //sheesh those ids of 0
                 store.editSubGoal(updatingSubG,goalTitle.value,score.value,time.value, duration.value,canMove.value,inDefaults.value,isAlternative.value,moods.value)
             } else{
-                errorNotify(`ERROR: No subgoalId to edit found!`)
+                errorNotify(`ERROR: No subgoalId to edit found!`+updatingSubG)
+                console.log("No subgoalId to edit?!?",updatingSubG) //prolly 0 smh
             }
         }
 
         function editAction(){ //for all edits
             let pId = pGoal.value//umm should be present...toMonitor**
             if (goalType.value ==='main') {
-                if(updatingSubG && pId?.id == updatingSubG){ //second check just in case...
+                if(pId?.id === updatingSubG){ //oldie >> updatingSubG &&  >>second check just in case(beware of 0)
                     store.editMainGoal(updatingSubG,goalTitle.value,details.value,bgcolor.value,priority.value,icon.value ?? currentIcon.value) //use selected icon as icon would be null
                     
                     expanded.value[pId?.id] = false
                 } else{
-                    console.log("Error when Edit Parent Goal...inconsistent or not found!",updatingSubG,pId)//shouldnt get here!
+                    console.log("Error when Edit Parent Goal...inconsistent or not found!",updatingSubG,pId)//shouldnt get here..prolly
                 }
             } else { //subgoal
                 if (time.value == ''){
@@ -1296,12 +1306,16 @@ export default {
             //.join('-') //have to check length for fas/fab smh
             let useFas = false
             if (a.length > 1){
-                console.log("iconParse::FAS",a) //not always smh i.e "fas fa-handshake" 'fas fa-amazon-pay' should be 'fab fa-amazon-pay' --toReview** 
+                console.log("iconParse::FAS",name, a) //not always smh i.e "fas fa-handshake" 'fas fa-amazon-pay' should be 'fab fa-amazon-pay' --toReview** 
                 useFas = true
             }
             a = a.join('-')
 
             return a.includes('regular') ? 'far fa-'+a.replace("-regular", "") : useFas ? 'fas fa-'+a : 'fab fa-'+a  // oldie >> 'fab fa-'+a  >> fab prefix tend to not show?....toReview** or use excludeIcons
+        }
+
+        function hello(data, icon){ 
+            console.log("HELLO",JSON.stringify(data),JSON.stringify(icon))
         }
 
         function hello2(value,reset){ 
@@ -1337,7 +1351,7 @@ export default {
         }
 
         return {
-            hello2,hexyColor,
+            hello2,hexyColor,hello,
             enableAdmin,step,mainGJson,subGJson,allJson, isImporting,AdminLabel,showGoalsArea,
             showSubG,
             mainGoals,
