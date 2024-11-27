@@ -235,12 +235,11 @@ export default {
     this.mobile = isMobile()
     this.loadEvts()
     this.constructTree()
-    this.dayNotifData()
   },
-  //mounted() {
-  //  let a = this.store.getAllDates
-  //  console.log(`mounted`,JSON.stringify(a))
-  //},
+  mounted() {
+    console.log(`mounted`) //JSON.stringify(a)
+    this.dayNotifData() //do here to not affect loading
+  },
   //mounted() {
   //  console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
     //NotifActions.addListeners()//.then((res)=>{
@@ -446,9 +445,9 @@ export default {
                   delete this.todayEvts[id]
                   skipd.push(mGoals.get(parseInt(id))?.title ?? "") 
                   console.log(`dayNotifData::deleteSkipped>> `+id,JSON.stringify(skipd))
-                 }else{
+                }else{
                   console.log(`dayNotifData::Skipped NOT FOUND?!? `+id,JSON.stringify(skipd))
-                 }
+                }
               }
               //// save 
               this.store.saveDailySchedule(this.currentDate,this.todayEvts)
@@ -549,11 +548,11 @@ export default {
 
             if(Object.keys(this.todayEvts).length < 1 && (started.length > 0 || ended.length > 0 )){
               console.log("ERROR::getStartEndTimes >>storage mismatch--CLEARING KEYS!!")
-              NotifActions.clearStoreKey({key:"start"}).then((res)=>{ //clear keys...not whole storage //clearStorage
+              NotifActions.clearStoreKey({key:"start",ids:[]}).then((res)=>{ //clear keys...not whole storage //clearStorage
                 console.log("dayNotifData::clearStoreKey>>Start",JSON.stringify(res))
               }).then(()=>{//umm shouldnt put above?!?
                 console.log("dayNotifData::clearStoreKey>>End")
-                NotifActions.clearStoreKey({key:"end"})
+                NotifActions.clearStoreKey({key:"end",ids:[]})
               })
               return
             }
@@ -594,9 +593,10 @@ export default {
 
                   startIDs.push(inStart.id)
                   endIDs.push(inEnd.id)
+                  
                 }else if(inStart){ //got start but not end?
                   //just check start and leave rest as is...prolly
-                  console.log(`dayNotifData::getStartEndTimes::Evt only IN START?!? `+key,JSON.stringify(inStart),inEnd)
+                  console.log(`dayNotifData::getStartEndTimes::Evt only IN START?!? `+key,JSON.stringify(inStart))
                   //startIDs.push(inStart.id) //prolly no erase yet as could be ongoing?!? Or never got the end notif for any reason....toReview**
                 }else if(inEnd){ //got end but not start?
                   //so check if later than scheduled end--should add duration difference 
