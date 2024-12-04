@@ -31,8 +31,9 @@ Goals are defined in my own way of course and they usually have some subgoals (t
 * [x] Note/score can be updated after event is complete and shown via timeline in Summary view
 * [x] Balance penalty when removing event with a choice of alternative events as replacement. Choice to use balance when scheduling a new event 
 * [x] Week view calendar
-* [x] Summary view for a unified month total per goal
+* [x] Summary view for a unified monthly tracking of total scheduled hours per goal
 * [x] Admin tool to edit goals, import raw json text data, reset data 
+* [x] Local notifications for browser AND android! 
 
 
 ### Now! And Next...
@@ -40,7 +41,7 @@ Goals are defined in my own way of course and they usually have some subgoals (t
 The working app, hosted via github pages, is [here](https://fmcyamwe.github.io/gplanner/).
 The minified production code was put into a different [repo](https://github.com/fmcyamwe/gplanner) while I was exploring ways to deploy the app with minimal cost--Thank you Github!
 
-I would like to add local notifications for Android to allow more scheduling capability in case an event drags on longer (or shorter and move on to the next scheduled event). A definite todo also is using a central database as each device (and browser) keeps a local copy of the data for now, which defeats the purpose of the summary tracking for all goals :D 
+Local notifications to alert for upcoming or end of a scheduled event, and in Android, a capability for reminders,skipping or add minutes in case an event drags on longer. I would like to add functionality of using a central database as currently each device (and browser) keeps a local copy of the data, which defeats the purpose of the summary tracking for all goals :D 
 
 All in due time... now on to set some goals and use this thing to grow!!!
 
