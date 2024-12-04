@@ -176,12 +176,12 @@
                 </div>
               </template>
             
-              <template v-slot:separator v-if="!mobile"><!--huh suprised v-if works-->
+              <template v-slot:separator v-if="!mobile">
                   <q-avatar color="primary" class="q-px-md" text-color="white" size="40px" icon="drag_indicator" style="position: relative; top: 70%;"/> <!--nudge this down by 70 percent...huh-->
               </template>
               <!--<q-avatar v-if="mobile" color="primary" class="q-px-md" text-color="white" size="40px" icon="legend_toggle || question_mark" style="position: relative; top: 70%;"/>-->
               
-              <template v-slot:after><!-- Calendar and dialogs...-->
+              <template v-slot:after><!-- Calendar and dialogs...  @click.prevent="() => {console.log('nope dont work') }"-->
                 <div class="q-pa-md relative-position forMobile"><!--q-pa-md relative-position style="height: 280px; max-height: 80vh"  "[18, 18]"-->
                   <q-page-sticky position="top-left" :offset="fabPos">
                   <!--<Transition name="bounce"> -->
@@ -196,16 +196,11 @@
                     :disable="draggingFab"
                     v-touch-pan.prevent.mouse="moveFab"
                   />
-                  <!--</Transition><q-fab></q-fab> use q-fab? also make first qCard show faster?  
-                  :color="saveScheduleDisabled ? 'primary' : 'yellow'"
-                  class="absolute-top-left q-mx-md unsavedu"
-                  
-                  -->
+
                   <q-card
                     v-morph:card1:mygroup:500.tween="morphGroupModel"
                     class="q-ma-md bg-grey"
-                    style="width: 59%; border-top-left-radius: 2em"
-                  ><!--absolute-top-left-->
+                    style="width: 59%; border-top-left-radius: 2em">
                     
                     <scheduleDayLabel
                     :doShow="treeGoals.length > 0"
@@ -234,19 +229,18 @@
                       @click.prevent="() => {doSaveSchedule(); morphClose() }"
                       />
                     </q-card-actions>
-                   
                   </q-card>
+
                   <q-card
                     v-morph:card2:mygroup:500.tween="morphGroupModel"
                     class="q-ma-xs"
-                    style="width: fit-content; border-top-left-radius: 2em"
-                  >
-                    <!--absolute-top-left -->
-
+                    style="width: fit-content; border-top-left-radius: 2em"><!--absolute-top-left -->
+                    
                     <div class="text-center text-subtitle2 q-ma-sm">
                       Reload By
                     </div>
                     <q-separator color="red" inset/>
+                    
                     <div class="q-ma-xs">  
                       <actionBtns
                         :scoreOptions="scoreOptions"
@@ -274,13 +268,89 @@
                       />
                     </div>
                   
-                    <q-card-actions align="right">
+                    <q-card-actions align="around">
+                      <q-btn flat no-caps no-wrap align="between" class="q-mx-xs" @click="prevMorph"> &lt; Prev </q-btn>
+                      <q-btn elevated push @click="nextMorph" no-caps no-wrap align="between" class="q-mx-xs">Tree &gt;</q-btn>
+                    </q-card-actions>
+                  </q-card>
+                  <q-card
+                    v-morph:tree:mygroup:500.tween="morphGroupModel"
+                    class="q-ma-xs"
+                    style="width: fit-content; border-top-left-radius: 2em"
+                    ><!--toSee width-->
+                    <div class="q-ma-auto column">
+                      <q-item-label overline header lines="3">
+                        Expand & Drag to schedule
+                      </q-item-label>
+                      <q-separator inset style="background-color:#4272db;"/><!--color="#4272db"-->
+                      <!--<treeLegend
+                      :main-goals="daSchedule.allPGoals()"
+                      :sub-goals="daSchedule.getSubGoals()"
+                      />-->
+                      <q-tree
+                      :nodes="treeGoals"
+                      node-key="label"
+                      :filter="filterString"
+                      :filter-method="myFilterMethod"
+                      v-model:expanded="expanded"
+                      no-connectors
+                      accordion
+                      dense
+                      class="q-px-sm boxy"
+                      ><!-- umm no need for filter methods? 
+                      children-key="id"-->
+                        <template v-slot:default-header="prop">
+                          <div :class="classyColor(prop.node)">
+                            <q-icon v-if="!prop.node.isChildren" :name="prop.expanded ? 'expand_less' : 'expand_more'" size="28px" right/>
+                            <div class="q-mr-sm text-weight-bold" size="28px">{{ prop.node.label }}</div>
+                            <q-icon :name="prop.node.icon" />
+                          </div>
+                        </template>
+                        <template v-slot:default-body="prop">
+                          <div v-if="prop.node.isChildren"
+                            :draggable="true"
+                            style="cursor: grab;"
+                            @touchstart="(e) => onTouchHStart(e, 'tree-item',prop.node)"
+                            @touchmove="(e) => onTouchHEvt(e,prop.node)"
+                            @touchend="(e) => onTouchHEvt(e,prop.node)"
+                            class="q-px-sm"
+                          ><!-- v-touch-repeat:0:300:200="handleRepeat"  >>think prevents touchEnd from firing...
+                         should use touch-repeat instead of touchStart?!? >>nope still needed as dont fire UNLESS add capture...huh
+                         bon seems hard to get touchend...cause of capture? >>no change but maybe cause of scroll? no idea 
+                         >>reverting to touchStart esti and it works!! was first issue cause of .stop?(BEWARE shorthand for stopPropagation) smh
+                         seems easier to select last node?!? hard to select first ones >>yup!! 
+                           see with unfurling { scope: { node } } >>nope craps out smh
+                         is it cause of key? or increase span? or use touch-hold?!? smh
+                          with prop.ticked >> no change
+                          with touchy class for touch-action?(nah disables touch in browser smh)
+                          using touch-hold >>leads to same issue of touchEnd not firing smh 
+                             v-touch-hold:200:20:15="(e) => handleRepeat(e, 'tree-item',prop.node)"
+                         
+                          v-touch-repeat:0:300.keyCapture="(e) => handleRepeat(e, 'tree-item',prop.node)" >>better but touchEnd issue still
+                          v-touch-repeat:0:300:200.mouse.enter.space.72.104="handleRepeat"
+
+                          should close after drag  {onTouchHEvt(e, prop.node); morphClose()}
+                          @dragstart.stop="(e) => onDragStart(e, 'tree-item', prop.node)" >>doesnt fire in mobile
+                          @touchstart="(e) => onTouchHStart(e, 'tree-item',prop.node)"
+                          -->
+                            <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
+                            <q-tooltip v-if="prop.node.moods.length > 0">{{ "Moods::> " +prop.node.moods.join(',') }}</q-tooltip>
+                          </div>
+                          <span v-else class="text-weight-light text-black" >{{ prop.node.details }}</span>
+                        </template>
+                      </q-tree>
+                    </div>
+                    
+                    <q-separator color="primary" inset/>
+
+                    <q-card-actions align="around">
                       <q-btn flat no-caps no-wrap @click="prevMorph"> &lt; Prev </q-btn>
                       <q-btn flat label="Close" no-caps no-wrap @click="nextMorph" />
                     </q-card-actions>
                   </q-card>
                   </q-page-sticky>
                 </div>
+
                   <navigation-bar
                   @today="onToday"
                   @prev="onPrev"
@@ -525,9 +595,10 @@ components: {
   daInstructions: defineAsyncComponent(() => import('../../components/planner/instructions.vue')),
   schedBtn: defineAsyncComponent(() => import('../../components/planner/schedBtn.vue')),
   schedDialog: defineAsyncComponent(() => import('../../components/planner/schedDialog.vue')),
-  mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/onScoreEditDialog.vue')),
+  mobileNoteScore: defineAsyncComponent(() => import('../../components/planner/mobileScoreEditDialog.vue')),
   actionBtns: defineAsyncComponent(() => import('../../components/planner/actionBtns.vue')),
-  scheduleDayLabel: defineAsyncComponent(() => import('../../components/planner/dayLabels.vue'))
+  scheduleDayLabel: defineAsyncComponent(() => import('../../components/planner/dayLabels.vue')),
+  //treeLegend: defineAsyncComponent(() => import('../../components/planner/legendTree.vue')),
 },
 data () {
   //let possibleRange = null //for adhoc scheduling...keep track of selected time range
@@ -562,14 +633,21 @@ data () {
     treeGoals:ref([]), 
     expanded:ref([]), //to hold expanding pGoal nodes...
     possibleRange:null, ////for adhoc scheduling...keep track of selected time range >>moved here smh
-    filter : ref([]),
-    filterRef : ref(null),
+    filter: ref([]),
+    filterRef: ref(null),
     //matchingMoodNodes : ref(0), //for filtered nodes...meh hard to reset...
 
-    nextMorphStep : ref({
+    nextMorphStep: ref({
       btn: 'card1',
       card1: 'card2',
-      card2: 'btn'
+      card2: 'tree',
+      tree: 'btn'
+    }),
+    prevMorphStep: ref({ //reverse of nextMorphStep
+      card1: 'btn',
+      card2: 'card1',
+      tree: 'card2'
+      //tree: 'btn' //no need prolly
     }),
     morphGroupModel: ref('btn'),
     draggingFab:ref(false),
@@ -605,14 +683,29 @@ mounted() {
     this.adjustCurrentTime()
   }, 60000)
 
-  NotifActions.addListener("pauseReceived",()=> {
+  this.mobile ? NotifActions.addListener("pauseReceived",()=> {
       //console.log(`altDayCalendar::listener work?`) //huh straight invoke of baseclass works!
       this.daSchedule.scheduleLater() //umm not doing work twice with unmount? >> meh unmount doesnt run on pause
-    })
+    }) : console.log(`altDayCalendar::Not registering listener as mobile: `+this.mobile)
+
+  //document.addEventListener("click",(ev)=> { //just to close that fab esti...works for click but not proper everywhere...
+  //    console.log(`click::WOAH`,ev)
+  //    this.morphClose()
+  //// "dblclick" >> only for pointers and not touch for mobile smh
+  //})
+
+  //bon this def bad and would need to be unregistered/registered when interacting with fabBtn >>fired first!!
+  //umm maybe add it when interacting with fab?!? toTry**
+  //OR try custom event thrown when interacting?!? >>prolly better.
+  //OR stop propagation when target aint fabBtn && calc that in use?!? 
+  //document.addEventListener("touchstart",(ev)=> {
+  //  console.log(`touchstart::WOAH`,ev)
+  //  this.morphClose()
+  //})
 },
 unmounted(){
   //console.log(`altDayCalendar::unmounted NOW >> removinnn listeners`)
-  NotifActions.removeAllListeners() 
+  this.mobile ? NotifActions.removeAllListeners() : ""
   //do get it on weekView when not removed!!
 },
 beforeUnmount() {
@@ -790,17 +883,6 @@ computed: {
   },
 },
 methods:{
-  dismissy() { //huh seems to run when notif is shown?!? cause of const? //redundant as doesnt hide notif smh
-    //dismiss() //huh works same as below
-    
-    //this.$q.notify({ //these below are used for grouping
-    //  position: 'top',
-    //  message: '',
-    //  multiLine: true,
-      //caption: '',
-      //actions:
-    //})
-  },
   moveFab (ev) {
     //console.log("moveFab...",ev,this.draggingFab,this.fabPos)
     this.draggingFab = ev.isFirst !== true && ev.isFinal !== true
@@ -811,13 +893,14 @@ methods:{
       ]
   },
   prevMorph(){
-    this.morphGroupModel = this.nextMorphStep['btn'] //works!
+    //this.morphGroupModel = this.nextMorphStep['btn'] //works!
+    this.morphGroupModel = this.prevMorphStep[ this.morphGroupModel] //toSee
   },
   nextMorph() {
     this.morphGroupModel = this.nextMorphStep[ this.morphGroupModel]
   },
-  morphClose() { //after actionBtn click >> should be same as using >> this.morphGroupModel
-    this.morphGroupModel = this.nextMorphStep['card2']
+  morphClose() {
+    this.morphGroupModel = this.nextMorphStep['tree']
   },
   showEvtMobile(id){
     return this.daSchedule.showEvtNoteScoreMobile(id)
@@ -1598,11 +1681,11 @@ methods:{
 
     let mess = `Schedule saved for ${this.currentDate}`
     noTimes ? mess+= ` \nExcept for ${noTimes} without time!` : ''
-    this.doNotify(mess, noTimes ? "info" : "positive")
+    //this.doNotify(mess, noTimes ? "info" : "positive")
     //this.$q.notify({}) //just to hide it faster esti>>meh weird notif in bottom
-    
-    //this.dismissy() //prolly this one?
-
+    //this.$q.notify() //or this?!? >>nope error with parameter requiered
+    this.$q.notify(mess) //'Delete action triggered for:'+id
+    //this.$q.notify({}) //hide faster after above? nope empty notif in bottom smh ...
     this.resetFilter() //meh
   },
   addNewToSchedule(targetDrop, item){
@@ -3362,14 +3445,14 @@ methods:{
      // return current
     //}else{console.log('ERROR ERROR getHighestScoreInterval::No current set?',highest, current,evts)} //shouldnt happen!!--toMonitor**
   },
-  expandAll(){ //bof dont work...
+  /*expandAll(){ //bof dont work...
     //console.log("expandAll",this.treeGoals)
     
     for (let e of this.treeGoals) {
       //console.log("expandAll",e)
       this.expanded[e.label] = true
     }
-  },
+  },*/
   getSmallestScoreInterval(evts){
     let lowScore = 9  //upper start..shouldnt be higher than this
     let current = null
@@ -3687,136 +3770,6 @@ methods:{
     let timey = parseDate(new Date())
     this.scrollToTime(timey,'slow')
   },
-  onDragStart(e, type, item) {
-    //console.log('onDragStart',e,type, item)
-    //this.doLog('onDragStart '+type, item) 
-    if(this.isViewingPast() && type != 'tree-item'){ // allowing tree-items add in past? toReview**
-      this.doNotifyCaption("Editing past is a no no!","Use Drag & Drop from Tree or manually add Evts") //oldie >> doNotify
-      e.preventDefault()
-      return
-    }
-
-    if(type == 'tree-item'){
-      let it = this.daSchedule.getSubGoalByID(item.id)
-      //console.log('onDragyStart::TreeItem '+type, JSON.parse(JSON.stringify(item)),JSON.parse(JSON.stringify(it))) //this.doLog
-      this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
-      return
-    }
-
-    //keep track of moved...
-    this.selectedItem = {evt:item, type:type}
-   
-  },
-  //onDragHEnter(e, type, scope){ //scope is undefined
-  //  console.log('onDragHEnter',e.target, e.timestamp, type)
-  //},
-  onDragEnter(e, type, scope){
-    //console.log('onDragEnter',e, type, scope)
-    if(type === 'goal-item'){
-      //console.log('onDragEnter..goal-item',e, scope) 
-      // scope is undefined here hence saving it below
-      e.preventDefault()
-    } else {
-      //ABSO necessary to save this as it's the last position before potential overlap with goal-item!
-      //but not precise enough
-
-      //console.log('onDragEnter...calendar')//, e, type, scope) //e,type,scope
-      if(this.targetDrop && this.targetDrop.timestamp.time == scope.timestamp.time){
-        console.log('onDragEnter...calendar,SAME',this.targetDrop.timestamp.time)//prolly nothing...should return?
-      }else{
-        let target = e.target
-        //console.log('onDragEnter>>TARGET',this.targetDrop?.timestamp?.time,scope.timestamp.time,this.selectedItem)//,target.style,target)
-        //if(this.selectedItem.bgcolor.includes("-")){ target.classList.add(`bg-${this.selectedItem.bgcolor?.toLocaleLowerCase()}`) } else{ target.style.background = this.selectedItem.bgcolor }
-        //target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //'bg-'+this.selectedItem.bgcolor >>doesnt work for style >>does as css class! above line works but passed over intervals keep color and removing from classlist would be hassle...
-        let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
-        target.style.background = hexColor(color) //color.includes("-") ? 'grey' : color
-        this.lastTarget = target
-      }
-    
-      this.targetDrop = scope
-      e.preventDefault()
-    }
-    return true
-  },
-  //onDragHOver(e, type, scope){ //fires lot too...scope is undefined
-   // console.log('onDragHOver', type,e.target, e.timestamp)
-   // e.preventDefault() //to allow drop
-   // return true
-  //},
-  onDragOver(e, type, scope){ //fires lot
-    //console.log('onDragOver',e, type, scope)
-    e.preventDefault() //to allow drop
-    return true
-  },
-  onDragLeave(e, type, scope){
-    //console.log('onDragLeave',e, type, scope)
-    //console.log('onDragLeave',this.targetDrop?.timestamp?.time,this.selectedItem.color)//,e, type, scope)
-    let target = e.target
-    //console.log('onDragLeave',this.targetDrop?.timestamp?.time,target.style.background)//,target.style,target)
-    target.style.background = ''
-    //remove("my-header-drag")
-
-    return false  //what if true?!? >>methink false in order to preventDefault and not handled by browser...
-  },
-  //onDragHEnd(e){
-  //  console.log('onDragHEnd',e.target, e.timestamp)
-  //},
-  onDragEnd(e){//umm can use to do cleanup maybe?>>meh done in doCleanup()
-    //console.log('onDragEnd',this.lastTarget)//.style.background)
-    
-    //e.preventDefault() //bof nope
-    //return true //meh
-  },
-  //onHDrop(e, type, scope){ //never get triggered...makes sense?!? removed from div even
-  //  console.log('onHDrop',e, type, scope)
-  //},
-  onDrop(e, type, scope){
-    //console.log('onDrop',e, type, scope)
-
-    //below redundant when dragging from treeLegend
-    //let d = this.daSchedule.findSchedEvent(this.selectedItem.id)
-    //if (!d) {console.log("onDrop ERROR", d,this.selectedItem ); return}
-
-    let targetTimey = null
-
-    if (type === 'interval') {
-      //console.log("onDrop to time-interval", scope.timestamp.time,draggy.title.trim(),draggy.time)
-      targetTimey = scope.timestamp
-    } else {
-      if(type === 'goal-item' && this.targetDrop){ //check targetDrop in case didnt drag much and still in same spot
-        //console.log("Dropping goal-item!!", type, this.targetDrop.timestamp) //,e, //scope is undefined here
-        targetTimey = this.targetDrop.timestamp
-      } else {
-        console.log("Cannot drop here YO!!",e, type, scope, this.targetDrop) //shouldnt happen? >>could if dropping too high in header as if going to prev/next day
-        return
-      }
-    }
-
-    if (!targetTimey) {console.log("ERROR...no timestamp YO!!",e, type, scope, this.targetDrop); return}
-    
-    this.doDroppy(targetTimey, this.selectedItem) 
-
-  },
-  onClickTime(data){
-    //console.log('onClickTime',data)
-
-    //save the data to use later when checking that it can be scheduled!
-    this.targetDrop = data.scope
-
-    this.showEvtDialog = true  //show dialog for adHoc or selectEvt
-  },
-  onClickDate(data){ //redundant--toRemove**
-      console.log('onClickDate',data)
-  },
-  onClickInterval (data){ //redundant--toRemove**
-      console.log('onClickInterval',data)
-  },
-  onClickHeadIntervals(data){ //same as above
-      console.log('onClickHeadIntervals',data)
-  },
-  onClickHeadDay(data){ //same as above
-      console.log('onClickHeadDay',data)
-  },
   /*onMouseEnter(data) {
       console.log("onMouseAt", data)
   },
@@ -3868,6 +3821,26 @@ methods:{
       this.otherTimestamp = scope.timestamp
     }
   },
+  onClickTime(data){
+    //console.log('onClickTime',data)
+
+    //save the data to use later when checking that it can be scheduled!
+    this.targetDrop = data.scope
+
+    this.showEvtDialog = true  //show dialog for adHoc or selectEvt
+  },
+  onClickDate(data){ //redundant--toRemove**
+      console.log('onClickDate',data)
+  },
+  onClickInterval (data){ //redundant--toRemove**
+      console.log('onClickInterval',data)
+  },
+  onClickHeadIntervals(data){ //same as above
+      console.log('onClickHeadIntervals',data)
+  },
+  onClickHeadDay(data){ //same as above
+      console.log('onClickHeadDay',data)
+  },
   onDblClickEvent(e, event) {
     
     if(this.isViewingPast()){ //no dblClick in past--but just in case!
@@ -3886,16 +3859,178 @@ methods:{
     }
 
     this.removeEvtInSchedule(event,false) 
-    e.preventDefault() //to disable popupEdit...dont work smh event with using setTimeout above
+    e.preventDefault()
+  },
+  onDragStart(e, type, item) {
+    //console.log('onDragStart',e,type, item)
+    //this.doLog('onDragStart '+type, item) 
+    if(this.isViewingPast() && type != 'tree-item'){ // allowing tree-items add in past? toReview**
+      this.doNotifyCaption("Editing past is a no no!","Use Drag & Drop from Tree or manually add Evts") //oldie >> doNotify
+      e.preventDefault()
+      return
+    }
+
+    if(type == 'tree-item'){
+      let it = this.daSchedule.getSubGoalByID(item.id)
+      console.log('onDragyStart::TreeItem '+type, JSON.stringify(item),JSON.stringify(it)) //this.doLog
+      this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
+      return
+    }
+
+    //keep track of moved...
+    this.selectedItem = {evt:item, type:type}
+   
+  },
+  //onDragHEnter(e, type, scope){ //scope is undefined
+  //  console.log('onDragHEnter',e.target, e.timestamp, type)
+  //},
+  onDragEnter(e, type, scope){
+    //console.log('onDragEnter',e, type, scope)
+    if(type === 'goal-item'){
+      //console.log('onDragEnter..goal-item',e, scope) 
+      // scope is undefined here hence saving it below
+      e.preventDefault()
+    } else {
+      //ABSO necessary to save this as it's the last position before potential overlap with goal-item!
+      //but not precise enough
+
+      //console.log('onDragEnter...calendar')//, e, type, scope) //e,type,scope
+      if(this.targetDrop && this.targetDrop.timestamp.time == scope.timestamp.time){
+        console.log('onDragEnter...calendar,SAME',this.targetDrop.timestamp.time)//prolly nothing...should return?
+      }else{
+        let target = e.target
+        //console.log('onDragEnter>>TARGET',this.targetDrop?.timestamp?.time,scope.timestamp.time,this.selectedItem)//,target.style,target)
+        //if(this.selectedItem.bgcolor.includes("-")){ target.classList.add(`bg-${this.selectedItem.bgcolor?.toLocaleLowerCase()}`) } else{ target.style.background = this.selectedItem.bgcolor }
+        //target.style.background = this.selectedItem.bgcolor.includes("-") ? 'grey' : this.selectedItem.bgcolor  //'bg-'+this.selectedItem.bgcolor >>doesnt work for style >>does as css class! above line works but passed over intervals keep color and removing from classlist would be hassle...
+        let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
+        target.style.background = hexColor(color) //color.includes("-") ? 'grey' : color
+        this.lastTarget = target
+      }
+    
+      this.targetDrop = scope
+      e.preventDefault()
+    }
+    return true
+  },
+  //onDragHOver(e, type, scope){ //fires lot too...scope is undefined
+   // console.log('onDragHOver', type,e.target, e.timestamp)
+   // e.preventDefault() //to allow drop
+   // return true
+  //},
+  onDragOver(e, type, scope){ //fires lot
+    //console.log('onDragOver',e, type, scope)
+    e.preventDefault() //to allow drop
+    return true
+  },
+  onDragLeave(e, type, scope){
+    //console.log('onDragLeave',this.targetDrop?.timestamp?.time,this.selectedItem.color)//,e, type, scope)
+    let target = e.target
+    //console.log('onDragLeave',this.targetDrop?.timestamp?.time,target.style.background)//,target.style,target)
+    target.style.background = ''
+    //remove("my-header-drag")
+
+    return false  //what if true?!? >>methink false in order to preventDefault and not handled by browser...
+  },
+  //onDragHEnd(e){
+  //  console.log('onDragHEnd',e.target, e.timestamp)
+  //},
+  onDragEnd(e){//umm can use to do cleanup maybe?>>meh done in doCleanup()
+    //console.log('onDragEnd',this.lastTarget)//.style.background)
+    
+    //e.preventDefault() //bof nope
+    //return true //meh
+  },
+  //onHDrop(e, type, scope){ //never get triggered...makes sense?!? removed from div even
+  //  console.log('onHDrop',e, type, scope)
+  //},
+  onDrop(e, type, scope){
+    //console.log('onDrop',e, type, scope)
+    console.log('onDrop>> '+type) //,e, type, scope)
+    //below redundant when dragging from treeLegend
+    //let d = this.daSchedule.findSchedEvent(this.selectedItem.id)
+    //if (!d) {console.log("onDrop ERROR", d,this.selectedItem ); return}
+
+    let targetTimey = null
+
+    if (type === 'interval') {
+      //console.log("onDrop to time-interval", scope.timestamp.time,draggy.title.trim(),draggy.time)
+      targetTimey = scope.timestamp
+    } else {
+      if(type === 'goal-item' && this.targetDrop){ //check targetDrop in case didnt drag much and still in same spot
+        //console.log("Dropping goal-item!!", type, this.targetDrop.timestamp) //,e, //scope is undefined here
+        targetTimey = this.targetDrop.timestamp
+      } else {
+        console.log("Cannot drop here YO!!",e, type, scope, this.targetDrop) //shouldnt happen? >>could if dropping too high in header as if going to prev/next day
+        return
+      }
+    }
+
+    if (!targetTimey) {console.log("ERROR...no timestamp YO!!",e, type, scope, this.targetDrop); return}
+    
+    this.doDroppy(targetTimey, this.selectedItem) 
+
+  },
+  handleRepeat({ evt, ...newInfo }, type, item){ //as touch-repeat> doesnt allow touchEnd >>using as handler for touchHold
+    //if(newInfo.duration < 300){
+      //no need on first click? 
+      console.log('handleRepeat::FIRST '+type,evt.type,JSON.stringify(newInfo), item.id)
+    //  return
+    //}
+
+    //test when onTouchHStart fired first to return--see if touchEnd works? nope
+    if(evt.target.classList.contains("my-header-drag")){
+      console.log('handleRepeat::GOT-HEADER...returning')
+      return 
+    }else{
+      console.log('handleRepeat::HUH nothing?!?')
+    }
+
+    if(type == 'tree-item'){
+      let it = this.daSchedule.getSubGoalByID(item.id)
+      console.log('handleRepeat::TreeItem '+type, JSON.stringify(item),JSON.stringify(it)) //this.doLog
+      this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
+
+      //let target = document.elementFromPoint(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY)
+      //console.log('handleRepeat: '+type, evt,JSON.stringify(newInfo),item, target)
+    
+      //let target = evt.target.parentNode  //prolly on parent? >> nope complains
+      evt.target.classList.add("my-header-drag")
+      this.touchedItem = evt.target  //save to remove css class later
+
+      console.log('handleRepeat: '+type,evt.type,JSON.stringify(newInfo),this.touchedItem)
+
+      evt.preventDefault() //complains about preventDefault in passive event listener?!?
+      // huh is it cause of capture? KIIInda touchstart and touchmove passive by default in some brwsers
+      //yup in android as below works!! removing capture gives no complaint after it seems
+
+      //evt.stopPropagation() //no complaints...BUT is this causing touchend not firing?!? toSee when removed? >>no change smh
+      //return true //needed for next it seems... >>only return false is taken into acct smh
+      return
+
+    }
+
+    //so onTouchHStart fires first...
+    //then this func as holding
+    //then can move
+    //BUT no touchEnd....
+    ////umm remove onTouchHStart >>ignored attempt to cancel a touchmove error
+    //bon adding both? smh
+   
   },
   onTouchHStart(e, type, item){ //todo** use onTouchStart below....
     //console.log('onTouchHStart', e,item,e.target) 
     if(type == 'tree-item'){
       let it = this.daSchedule.getSubGoalByID(item.id)
-      console.log('onTouchHStart::TreeItem '+type, JSON.parse(JSON.stringify(item)),JSON.parse(JSON.stringify(it))) //this.doLog
+      console.log('onTouchHStart::TreeItem '+type, JSON.stringify(item),JSON.stringify(it)) //this.doLog
       this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
+
+      //below to show change...test for tree-item-
+      //-should put in touchHold perhaps?!?
+      e.target.classList.add("my-header-drag")
+      this.touchedItem = e.target  //save to remove css class later
+
       e.preventDefault()
-      return true
+      return //normal return to allow rest of touch...//true 
     }
 
     this.selectedItem = {evt:item, type:type}
@@ -3959,7 +4094,7 @@ methods:{
           let isSame = JSON.stringify(this.targetDrop) === JSON.stringify(s)
           if (isSame && changedBy == 0){
             //console.log('onTouchHEvt::touchmove>>TARGETSAME', target,s,isSame, changedBy)
-            return //add true? toSee**
+            return //true
           }
           let color = this.selectedItem.evt.bgcolor ?? this.selectedItem.evt.color
           if(!this.lastTarget){
@@ -3972,18 +4107,30 @@ methods:{
           }
         }
         this.targetDrop = s
-      }//else{
-       // console.log('onTouchHEvt::touchmove>>NOPE :(', target)
-      //}
 
-      e.preventDefault()
-      return true //
+        e.preventDefault() //just in calendar to prevent scrolling >> meh no change
+        return //true //umm better here to prevent scroll? >>nope 
+        //bon leave above here to replicate touchEvt...
+        //false for preventDefault instead of explicit invoking...
+      }//else {
+       // console.log('onTouchHEvt::touchmove>>NOPE :(', target)
+       // return
+      //}
+      return
+
+      //e.preventDefault()//umm get >> Ignored attempt to cancel a touchmove event with cancelable=false 
+      //return //see if touchend happens or need true? //true //false >>better at stopping scroll BUT no touchend afterward?
     }
+    
     if(e.type == "touchend"){
+      //console.log('onTouchHEvt::Touchend',e.defaultPrevented)
       let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
 
       //remove css class
       this.touchedItem.classList.contains("my-header-drag") ? this.touchedItem.classList.remove("my-header-drag") : console.log('onTouchHEvt::touchend>>No Header?!?',this.touchedItem)
+      
+
+      this.selectedItem?.type == 'tree-item' ? this.morphClose() : console.log('onTouchHEvt::touchend>>No need to MorphClose?!?',JSON.stringify(this.selectedItem))
 
       if(target.ariaLabel){
         let s = this.getLabelTime(target.ariaLabel)
@@ -3998,7 +4145,7 @@ methods:{
           this.doDroppy(this.targetDrop, this.selectedItem)   //should act as a drop in mobile
         }
       }
-
+     
       
       e.preventDefault()
       e.stopPropagation() //needed?@? think so or would trigger other events...prolly...toMonitor***
@@ -4006,20 +4153,8 @@ methods:{
       return
     }
 
-    console.log("onTouchHEvt::UNKNOWN",e)
+    console.log("onTouchHEvt::UNKNOWN",e.type,JSON.stringify(e))
 
-  },
-  resetDraggedItem(t){
-    if (!t){ //just in case false...
-      console.log("resetDraggedItem::ERROR::ERROR?",t)
-      return
-    }
-    let f = t.closest('.my-event')
-    if (f.classList.contains("my-event-drag")) {
-      f.classList.toggle("my-event-drag")
-      //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
-    }//else{console.log("onTouchEvt::resetClass...AINT THERE!"+e.type,f,t)}
-    return
   },
   onTouchEvt(e, item){
     //console.log('onTouchEvt', e,item)
@@ -4079,6 +4214,7 @@ methods:{
       //e.preventDefault()
       return //true? tbd**
     }
+
     if(e.type == "touchend"){  
       
       let target = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
@@ -4128,28 +4264,6 @@ methods:{
     }
     console.log("onTouchEvt::UNKNOWN",e) //shouldnt happen!!
   },
-  getLabelTime(ariaLabel){
-    let str = ariaLabel.split(' ')
-    let tr = str[str.length-2] //12:30
-    let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-
-    if(str[str.length-1] == 'PM'){ //for adding 12hrs to account when time is in PM 
-      //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
-      if (s.hour == 12){//EXCEPT for noon!
-        //console.log("getTimeyyyyy:",s)
-        return s
-      }
-        
-      return addToDate(parsed(this.currentDate), { hour: 12, minute: parseTime(tr)})
-    }else {
-      if (s.hour == 12){////reset to 0 for midnight hour smh
-        //let r = addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) }) 
-        //console.log("getTimeyyyyy:",parseTime(tr),s,r)
-        return addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) })  //r
-      }
-    }
-    return s
-  },
   onTouchHold({ evt, ...newInfo }, item){ //mobile onScore edit...
     //console.log('onTouchHold', evt,newInfo,item)
     
@@ -4194,6 +4308,46 @@ methods:{
       //console.log("onTouchHold::dblClicking!",this.daSchedule.showEvtNoteScoreMobile(item.id))
       this.onDblClickEvent(evt,item)
     }
+  },
+  /*onTouchyHold({ evt, ...newInfo }, item){
+    //console.log('onTouchyHold', evt,newInfo,item)
+    let target = document.elementFromPoint(evt.changedTouches[0].clientX, evt.changedTouches[0].clientY)
+    console.log('onTouchyHold', evt,newInfo,item, target)
+  },*/
+
+  resetDraggedItem(t){
+    if (!t){ //just in case false...
+      console.log("resetDraggedItem::ERROR::ERROR?",t)
+      return
+    }
+    let f = t.closest('.my-event')
+    if (f.classList.contains("my-event-drag")) {
+      f.classList.toggle("my-event-drag")
+      //console.log("handleTouchEvt::resetClass>>REMOVED",f,t)
+    }//else{console.log("onTouchEvt::resetClass...AINT THERE!"+e.type,f,t)}
+    return
+  },
+  getLabelTime(ariaLabel){
+    let str = ariaLabel.split(' ')
+    let tr = str[str.length-2] //12:30
+    let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+
+    if(str[str.length-1] == 'PM'){ //for adding 12hrs to account when time is in PM 
+      //let s = addToDate(parsed(this.currentDate), { minute: parseTime(tr) })
+      if (s.hour == 12){//EXCEPT for noon!
+        //console.log("getTimeyyyyy:",s)
+        return s
+      }
+        
+      return addToDate(parsed(this.currentDate), { hour: 12, minute: parseTime(tr)})
+    }else {
+      if (s.hour == 12){////reset to 0 for midnight hour smh
+        //let r = addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) }) 
+        //console.log("getTimeyyyyy:",parseTime(tr),s,r)
+        return addToDate(parsed(this.currentDate), { hour: -12, minute: parseTime(tr) })  //r
+      }
+    }
+    return s
   },
   scrollToEvent (event) {
       this.$refs.calendar.scrollToTime(event.time, 350)  //umm try to go a lil up? toReview**
@@ -4534,6 +4688,9 @@ methods:{
   border: 2px solid #888
   border: rgba(0, 0, 255, .5) 2px solid
 
+.touchy_Baad-disables-Browser
+  touch-action: manipulation
+
 .labely
   overflow-wrap: break-word
   text-emphasis: sesame #f32937
@@ -4599,6 +4756,7 @@ methods:{
 @media (max-width: 500px)
   .instru
     display: none
+
   .forMobile
     display: block
     z-index: 9

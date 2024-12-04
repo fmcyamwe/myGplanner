@@ -538,6 +538,7 @@ export const useGoalStore = defineStore('allGoals', () => {
                     details: mess,//.join('\n'), //oldie >> `${when(subG[i]?.time)} for ${subG[i]?.duration} mins :: ${def}~${cM}~${alt}`,
                     color:`${goal?.bgcolor}`,
                     isChildren:true,
+                    selectable:true, //see if easier for drag&drop 
                     moods: subG[i].jeSuis || []
                 })
             }

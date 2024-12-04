@@ -29,7 +29,7 @@
                 no-active-date
                 :interval-minutes="15"
                 :interval-count="96"
-                :interval-height="mostEvts * 3"
+                :interval-height="28"
                 @change="onChange"
                 @click-head-day="onClickHeadDay"
                 ><!--redundant handlers
@@ -39,7 +39,8 @@
                 @click-time="onClickTime"
                 interval-minutes  > 30 
                 interval-count >48 
-                :column-count="3" >>nah same day
+                :column-count="3" >>nah same day repeated
+                :interval-height="mostEvts * 3"  >>see with set height
                 -->
                 <template #head-day-event="{ scope: { timestamp } }">
                   <div style="display: flex; justify-content: center; flex-wrap: wrap; padding: 2px;">
@@ -668,7 +669,7 @@ export default {
       
       const events = this.eventsMap[ dt ] || []
 
-      //console.log(`getEvents ${dt}`,events.length)
+      console.log(`getEvents ${dt}`,events.length) //how often this gets called? >>too much!!
 
       if (events.length === 1) {
         events[ 0 ].side = 'full'

@@ -576,12 +576,12 @@
 </template>
 <script>
 //import draggable from 'vuedraggable'
-import { computed, ref, onBeforeMount, onBeforeUnmount, watchEffect } from 'vue'  //nextTick, onMounted
+import { computed, ref, onBeforeMount, watchEffect } from 'vue'  //nextTick, onMounted
 import { useGoalStore } from 'stores/goalStorage'  //@stores? >>not needed
 import { useQuasar } from 'quasar'
 import { pGColors,hexColor } from '../util/utiFunc'
- import { Vue3IconPicker } from 'vue3-icon-picker' //can import Icon  to use and show the selected icon OR parse the name first as done at goalStorage level smh
- import 'vue3-icon-picker/dist/style.css'
+import { Vue3IconPicker } from 'vue3-icon-picker'
+import 'vue3-icon-picker/dist/style.css'
 
 
 export default {

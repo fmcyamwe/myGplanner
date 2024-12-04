@@ -78,7 +78,19 @@ export default class daySchedule {
     allPGoals (){
       return Repo.allParentGoals()
     }
-
+    fetchGoalsTree(){
+      return Repo.constructTree()
+    }
+    getCurrentBalance(){
+      //console.log('getCurrentBalance')
+      return Repo.currentBalance()
+    }
+    getAllPrio(){
+      return Repo.allPriorities()  //[1,2,3]//no need to do same for score Intervals
+    }
+    getSubGoals(){
+      return Repo.allSubGoals()  //deepCopy?--done when retrieved from storage tho...toReview**
+    }
     getAllEvts(){ //even those with no time
       return this._dailyScheduled
     }
@@ -177,19 +189,6 @@ export default class daySchedule {
       let diff = (hasEvts && Object.keys(hasEvts).length != this._dailyScheduled.size && !this.dayWithDeleted) ?? false //not too much?!? >>wrong eval caused by deleted goals so this._dailyScheduled.size != rawSaved smdh >>also need nullish ?? when no schedule
      // console.log("daySchedule::hasUnsavedChanges", this._dailyScheduled.size,this.unsavedChanges,diff,this.dayWithDeleted) //Object.keys(hasEvts).length ?? 100
       return this.unsavedChanges || diff //(cS && Object.keys(cS).length != this._dailyScheduled.size) //was prolly wrong >>(this.savedRawEvts && Object.keys(this.savedRawEvts).length != this._dailyScheduled.size)
-    }
-    fetchGoalsTree(){
-      return Repo.constructTree()
-    }
-    getCurrentBalance(){
-      //console.log('getCurrentBalance')
-      return Repo.currentBalance()
-    }
-    getAllPrio(){
-      return Repo.allPriorities()  //[1,2,3]//no need to do same for score Intervals
-    }
-    getSubGoals(){
-      return Repo.allSubGoals()  //deepCopy?--done when retrieved from storage tho...toReview**
     }
     getCurrentMoods(){
       return this.usingMoods

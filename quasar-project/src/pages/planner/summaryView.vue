@@ -258,43 +258,18 @@ export default defineComponent({
       //slide: ref('style'), //carousel test
     }
   },
-  computed: {
-    /**
-    * Returns tasks between startDate and endDate (captured via onChange event)
-    */
-    parsedTasks () {
-      const start = parsed(this.startDate)
-      const end = parsed(this.endDate)
-      const tasks = []
-  
-        for (let i = 0; i < this.tasks.length; ++i) {
-          const task = this.tasks[ i ]
-          for (let j = 0; j < task.logged.length; ++j) {
-            const loggedTimestamp = parsed(task.logged[ j ].date)
-            if (isBetweenDates(loggedTimestamp, start, end)) {
-              tasks.push(task)
-              break
-            }
-          }
-        }
-  
-        return tasks
-      },
-      getViewedMonth(){
-        return `Goaly in ${this.selectedMonth}`
-      },
-    },
-    /*mounted() { ////to scroll to current date...no bueno :(
+
+  /*mounted() { ////to scroll to current date...no bueno :(
       
-      //console.log("weeee mounted...")
-      //toTry** see if could with below
-        //const now = parseDate(new Date())
-        //this.currentDate = now.date 
-        //this.currentTime = now.time //'00:52'
-        //this.timeStartPos = this.$refs?.calendar?.timeStartPos(now.time, false)  
+    //console.log("weeee mounted...")
+    //toTry** see if could with below
+    //const now = parseDate(new Date())
+    //this.currentTime = now.time //'00:52'
+    //this.currentDate = now.date 
+    //this.timeStartPos = this.$refs?.calendar?.timeStartPos(now.time, false)  
       
-    },*/
-    beforeMount () {
+  },*/
+  beforeMount () {
       // adjust all the dates for the current month
       //const date = new Date()
       //const year = date.getFullYear()
@@ -332,8 +307,16 @@ export default defineComponent({
               map[task.key] = [] //map[logged.date] = []
               this.panel = task.key
             }
-            //map[logged.date].push({ k: task.key, note: logged.notes, score:logged.atScore})
+
             map[task.key].push({ on: logged.date, note: logged.notes, score:logged.atScore,title:task.title,color:color})
+
+            //craps out when doing check below...huh should NOT add them at storage level then?!?
+            /*if(logged.notes !== void 0 || logged.atScore !== void 0){ //umm add>> &logged.notes !== ''
+              //map[logged.date].push({ k: task.key, note: logged.notes, score:logged.atScore})
+              map[task.key].push({ on: logged.date, note: logged.notes, score:logged.atScore,title:task.title,color:color})
+            }else{ //just to not show empty stuff
+              console.log("updateTask:: isChild NO Note or score: "+task.key,task.title,logged.date,logged.notes,logged.atScore)
+            }*/
           }
         })
       }
@@ -351,23 +334,49 @@ export default defineComponent({
       this.daOptions = map  //should make sure dates are sorted--todo
       
       this.constructTree()
-    },
-    methods: {
-      getLogged (date, logged, extra = null) {  //extra for scope.task.title..just for logging below but prolly redundant!
-        const val = []
-        if (logged.length == 0){
-          console.log("ERROR...Empty getLogged?!?", date, extra) //just in case as should be caught at storage level
-          return val
-        }
-        for (let index = 0; index < logged.length; ++index) {
-          if (logged[ index ].date === date) {
-            val.push({ logged: logged[ index ].logged })
-            break
+  },
+  computed: {
+    /**
+    * Returns tasks between startDate and endDate (captured via onChange event)
+    */
+    parsedTasks () {
+      const start = parsed(this.startDate)
+      const end = parsed(this.endDate)
+      const tasks = []
+  
+        for (let i = 0; i < this.tasks.length; ++i) {
+          const task = this.tasks[ i ]
+          for (let j = 0; j < task.logged.length; ++j) {
+            const loggedTimestamp = parsed(task.logged[ j ].date)
+            if (isBetweenDates(loggedTimestamp, start, end)) {
+              tasks.push(task)
+              break
+            }
           }
         }
-        //console.log("getLogged",val, extra)
-        return val
+  
+        return tasks
       },
+      getViewedMonth(){
+        return `Goaly in ${this.selectedMonth}`
+      },
+  },
+  methods: {
+    getLogged (date, logged, extra = null) {  //extra for scope.task.title..just for logging below but prolly redundant!
+      const val = []
+      if (logged.length == 0){
+        console.log("ERROR...Empty getLogged?!?", date, extra) //just in case as should be caught at storage level
+        return val
+      }
+      for (let index = 0; index < logged.length; ++index) {
+        if (logged[ index ].date === date) {
+          val.push({ logged: logged[ index ].logged })
+          break
+        }
+      }
+      //console.log("getLogged",val, extra)
+      return val
+    },
       classyColor(proppy){//bg-{color} or text-{color} in class
         return `row items-center ${proppy.isChildren ? 'text-' : 'text-white bg-'}${proppy.color} `  //oldie >> bg-${proppy.color}
       },
@@ -524,7 +533,7 @@ export default defineComponent({
       onClickHeadDay (data) {
         console.log('onClickHeadDay', data)
       }
-    }
+  }
   })
 </script>
 <style lang="sass" scoped>
