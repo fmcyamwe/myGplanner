@@ -240,6 +240,7 @@ export default {
   mounted() {
     console.log(`mounted`) //JSON.stringify(a)
     this.dayNotifData() //do here to not affect loading
+    //this.scrollToCurrent() //instead of having to scroll down esti but dont work :(
   },
   //mounted() {
   //  console.log(`mounted`)//,JSON.parse(JSON.stringify(this.treeGoals)))
@@ -458,9 +459,11 @@ export default {
                   color: 'warning',
                   position: 'top',
                   message:  `'${title}' Was Skipped!`,
-                  caption: `${this.currentDate} Schedule updated with removal`,// '${title}' removal`,
+                  caption: `Removed from ${this.currentDate} Schedule`,// '${title}' removal`,
                   icon: 'thumb_down', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-                  timeout: ids.length > 1 ? 2000 : 3000
+                  timeout: ids.length > 1 ? 2000 : 3000,  
+                  //closeBtn: //or add dismiss btn?  
+                  multiLine: true
                   //group?: boolean | string | number;
                 })
               })
@@ -472,7 +475,10 @@ export default {
               })
 
             }else{//prolly clear/erase whole storage!!--toReview but easy for testing
-              console.log("ERROR::storage::mismatch--SHOULD CLEAR!?!")//, JSON.stringify(ids), JSON.stringify(this.todayEvts))
+              console.log("ERROR::Skipped::storage mismatch",ids.length)//, JSON.stringify(ids), JSON.stringify(this.todayEvts))
+              NotifActions.clearStoreKey({key:"skip"}).then((res)=>{
+                console.log("Skip key cleared!!")
+              })
               //NotifActions.clearStorage().then((res)=>{
               //  console.log("dayNotifData::clearStorage",JSON.stringify(res))
               //})
@@ -513,10 +519,9 @@ export default {
                 color: 'positive',
                 position: 'top',
                 message: `${wnote.join()} Evts had notes added!!`,
-                //caption: `${this.currentDate} Schedule updated with Skipped ${ids.length} removal`, //need ',' separator?
                 icon: 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-                timeout: 3000 // time to display (in milliseconds)>>default is 5000 (5sec)
-                //group?: boolean | string | number;
+                timeout: 5000, // time to display (in milliseconds)>>default is 5000 (5sec)
+                multiLine: true
               })
               //console.log("dayNotifData::Saving Schedule>>",JSON.stringify(this.todayEvts))
             }else{//umm handle?!? do what?!?
@@ -567,21 +572,23 @@ export default {
                 let inStart = started.find(item => item.id == key)
                 let inEnd = ended.find(item => item.id == key)
                 let saved = this.todayEvts[key]
+
                 if(inStart && inEnd){ //received both notifs
-                  console.log(`getStartEndTimes>> Key: ${key} in BOTH!!`,JSON.stringify(inStart),JSON.stringify(inEnd))
+                  //console.log(`getStartEndTimes>> Key: ${key} in BOTH!!`,JSON.stringify(inStart),JSON.stringify(inEnd))
                   let aty1 = parseDate(new Date(inStart.startedAt))
                   let atyEnd = parseDate(new Date(inEnd.endedAt))
                   let eS = addToDate(parsed(this.currentDate), { minute: parseTime(saved.time)})
                   //let eE = addToDate(eS, { minute: parseInt(saved.duration)})
-                  console.log(`getStartEndTimes>> ${inStart.id} was saved at`,eS.time,"for: "+saved.duration) //eE.time,
+                  //console.log(`getStartEndTimes>> ${inStart.id} was saved at`,eS.time,"for: "+saved.duration) //eE.time,
 
                   //let another = diffTimestamp(eS, parseDate(aty1))
                   let startDiff = Math.floor((diffTimestamp(eS, aty1))/1000/60) //how far is startedAt from original start
                   //let endDiff = Math.floor((diffTimestamp(aty1,eE))/1000/60) //diff of actual start with original end
                   //let actualEndDiff = Math.floor((diffTimestamp(eE,atyEnd))/1000/60)
-                  let actualDura = Math.floor((inEnd.endedAt - inStart.startedAt)/1000/60) 
-                  //console.log(inStart.id+" Actual startedAt and endedAt",aty1.time,atyEnd.time, startDiff,endDiff,actualEndDiff," with actualDura: "+actualDura)
-                  console.log(inStart.id+" Actual startedAt and endedAt",aty1.time,atyEnd.time, startDiff," with actualDura: "+actualDura)
+                  let actualDura = Math.ceil((inEnd.endedAt - inStart.startedAt)/1000/60)
+                  //was saved at`,eS.time,"for: "+saved.duration
+                  console.log(`getStartEndTimes>> ${inStart.id} was saved at ${eS.time} for ${saved.duration}`)
+                  console.log("Actually startedAt and endedAt: "+aty1.time+" > "+atyEnd.time,"startDiff of "+startDiff," with actualDura: "+actualDura)
                   
                   if (startDiff >= 3 || actualDura > saved.duration){//no need if was within reminder 3mins BUT should check that duration hasnt changed(add3 atEnd)
                     let newTime = aty1.time 
@@ -599,7 +606,21 @@ export default {
                   //just check start and leave rest as is...prolly
                   console.log(`dayNotifData::getStartEndTimes::Evt only IN START?!? `+key,JSON.stringify(inStart))
                   //startIDs.push(inStart.id) //prolly no erase yet as could be ongoing?!? Or never got the end notif for any reason....toReview**
-                }else if(inEnd){ //got end but not start?
+                  //yup could check and erase if current time waaay past scheduled time(> duration?)
+                  let startedAt = parseDate(new Date(inStart.startedAt))
+                  let eS = addToDate(parsed(this.currentDate), { minute: parseTime(saved.time)})
+                  let eE = addToDate(eS, { minute: parseInt(saved.duration)})
+                  let startDiff = Math.floor((diffTimestamp(eS, startedAt))/1000/60) //how far is startedAt from original start--just toSee
+                  
+                  let currentTime = addToDate(parseDate(new Date()),{ minute: 0})
+                  let diffy = Math.floor(diffTimestamp(eE,currentTime)/1000/60)
+                  let assumption = (saved.duration*2) + startDiff //add startDiff just in case...
+                  if(assumption < diffy || saved.notes){
+                    console.log(`getStartEndTimes::IN START ERASE `+key,startedAt.time, "vs "+ eS.time,startDiff,"till "+eE.time, diffy,"> than "+assumption,saved.notes)
+                    startIDs.push(inStart.id)
+                  }
+                  //let actualEndDiff = Math.floor((diffTimestamp(eE,atyEnd))/1000/60)
+                }else if(inEnd) { //got end but not start?
                   //so check if later than scheduled end--should add duration difference 
                   //also have to use original time (safe assumption?)
                   
@@ -613,14 +634,14 @@ export default {
                   //todo** check dura cause could be veeeery large (skip in that case)
                   //modified.push([`'${mGoals.get(parseInt(inEnd.id))?.title ?? ""}' has changed duration!`,`Ended at time: ${atyEnd.time} with duration: ${actualDura}`])
                   endIDs.push(inEnd.id)
-                }else{
+                }//else{
                   //no start or end notif received?!? >>leave as is(prolly for upcoming evts?) or those already ended and cleared(likely)
-                  console.log(`dayNotifData::getStartEndTimes>> Evt with no start or end!! `+key,JSON.stringify(this.todayEvts[key]))
-                }
+                //  console.log(`dayNotifData::getStartEndTimes>> Evt with no start or end!! `+key,JSON.stringify(this.todayEvts[key]))
+                //}
               }
             
               //save
-              this.store.saveDailySchedule(this.currentDate,this.todayEvts)
+              modified.length > 0 ? this.store.saveDailySchedule(this.currentDate,this.todayEvts) : '' //console.log(`getStartEndTimes:: No change to schedule`, startIDs.length, endIDs.length)//umm sometimes doesnt sav
 
               //notif to user...
               modified.forEach(info => {
@@ -630,25 +651,23 @@ export default {
                   message: info[0] ?? "",  
                   caption: info[1] ?? "",//nullish just in case
                   icon: 'tag_faces',
-                  timeout: modified.length > 1 ? 2000 : 3000 
-                  //group?: boolean | string | number;
+                  timeout: modified.length > 1 ? 2000 : 3000,
+                  multiLine: true 
+                  //closeBtn: //dismiss btn for user to view better?  toReview**
                 })
               })
-
               
-              startIDs.length > 0 ? NotifActions.clearStoreKey({key:"start",ids:startIDs}) :""
+              startIDs.length > 0 ? NotifActions.clearStoreKey({key:"start",ids:startIDs}) : ""
               endIDs.length > 0 ? NotifActions.clearStoreKey({key:"end",ids:endIDs}) : ""
+
+              modified.length > 0 ? this.reload() : console.log(`getStartEndTimes::No reload needed`) //bon doesnt reload properly or not saving?
             }
-
-          }//else?
-        }).then(()=>{ //huh chaining does work
+          }else{
+            console.log("dayNotifData::getStartEndTimes::ERROR? no Start or End in response",JSON.stringify(res))
+          }
+        })//.then(()=>{ //huh chaining does work >>but no need to reload if no changes!
           //console.log("dayNotifData::getStartEndTimes...RELOAD")
-          this.reload()
-        })
-
-        //NotifActions.getEndTimes().then((res)=>{
-        //  console.log("dayNotifData::getEndTimes",JSON.stringify(res))
-          //then change duration...todo
+          //this.reload()
         //})
         
       }
@@ -669,12 +688,11 @@ export default {
       
       const events = this.eventsMap[ dt ] || []
 
-      console.log(`getEvents ${dt}`,events.length) //how often this gets called? >>too much!!
+      //console.log(`getEvents ${dt}`,events.length) // gets called too often!!
 
       if (events.length === 1) {
         events[ 0 ].side = 'full'
-      }
-      else if (events.length === 2) {
+      } else if (events.length === 2) {
         // with no more than 2 events for day check if the two events overlap and if so, select left or right side alignment to prevent overlap 
         const startTime = addToDate(parsed(events[ 0 ].date), { minute: parseTime(events[ 0 ].time) })
         const endTime = addToDate(startTime, { minute: events[ 0 ].duration })
@@ -733,6 +751,12 @@ export default {
     },
     scrollToEvent (event) {
       this.$refs.calendar.scrollToTime(event.time, 350)
+    },
+    scrollToCurrent(){
+      let timey = parseDate(new Date())
+      //if (this.$refs.calendar) //prolly no need to check this...no scrolling tho :(
+      console.log('scrollToCurrent',timey.time,this.$refs.calendar ? "yes":"no")
+      this.$refs.calendar.scrollToTime(timey.time,500) 
     },
     onToday () {
       this.$refs.calendar.moveToToday()

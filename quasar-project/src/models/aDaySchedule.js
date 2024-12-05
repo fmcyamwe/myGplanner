@@ -187,7 +187,8 @@ export default class daySchedule {
       //console.log("daySchedule::hasUnsavedChanges", this._dailyScheduled.size,this.unsavedChanges)
       let hasEvts = this.getEventsForDate(this.currentDate)
       let diff = (hasEvts && Object.keys(hasEvts).length != this._dailyScheduled.size && !this.dayWithDeleted) ?? false //not too much?!? >>wrong eval caused by deleted goals so this._dailyScheduled.size != rawSaved smdh >>also need nullish ?? when no schedule
-     // console.log("daySchedule::hasUnsavedChanges", this._dailyScheduled.size,this.unsavedChanges,diff,this.dayWithDeleted) //Object.keys(hasEvts).length ?? 100
+      //console.log("daySchedule::hasUnsavedChanges", this._dailyScheduled.size,this.unsavedChanges,diff,this.dayWithDeleted) //Object.keys(hasEvts).length ?? 100
+      //console.log("daySchedule::hasUnsavedChanges",this.unsavedChanges, diff)
       return this.unsavedChanges || diff //(cS && Object.keys(cS).length != this._dailyScheduled.size) //was prolly wrong >>(this.savedRawEvts && Object.keys(this.savedRawEvts).length != this._dailyScheduled.size)
     }
     getCurrentMoods(){
@@ -632,7 +633,6 @@ export default class daySchedule {
         console.log(`addToSchedule--NOT added! present?!!?`,checkOverlap,evt.title) 
         return false //checked at caller
       }
-      //return true //oldie >> this.findEvent(evt.id)
     }
     stillInSchedule(id){
       let inSched = this.findSchedEvent(id)
@@ -1523,12 +1523,11 @@ export default class daySchedule {
         return
       }
       
-        let endy = evt.end
+      let endy = evt.end
+      let newEndy = addToDate(endy,{ minute: parseInt(mins)})
+      let newDura = parseInt(mins) + evt.duration //for
   
-        let newEndy = addToDate(endy,{ minute: parseInt(mins)})
-        let newDura = parseInt(mins) + evt.duration //for
-  
-        //console.log(`addMinsToEvt::(${evtID}) add ${mins} from ${evt.for} to> ${newDura}`,endy.time,newEndy.time) 
+      //console.log(`addMinsToEvt::(${evtID}) add ${mins} from ${evt.for} to> ${newDura}`,endy.time,newEndy.time) 
   
         let anyOverlap = this.hasOverlappingEvent(evtID, evt.start, newEndy) //newDura
         let s = anyOverlap.length
@@ -1886,6 +1885,8 @@ export default class daySchedule {
       this.showReloadBtn = this.hasEventsForDate() && evtNumAdded
       this.showClearBtn = !this.isViewingPast() && evtNumAdded //true  //evtNumAdded == dEvts.length > 0
       
+      //for addNew
+      from == 'addNew' ? this.unsavedChanges = evtNumAdded : '' //console.log("toggleActionBtns:: NOT changing unsavedChanges > "+from,evtNumAdded)
     }
     resetChosen(){ //explicit reset of dropdown values for score & prio
       this.chosenScore = null
@@ -2023,7 +2024,6 @@ export default class daySchedule {
         console.log("doUpdateSchedule-ERROR NOT found",draggedItem.id,s)
         return
       }
-      //console.log(`doUpdateSchedule::Dura`,s.for, d.duration,s.duration,s?.atScore)
       
       let newStart = addToDate(parsed(s.date), { minute: parseTime(targetDrop.time) }) //d.date
       let endTime = addToDate(newStart, { minute: s.duration}) //should be d.duration as up to date with adHoc
@@ -2040,12 +2040,6 @@ export default class daySchedule {
       s.sortTime = newStart
       let newy = this.updateDetz({...s,time:targetDrop.time,start: newStart,end: endTime})
       this._dailyScheduled.set(draggedItem.id, newy)
-        //{...s,
-        //for: s.duration, //oldie>> d.duration //no need prolly
-        //start: newStart,
-        //end: endTime,
-        //atScore: eProp.score ? toSee** if s still has it....
-      //})
 
       this.enableNoteScoreEdit(draggedItem.id,newStart,endTime)
     }
@@ -2056,7 +2050,6 @@ export default class daySchedule {
       if (this._dailyScheduled.size < 1){ //clearing day
         toSave = null
       } else {
-        //const now = parseDate(new Date()) //umm shouldnt it be this.currentDate ? toSee**
       
         this._dailyScheduled.forEach( (value, key, map) => {
           if(value.start.time.indexOf('NaN') > -1){ //skip those without time
@@ -2065,23 +2058,15 @@ export default class daySchedule {
             toSave[key] = {
               time: value.start.time,
               duration: value.duration, //.for
-              atScore: value?.atScore // || null to leave empty and not pollute too much with redudant data?
+              atScore: value?.atScore // || should be empty if no score change >>also is NOT current score but what was changed from---for summaryView
             }
           
             if(this.usingMoods[key]){
               toSave[key].byMood = this.usingMoods[key]
             }
             if(value.notes !== void 0 && value?.notes !==''){
-              //console.log("saveDaySchedule",key, value?.notes, value?.score) //toSave[key].atScore,
-              //toSave[key].atScore = value?.score  // toSave[key].atScore || value?.score ?!?
               toSave[key].notes = value?.notes
             }
-
-            //let diffy = diffTimestamp(now,value.start)
-            //if(diffy > 0){ //so evt has NOT started...prolly
-            //  console.log("saveDaySchedule::Not Started--added!",value.title,value.time)
-            //  toSchedLater.push(value)
-            //}
           }
         })
       }
@@ -2163,6 +2148,7 @@ export default class daySchedule {
           badge: ''
         })*/
     }
+
     reduceEvtDuration(evtID,duration){
       let evt =  this.findSchedEvent(evtID)
       if(!evt){ //umm shouldnt happen!!
@@ -2191,60 +2177,30 @@ export default class daySchedule {
 
       return 
     }
-    canEndNow(evtID){ //redundant as moved in view...toRemove***
-      let evt =  this.findSchedEvent(evtID)
-      //let evtty =  this.findEvent(evtID)
-      if(!evt){
-        console.log(`ERROR canEndNow Evt not found!!!`, evtID)
-        return false
-      }
-      const now = parseDate(new Date())
 
-      //console.log(`canEndNow`, evtID,now, JSON.parse(JSON.stringify(evt)),JSON.parse(JSON.stringify(evtty)))
-
-      
-      let starty = evt.start
-      let endy = evt.end
-      if (!isBetweenDates(now, starty, endy, true)){
-        console.log(`umm aint in the middle of this event! Nothing to do...canEndNow::ERROR?`,now.time, starty.time, endy.time)
-        return false
-      }
-      
-      let compareTime = addToDate(now,{ minute: 0})
-
-      //this seems better!
-      let another = diffTimestamp(starty,compareTime) //,true flag to discard earlier evts!!!
-      let newDura = Math.floor((another/1000)/60)
-
-      
-      console.log(`canEndNow:: ${evtID} duration from ${evt.duration} to: ${newDura}`)//.for
-      if (newDura < 10){ //less than 10 min since evt start--ask to remove
-        return newDura
-      }
-
-      return this.reduceEvtDuration(evtID,newDura)
-
-    }
     updateNoteScore(id,newScore,note=''){
       let ev = this.findSchedEvent(id) //this.dailyScheduled.get(id) //JSON.parse(JSON.stringify(f)))
       if (ev){
-        let same = ev.score == newScore
+        let oldy = ev.score
+        let same = oldy == newScore
         if(!same){
-          //console.log('updateNoteScore::Score change',ev.atScore,ev.score) 
+          console.log('updateNoteScore::Score change',ev.atScore,oldy,newScore) 
           Repo.doSaveEvtProp(id, null, newScore)
-          ev.atScore = newScore //when saving schedule later...toSee
-        }
+          ev.atScore = oldy  //bon should show what it was...prolly
+          this.unsavedChanges = true //toSave schedule as atScore kept with schedule data
 
-        //let h = this.findEvent(id) //send changes down to child component...
-        //if (h){
-          ev.score = newScore //bon update score
-        //}else{console.log('onSaveScore ERROR not found',h, id) }  //very baaad!--should return***
-        
+          ev.score = newScore //also update score--hopefully no issue?toTest***
+        }
+          
         if(note !==''){ //should check that notes havent changed too?--meh
-          //console.log(`updateNoteScore::note ${id}from ${oldy} to ${newScore} with note>>`,note)
-          ev.notes = note
-          //h.notes = note //to update inner child
-         this.unsavedChanges = true
+          let isSame = JSON.stringify(ev.notes) === JSON.stringify(note)
+          if(!isSame){
+            console.log(`updateNoteScore::note ${id} from ${ev.notes} to ${note} with score>> `,newScore)
+            ev.notes = note
+            this.unsavedChanges = true
+          }else{
+            console.log(`updateNoteScore::note NOT Changed ${ev.notes} to ${note} with score ${newScore}`,this.unsavedChanges)
+          }
         }
 
        this.isViewingPast() ? this.saveDaySchedule() : this.toggleActionBtns(true,'updateNoteScore') //console.log(`updateNoteScore::not auto-saving today`,h,ev)
@@ -2322,8 +2278,8 @@ export default class daySchedule {
       const now = parseDate(new Date())
       let diffy = diffTimestamp(now,endTime)
 
-      let compareTime = addToDate(now,{ minute: 0})
-      let tTime = this.getTimeNumber(compareTime)
+      //let compareTime = addToDate(now,{ minute: 0})
+      //let tTime = this.getTimeNumber(compareTime)
 
       //////canEnableEditScore/////
       if(diffy > 0){ //so evt has NOT ended

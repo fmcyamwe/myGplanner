@@ -194,13 +194,21 @@
           <div class="q-pa-sm q-pb-md">
             <q-timeline :class="timelineColor(value[0].color)"><!--color="secondary" :title="e.score+'{{ fdf }}'" -->
               <q-timeline-entry heading>
-              <!--:body="value[0].title"--><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
-              <span class="q-px-sm myHeading"> {{ value[0].title }} </span>
+                <!--:body="value[0].title"--><!--body="Timeline heading"  subtitle="February 22, 1986" :body="e.note" -->
+                <span class="q-px-sm myHeading"> {{ value[0].title }} </span>
               </q-timeline-entry>
-              <q-timeline-entry v-for="e in value" :key="e.on" :title="e.score"
+              <template v-for="e in value" :key="e.on"><!--key not needed below? also use slots?!? huh doesnt seem needed and works!!-->
+                <q-timeline-entry v-if="(e.note && e.note !== '')|| e.atScore" :title="e.atScore"
+                :subtitle="e.on">
+                  {{ e.note }}
+                </q-timeline-entry>
+              </template>
+              <!--<q-timeline-entry v-for="e in value" 
+              :key="e.on" 
+              :title="e.score"
               :subtitle="e.on">
                 {{ e.note }}
-              </q-timeline-entry>
+              </q-timeline-entry>-->
             </q-timeline>
           </div>
         </q-carousel-slide>
@@ -308,7 +316,7 @@ export default defineComponent({
               this.panel = task.key
             }
 
-            map[task.key].push({ on: logged.date, note: logged.notes, score:logged.atScore,title:task.title,color:color})
+            map[task.key].push({ on: logged.date, note: logged.notes, atScore:logged.atScore,title:task.title,color:color})
 
             //craps out when doing check below...huh should NOT add them at storage level then?!?
             /*if(logged.notes !== void 0 || logged.atScore !== void 0){ //umm add>> &logged.notes !== ''
@@ -330,7 +338,7 @@ export default defineComponent({
         }
       })
 
-      //console.log("weeee mappy:", map)
+      //console.log("weeee mappy:", JSON.stringify(map))
       this.daOptions = map  //should make sure dates are sorted--todo
       
       this.constructTree()
@@ -518,7 +526,7 @@ export default defineComponent({
         //const start = parsed(this.startDate)
         let monthy = data.days[0].month  //meh this is good enough!
 
-        console.log('onChange',monthy,this.selectedDate,data)//,data ) //this.allMonths,this.allMonths[monthy-1]
+        //console.log('onChange',monthy,this.selectedDate,data)//,data ) //this.allMonths,this.allMonths[monthy-1]
         this.selectedMonth = this.allMonths[monthy-1]
 
         this.startDate = data.start

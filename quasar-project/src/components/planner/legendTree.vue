@@ -4,7 +4,7 @@
       :filter="filterString"
       :filter-method="myFilterMethod"-->
       <q-tree
-      :nodes="treeGoals"
+      :nodes="getTree"
       node-key="label"
       v-model:expanded="expanded"
       no-connectors
@@ -22,10 +22,11 @@
         <div v-if="prop.node.isChildren"
         :draggable="true"
         style="cursor: grab;"
+        @click="(e) => onclicky(e,prop.node)"
         @touchstart="(e) => onTouchHStart(e,prop.node)"
         @touchmove="(e) => onTouchHEvt(e,prop.node)"
         @touchend="(e) => onTouchHEvt(e,prop.node)"
-        >
+        ><!--@select="(e) => onclicky(e,prop.node)"-->
           <span class="text-weight-bold">  >> {{ prop.node.details }} </span>
           <q-tooltip v-if="prop.node.moods.length > 0">{{ "Moods::> " +prop.node.moods.join(',') }}</q-tooltip>
         </div>
@@ -66,8 +67,8 @@ export default defineComponent ({  //this be Options Vue notation
   computed: {
     getTree:{
       get(){return this.tree},
-      set(value){
-        console.log(`tree getting set`,value, this.tree)
+      set(value){//not used for array.push lool
+        //console.log(`tree getting set`,JSON.stringify(value))//, JSON.stringify(this.tree))
         this.tree = value
       }
     },
@@ -165,7 +166,7 @@ export default defineComponent ({  //this be Options Vue notation
           })
         }
           
-        console.log("Childy "+goal.id,JSON.stringify(parent.children))//JSON.parse(JSON.stringify(toAdd.children)))
+        //console.log("Childy "+goal.id,JSON.stringify(parent.children))//JSON.parse(JSON.stringify(toAdd.children)))
 
         //no need for below as id modified here...sorting done in findSubGoals()
         //let tC = parent.children
@@ -177,17 +178,22 @@ export default defineComponent ({  //this be Options Vue notation
         tree.push(parent) // children.sort(sorty) >> works? >>nope fucks up array...
       })
 
-      console.log("Tree-Before",JSON.stringify(tree)) //JSON.parse(JSON.stringify(tree)))
+      //console.log("Tree-Before",JSON.stringify(tree)) //JSON.parse(JSON.stringify(tree)))
 
-      tree.sort(sorty) //umm should be ok for parents?!?
+      tree.sort(sorty) //umm should be ok for parents
 
-      console.log("Tree-AFTER",JSON.stringify(tree))//JSON.parse(JSON.stringify(tree)))
+      //console.log("Tree-AFTER",JSON.stringify(tree))//JSON.parse(JSON.stringify(tree)))
       
-      this.getTree = tree //hopefully updates smh
+      //this.getTree = [...tree] //hopefully updates smh
+      this.getTree.push(...tree) //better but dont call setter huh
 
       //return tree
     },
-    onTouchHStart(e, item){
+    onclicky(e, item){
+      console.log('onclicky', JSON.stringify(e),JSON.stringify(item),e.target)
+      //e.target.classList.add("my-header-drag")
+    },
+    onTouchHStart(e, item){ //dont fire?!? huh does with clicky above attached!?! WTF yup! is cause of emulator?
       console.log('onTouchHStart', e,item,e.target) 
       /*if(type == 'tree-item'){
         let it = this.daSchedule.getSubGoalByID(item.id)

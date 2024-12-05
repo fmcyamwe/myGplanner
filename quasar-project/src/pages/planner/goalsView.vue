@@ -361,7 +361,7 @@
                                 popup-content-class="q-mx-md"
                                 popupContentStyle="text-align: center;"
                                 class="q-mx-sm q-pb-md"
-                                >
+                                ><!--optionsSelectedClass="q-ml-lg q-px-lg"-->
                                     <template v-slot:label>
                                         <div class="row items-center all-pointer-events q-mx-xs">
                                         <q-icon class="q-mx-xs" :color="bgcolor" size="24px" name="palette" />
@@ -942,21 +942,22 @@ export default {
             if(action === "Save"){
                 editAction()
                 return
-            } //else { 
-            
+            }
+
             //adding new goal
             if (goalTitle.value.trim() == ''){
                 errorNotify(`Cannot have an empty Title!`)
                 return
             }
 
+            let hasNoTime = false
             if (goalType.value === 'main') {
                 //console.log("onSubmit::main",goalTitle.value,details.value,bgcolor.value,priority.value,icon.value)
                 store.addMainGoal(goalTitle.value,details.value,bgcolor.value,priority.value,icon.value ?? currentIcon.value) //use selected icon just in case
             } else {
                 if (time.value == ''){
-                    warnNotify(`Schedule Time not set...Will need manual Scheduling!!`)
-                //    return
+                  //warnNotify(`Schedule Time not set...Will need manual Scheduling!!`)
+                  hasNoTime = true  //not have two notifications
                 }
                 if(pGoal.value){
                     let pId = pGoal.value
@@ -973,11 +974,14 @@ export default {
                 }
             }
 
+            //doNotify(mess,'top','warning','info')
             $q.notify({
-                color: 'positive',
+                color: hasNoTime ? 'info' : 'positive',
                 position: 'top',
                 message: `Success ${action} for "${goalTitle.value}"`,
-                icon: 'thumb_up'
+                caption: hasNoTime ? 'Schedule Time not set...Will need manual Scheduling!!' : null,
+                multiLine: true,
+                icon: hasNoTime ? 'warning' : 'thumb_up'
             })
             
             hardReset() //reset variables
@@ -1135,7 +1139,7 @@ export default {
                 tab.value = "Goal" //nav
             
             }else if(action == 'add'){ //for subgoal add for parent
-                console.log(`onParentAction:${action} for> ${id}`, title)
+                //console.log(`onParentAction:${action} for> ${id}`, title)
 
                 buttonLabel.value = "Add" //important as action for onSubmit
 

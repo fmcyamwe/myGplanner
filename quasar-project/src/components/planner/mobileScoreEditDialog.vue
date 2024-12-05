@@ -131,15 +131,12 @@ import { defineComponent,ref } from 'vue'
         onSave () { 
             //console.log('huh saveScore?',this.aScore, this.id,this.aNote)
             if(this.errorMessageScore != '' || this.errorScore){//check that no errors with this.aScore....
-                console.log('ERROR saveScore',this.aScore,this.errorMessageScore)
-                
-                return  //bon should let parent handle it...but wahala to coordinate esti
+              console.log('ERROR saveScore',this.aScore,this.errorMessageScore)  
+              return  //bon should let parent handle it...but wahala to coordinate esti
             }
 
             this.$emit('saveScore',this.id,this.aScore,this.aNote)
-
-           this.showy = false // gotta hide dialog...huh works
-            
+            this.showy = false // gotta hide dialog...huh works
         },
         aScorey(val){
             //console.log(`scoreValidation got`,val, this.id)

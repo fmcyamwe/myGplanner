@@ -345,6 +345,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
       
       console.log('getPending',JSON.stringify(pending));
     
+      let skipped = []
       for (const index in pending.notifications) {
         //console.log('getPending:: Notif::AT?!? >> '+index,JSON.stringify(pending.notifications[index]))
             
@@ -352,20 +353,25 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         let notif = pending.notifications[index]
         let at = notif.schedule.at
         let aty = Date.parse(at) //bon in epoch needing for new Date(aty)
-        let aty1 = new Date(at)  //huh seems good...
+        let aty1 = new Date(at)  //huh better...
 
         ////--instead of scheduling again >>leave notif as is! >>is shown!! 
         ///--cancel the skipped oldy so that it's not seen again?
         let diff = aty - Date.now()
         if(diff <= 0){ //has passed
-          console.log('getPending:: SKIPPED oldy>> ',diff, JSON.stringify(at),JSON.stringify(aty),JSON.stringify(aty1))
+          console.log('getPending:: SKIPPED oldy>> ',diff,JSON.stringify(at),JSON.stringify(aty1)) //JSON.stringify(aty),
+          //should cancel or get notif on device boot
+          skipped.push({id:notif.id}) //[{id:this.lastSeen}]
         }else{
-          console.log('getPending:: Notif>>WOULDA>> ',JSON.stringify(notif), JSON.stringify(at),JSON.stringify(aty),JSON.stringify(new Date(aty)),JSON.stringify(aty1))
+          console.log('getPending:: Notif>>WOULDA>> ',JSON.stringify(notif), JSON.stringify(at),JSON.stringify(new Date(aty)),JSON.stringify(aty1)) //JSON.stringify(aty)
           this.pending.push({...notif,schedule: { at: aty1 }}); 
           //re-add in case of schedule change
           //LocalNotifications.schedule({notifications:[{...notif,schedule:{at: aty1},actionTypeId:'start'}]});
         }
       }
+      
+      skipped.length > 0 ? this.doCancel({notifications:[...skipped]}) : ''
+      
     }
 
     async schedule(options) { //: ScheduleOptions : Promise<ScheduleResult>
@@ -404,7 +410,14 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         
         for (const e of evts) {
           //console.log('NotifHelper::addPendingEvt',JSON.stringify(dt),JSON.stringify(e))
-        
+          let already = this.pending.some(n => n.id == e.id)
+          if(already){
+            let p = this.pending.find(n => n.id == e.id)
+            console.log('NotifHelper::addPendingEvt::SKIP present',JSON.stringify(e),JSON.stringify(p))
+            //should check if time not changed?!? todo**
+            continue
+          }
+
           let mid = addToDate(parsed(dt), { minute: parseTime(e.start.time) }) //- 1 //try showing notif one minute in advance? >>meh nah
           let aty = Date.parse(`${mid.date} ${mid.time}`) 
           //let another = parseTimestamp(`${dt} ${e.start.time}`)

@@ -41,7 +41,7 @@
                           @on-choosen-score="onChoosenScore"
                           @on-choosen-prio="onChoosenPrio"
                           @on-schedule-one-each="onScheduleOneEach"
-                          @do-hide-tree="() => showTree = !showTree"
+                          @do-hide-tree="() => { !showTree ? expandAll() : ''; showTree = !showTree}"
                         />
                         
                         <!--<alt-multi-drop-btn
@@ -70,7 +70,7 @@
                             :text-label="showTree ? 'HideTree' : 'ShowTree'"
                             class="q-mt-md"
                             text-color="green"
-                            @do-btn-action="() =>{ showTree ? resetFilter(): '' ; showTree = !showTree}"
+                            @do-btn-action="() =>{ showTree ? resetFilter() : '' ; showTree = !showTree}"
                             push
                             :dense="false"
                             />
@@ -127,10 +127,6 @@
                           no-connectors
                           dense
                           >
-                          <!-- 'default-expand-all' but too much 
-                            also set on first render so cant hack with below to expand after filtering >>
-                           :default-expand-all="filter.length > 0"-->
-                           <!--  expandAll>>no can do :(...-->
                             <template v-slot:default-header="prop">
                               <div :class="classyColor(prop.node)">
                                 <q-icon v-if="!prop.node.isChildren" :name="prop.expanded ? 'expand_less' : 'expand_more'" size="28px" right/>
@@ -277,7 +273,7 @@
                     v-morph:tree:mygroup:500.tween="morphGroupModel"
                     class="q-ma-xs"
                     style="width: fit-content; border-top-left-radius: 2em"
-                    ><!--toSee width-->
+                    ><!--toSee width AND Height when too many goals for scrolling -->
                     <div class="q-ma-auto column">
                       <q-item-label overline header lines="3">
                         Expand & Drag to schedule
@@ -290,14 +286,14 @@
                       <q-tree
                       :nodes="treeGoals"
                       node-key="label"
-                      :filter="filterString"
-                      :filter-method="myFilterMethod"
                       v-model:expanded="expanded"
                       no-connectors
                       accordion
                       dense
                       class="q-px-sm boxy"
-                      ><!-- umm no need for filter methods? 
+                      ><!-- umm no need for filter methods 
+                      :filter="filterString"
+                      :filter-method="myFilterMethod" 
                       children-key="id"-->
                         <template v-slot:default-header="prop">
                           <div :class="classyColor(prop.node)">
@@ -310,6 +306,7 @@
                           <div v-if="prop.node.isChildren"
                             :draggable="true"
                             style="cursor: grab;"
+                            @click="(e) => onclicky(e,prop.node)"
                             @touchstart="(e) => onTouchHStart(e, 'tree-item',prop.node)"
                             @touchmove="(e) => onTouchHEvt(e,prop.node)"
                             @touchend="(e) => onTouchHEvt(e,prop.node)"
@@ -329,7 +326,6 @@
                           v-touch-repeat:0:300.keyCapture="(e) => handleRepeat(e, 'tree-item',prop.node)" >>better but touchEnd issue still
                           v-touch-repeat:0:300:200.mouse.enter.space.72.104="handleRepeat"
 
-                          should close after drag  {onTouchHEvt(e, prop.node); morphClose()}
                           @dragstart.stop="(e) => onDragStart(e, 'tree-item', prop.node)" >>doesnt fire in mobile
                           @touchstart="(e) => onTouchHStart(e, 'tree-item',prop.node)"
                           -->
@@ -604,6 +600,7 @@ data () {
   //let possibleRange = null //for adhoc scheduling...keep track of selected time range
 
   let intervalId = null
+  let timeoutId = null
   const $q = useQuasar()
 
   const currentTime = ref(null)
@@ -710,6 +707,7 @@ unmounted(){
 },
 beforeUnmount() {
   clearInterval(this.intervalId)
+  clearTimeout(this.timeoutId)
 
     let doContinue = () => {
       this.daSchedule.scheduleLater()
@@ -892,14 +890,30 @@ methods:{
         this.fabPos[ 1 ] + ev.delta.y
       ]
   },
+  addRemoveListener(remove){ //prolly no...
+    console.log(`addRemoveListener::BEWARE`,remove)
+    remove ? 
+    document.removeEventListener("click",(ev)=> {
+      console.log(`click::WOAH...removed no?!?`,ev) //would it fire?!? >> nope
+    }) : document.addEventListener("click",(ev)=> { //just to close that fab esti...works for click but not proper everywhere...
+      console.log(`click::WOAH`,JSON.stringify(ev))
+      //this.morphClose()
+      //// "dblclick" >> only for pointers and not touch for mobile smh
+    })
+  },
   prevMorph(){
     //this.morphGroupModel = this.nextMorphStep['btn'] //works!
     this.morphGroupModel = this.prevMorphStep[ this.morphGroupModel] //toSee
   },
   nextMorph() {
+    if(this.morphGroupModel == 'btn'){ //atFirst?
+      //this.addRemoveListener(false)
+      this.unExpandAll()
+    }
     this.morphGroupModel = this.nextMorphStep[ this.morphGroupModel]
   },
   morphClose() {
+    //this.addRemoveListener(true)
     this.morphGroupModel = this.nextMorphStep['tree']
   },
   showEvtMobile(id){
@@ -911,7 +925,7 @@ methods:{
     return this.targetDrop.timestamp.time
   },
   selectedTimeRange(){ //for timeRanges...mobile mostly
-    console.log("selectedTimeRange", this.startEndTimes,(this.currentDate + " "+this.targetDrop.timestamp.time),this.possibleRange ?? "")
+    //console.log("selectedTimeRange", this.startEndTimes,(this.currentDate + " "+this.targetDrop.timestamp.time),this.possibleRange ?? "")
     //
     //let startDiff = (this.currentDate + " "+this.targetDrop.timestamp.time) != this.startEndTimes[0] //or split to get time?!? meh good enough
     //let endDiff = (this.currentDate + " "+this.targetDrop.timestamp.time) != this.startEndTimes[1]
@@ -1036,10 +1050,19 @@ methods:{
     //this.doLog("resetMatchingNodes>>",this.matchingMoodNodes)
     //this.matchingMoodNodes = 0
   //},
+  expandAll(){ //bon redo to expand all smh
+    console.log("expandAll>> "+this.showTree)
+    
+    for (let e of this.treeGoals) { 
+    //  console.log("expandAll >> ",e)
+      this.expanded.push(e.label)
+    }
+  },
   resetFilter () {
     this.filter = []
-    this.filterRef?.focus() //umm gotta ?. //oldie >> filterRef.value.focus()
+    this.filterRef?.focus()
     //this.resetMatchingNodes()//this.matchingMoodNodes = 0
+    //this.expandAll() //no need here
   },
   myFilterMethod (node, filter) { // for mood filtering...calld on each node!! AND any interact with tree when filtering is going on i.e: expand nodes....
     const filt = this.filter.map(e => e.toLowerCase()) //oldie..cannot use 'filter' var as it's a string here smh  
@@ -1047,7 +1070,7 @@ methods:{
       //console.log("myFilterMethod>> "+ node.id, node?.moods,filter) //,this.filter
       
       let match = node?.moods.some(e => filt.indexOf(e.toLowerCase()) > -1)//umm prolly good idea to lowerCase both!! 
-      if (match){ //toRemove**
+      //if (match){ //umm why was I doing the below even?!? smh
         //this.doLog("myFilterMethod>>ooouh match",node)
             
         //this.expanded.splice(0,5) //when using default-expand-all 
@@ -1059,15 +1082,12 @@ methods:{
         //doesnt seem possible to expand filtered nodes smh
         //could do set dynamically on slot-header but oh well...
 
-        //this.matchingMoodNodes++ //hard to reset properly...toReview** later...maybe
-      }
+        //this.matchingMoodNodes++ //hard to reset properly...>>well check expandAll() lool 
+      //}
       //console.log("myFilterMethod>> ", node.label, match,this.filter,filt,filter )
       return node.label && match //node?.moods.some(e => filt.indexOf(e.toLowerCase()) > -1) 
     }
   },
-  //doExpand (){//hack to see if can expand pGoals from filtered >>nope!
-  //  return this.filter.length > 0
-  //},
   labelScheduled(){
     return this.daSchedule.labelScheduled()
   },
@@ -1686,7 +1706,7 @@ methods:{
     //this.$q.notify() //or this?!? >>nope error with parameter requiered
     this.$q.notify(mess) //'Delete action triggered for:'+id
     //this.$q.notify({}) //hide faster after above? nope empty notif in bottom smh ...
-    this.resetFilter() //meh
+    //this.resetFilter() //meh
   },
   addNewToSchedule(targetDrop, item){
     //console.log("addNewToSchedule: ",targetDrop, item)
@@ -3004,6 +3024,7 @@ methods:{
       this.reset() //AddHocEvent
       return
     }
+
     //before dialog reset >> get proper start time.
     let selectedRange = this.selectedTimeRange()
     //console.log('onAddyHocEvent >>',goalTitle,manualDura,interval,JSON.stringify(selectedRange))
@@ -3029,57 +3050,58 @@ methods:{
 
     this.closingDialog() //close dialog asap as keeps showing  >>resets !!selectedRange!!
 
-    const doSaveGoal = () => {
-      //should save regardless?!? toReview**
-      let id = this.daSchedule.saveNewGoal(startAt,goalTitle, parentGoal, own,dura)
-      //console.log("onAddyHocEvent::doSaveGoooooal "+id,startAt.time)
-      this.doNotify(`AdHoc Evt '${goalTitle}' Stored!`,"positive",'top')
-      return id
-    }
-
-    let cleanup = () => {
-      this.closingDialog() //here just in case
-      this.constructTree() //update to show newest
-      this.reset() //to clear this.possibleRange for next use--causes issue when this.closingDialog() invoked later!!
-      if(this.mobile){
-        this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
+      const doSaveGoal = () => {
+        //should save regardless?!? toReview**
+        let id = this.daSchedule.saveNewGoal(startAt,goalTitle, parentGoal, own,dura)
+        //console.log("onAddyHocEvent::doSaveGoooooal "+id,startAt.time)
+        this.doNotify(`AdHoc Evt '${goalTitle}' Stored!`,"positive",'top')
+        return id
       }
-    }
 
-    const saveAndSchedule = () => {
-      let subID = doSaveGoal()
-      if (subID === 0 || subID) {
-        let res = this.daSchedule.onAdHocEvent(subID,startAt,useBalance,this.doNotifyTimeout) //doNotify
-      
-        if (!res.canContinue){ //&& !anyOverlap.overlaps
-          console.log("onAddyHocEvent::OVERLAPS?",JSON.parse(JSON.stringify(res)))
-          if (res.overlaps == null){
-            this.doNotify("Error Adding this event :(", "negative")
-            console.log("onAddyHocEvent::ERROR not found?")
-            return
-          } else {
-            if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "warning",'top')}
+      let cleanup = () => {
+        this.closingDialog() //here just in case
+        this.constructTree() //update to show newest
+        this.reset() //to clear this.possibleRange for next use--causes issue when this.closingDialog() invoked later!!
+        if(this.mobile){
+          this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
+        }
+      }
+
+      const saveAndSchedule = () => {
+        let subID = doSaveGoal()
+        if (subID === 0 || subID) {
+          let res = this.daSchedule.onAdHocEvent(subID,startAt,useBalance,this.doNotifyTimeout) //doNotify
+        
+          if (!res.canContinue){ //&& !anyOverlap.overlaps
+            console.log("onAddyHocEvent::OVERLAPS?",JSON.parse(JSON.stringify(res)))
+            if (res.overlaps == null){
+              this.doNotify("Error Adding this event :(", "negative")
+              console.log("onAddyHocEvent::ERROR not found?")
+              return
+            } else {
+              if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "warning",'top')}
+              cleanup()
+              return this.handleOverlaps(res.overlaps,'adHocEvt') //adHocEvt
+            }
+          } //else{
+            //this.constructTree() //update to show newest
+            //this.reset() //to clear this.possibleRange for next use--causes issue when this.closingDialog() invoked later!!
+            //if(this.mobile){
+            //  this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
+            //}
+            this.daSchedule.toggleActionBtns(true,'adHocEvt')
             cleanup()
-            return this.handleOverlaps(res.overlaps,'adHocEvt') //adHocEvt
-          }
-        } //else{
-          //this.constructTree() //update to show newest
-          //this.reset() //to clear this.possibleRange for next use--causes issue when this.closingDialog() invoked later!!
-          //if(this.mobile){
-          //  this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
+            return
           //}
+        } else{ //can happen if takes too long to create parent--specially for 'self'
+          console.log("onAddyHocEvent::BOO ERROR no subID :(",subID)
+          this.doNotify("Error adding :(  Add Evt by select!", "negative")  //Error creating and adding this event :(
           cleanup()
-          return
-        //}
-      } else{ //can happen if takes too long to create parent--specially for 'self'
-        console.log("onAddyHocEvent::BOO ERROR no subID :(",subID)
-        this.doNotify("Error adding :(  Add Evt by select!", "negative")  //Error creating and adding this event :(
-        cleanup()
+        }
       }
-    }
 
     let isClose = this.daSchedule.tooClose(startAt, dura)
-    if(isClose){ 
+    if(isClose){
       //console.log("onAddyHocEvent::tooClose check FAIL!!",isClose)
       if (isClose === true){
         this.doNotify(`'${goalTitle}' Not added as over midnight!`)
@@ -3108,126 +3130,13 @@ methods:{
         saveAndSchedule()
         return
       }
-      
     }
 
     //console.log('onAddyHocEvent::WOOUH no closeness issue!')
 
-    //close dialog >>resets !!selectedRange!!
-    //this.closingDialog()
     saveAndSchedule()
     return
-  
-    /*
-    //should save regardless?!? toReview**
-    let subID = this.daSchedule.saveNewGoal(startAt,goalTitle, parentGoal, own,dura)
-
-    //then add to schedule
-    //also subID could be === 0 smh
-    if (subID === 0 || subID) {
-
-      let res = this.daSchedule.onAdHocEvent(subID,startAt,useBalance,this.doNotifyTimeout) //doNotify
-      
-      if (!res.canContinue){ //&& !anyOverlap.overlaps
-        console.log("onAddyHocEvent::OVERLAPS?",JSON.parse(JSON.stringify(res)))
-        if (res.overlaps == null){
-          this.doNotify("Error Adding this event :(", "negative")
-          console.log("onAddyHocEvent::ERROR not found?")
-          return
-        } else {
-          if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "warning",'top')}
-          cleanup()
-          return this.handleOverlaps(res.overlaps,'adHocEvt') //adHocEvt
-        }
-      } else{
-        //console.log("onAddHocEvent::ALLGOOD",res,this.possibleRange)
-        //this.constructTree() //update to show newest
-        //this.reset() //to clear this.possibleRange for next use
-        //if(this.mobile){
-        //  this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
-        //}
-        cleanup()
-      }
-    } else{ //can happen if takes too long to create parent--specially for 'self'
-      console.log("onAddyHocEvent::BOO ERROR no subID :(",subID)
-      this.doNotify("Error adding :(  Add Evt by select!", "negative")  //Error creating and adding this event :(
-    }
-    */
   },
-  /*onAddHocEvent(goalTitle, parentGoal, own, interval,useBalance,manualDura){
-    //console.log('onAddHocEvent',goalTitle, parentGoal, own, interval,useBalance)
-    
-    if (goalTitle.trim() == ""){
-      this.doNotify("Empty Goal title...")
-      this.closingDialog()//this.showEvtDialog = false
-      this.reset() //AddHocEvent
-      return
-    }
-
-    if (!this.possibleRange){
-      console.log("umm onAddHocEvent... not a range selection: "+manualDura,interval, this.startEndTimes)  //just in case it's single cell selction
-      this.possibleRange = this.startEndTimes
-    }else{
-      console.log('onAddHocEvent',goalTitle,JSON.stringify(this.selectedTimeRange()))
-    }
-    let toUse = 0
-    manualDura && interval > 15 ? toUse = interval : toUse = 0 
-    let timeStart = parseTimestamp(this.possibleRange[0])
-    let timeEnd = !manualDura ? addToDate(parseTimestamp(this.possibleRange[1]), { minute: 15}) //extra 15
-    : addToDate(timeStart, { minute: parseInt(toUse)})  //umm 15 here too?
-    
-    //: addToDate(parseTimestamp(this.possibleRange[1]), { minute: 15}) 
-    //oldie >> 15 mins for when single timeslot selection
-
-    //below redundant when set the interval...smh
-    let duration = Math.floor((diffTimestamp(timeStart, timeEnd)/1000)/60)  //(diffy / 60000)
-
-    let isClose = this.daSchedule.tooClose(timeStart, duration)
-    if(isClose){ 
-      console.log("onAddHocEvent::tooClose check FAIL!!",isClose)
-      this.closingDialog()//this.showEvtDialog = false //needed still with closingDialog?!? >> yep as reverts to default choice dialog...
-      if (isClose === true){
-        this.doNotify(`'${goalTitle}' Not added as over midnight!`)
-        return
-      }
-      //implicit force add
-      this.doNotify(`'${goalTitle}' too close to a scheduled Evt--Forcing!!`,"warning")
-    }
-    this.closingDialog() //close dialog
-
-    let subID = this.daSchedule.saveNewGoal(timeStart,goalTitle, parentGoal, own,duration)//interval
-
-    //then add to schedule
-    //also subID could be === 0 smh
-    if (subID === 0 || subID) {
-
-      let res = this.daSchedule.onAdHocEvent(subID,timeStart,useBalance,this.doNotifyTimeout) //doNotify
-      
-      if (!res.canContinue){ //&& !anyOverlap.overlaps
-        console.log("onAdHocEvent::OVERLAPS?",JSON.parse(JSON.stringify(res)))
-        if (res.overlaps == null){
-          this.doNotify("Error Adding this event :(", "negative")
-          console.log("onAdHocEvent::ERROR not found?")
-          return
-        } else {
-          if (useBalance){this.doNotify(`Overlaps!-Balance Not Used!`, "warning",'top')}
-          this.handleOverlaps(res.overlaps,'adHocEvt') //adHocEvt
-        }
-      } else{
-        //console.log("onAddHocEvent::ALLGOOD",res,this.possibleRange)
-        this.constructTree() //update to show newest
-        this.reset() //to clear this.possibleRange for next use
-        //this.doNotify("New adHoc Evt added!","positive",'top')
-        //this.daSchedule.toggleActionBtns(true,'adHocEvt')
-        if(this.mobile){
-          this.adjustCurrentTime()  //weirdly doesnt adjust for mobile?..
-        }
-      }
-    } else{ //can happen if takes too long to create parent--specially for 'self'
-      console.log("onAdHocEvent::BOO ERROR no subID :(",subID)
-      this.doNotify("Error adding :(  Add Evt by select!", "negative")  //Error creating and adding this event :(
-    }
-  },*/
   onEndNow(id){
       const doRemove = () =>{
         //console.log(`onEndNow::removing and saving!`,id)
@@ -3428,7 +3337,7 @@ methods:{
         return { label: l, value: anEvt.id }
       }
   },
-  getLargestScoreInterval(evts){
+  getLargestScoreInterval(evts){ //redundant--not used
     let highest = 0  //shouldnt be lower than this...could happen tho if no validation on add
     let current = null
     for (let e of evts) {
@@ -3438,21 +3347,30 @@ methods:{
         current = e//e.id
       }
     }
-    return current //handle null at call site
-
-    //if (current){
-      //console.log('getHighestScoreInterval::score interval', current.id,current?.title.trim(), current.score) //current) //,current.details
-     // return current
-    //}else{console.log('ERROR ERROR getHighestScoreInterval::No current set?',highest, current,evts)} //shouldnt happen!!--toMonitor**
+    return current //handle null at call
   },
-  /*expandAll(){ //bof dont work...
-    //console.log("expandAll",this.treeGoals)
+  unExpandAll(){
+    //console.log("unExpandAll",JSON.stringify(this.expanded)) 
+    //unExpandAll [false,"4) lkjlkjlkj"]
+    ////huh some keys are false! 
+    //so basically just have expanded node labels and setting index to any value(true/false)
+    //just the same as clearing the whole array!
+    //no wonder first try(see below) didnt work! 
+    ///--shoulda added/pushed node label into the expanded array!!LOOL 
+    ////>>this.expanded.push(e.label)!
     
-    for (let e of this.treeGoals) {
-      //console.log("expandAll",e)
-      this.expanded[e.label] = true
-    }
-  },*/
+    //for (let e of this.treeGoals) {  //smh didnt work
+    //  console.log("expandAll >> ",e)
+      //this.expanded[e.label] = true
+    //}
+
+    //for (let i = 0; i < this.expanded.length; i++){
+      //console.log("unExpandAll",i,this.expanded[i])
+    //  this.expanded[i] = false; //works but better to reset array actually as below
+    //}
+
+    this.expanded = []
+  },
   getSmallestScoreInterval(evts){
     let lowScore = 9  //upper start..shouldnt be higher than this
     let current = null
@@ -4017,15 +3935,21 @@ methods:{
     //bon adding both? smh
    
   },
-  onTouchHStart(e, type, item){ //todo** use onTouchStart below....
+  onclicky(e, item){
+    console.log('onclicky', JSON.stringify(e),JSON.stringify(item),e.target)
+    //e.target.classList.add("my-header-drag")
+    // needed for mobile touchStart?!? and select proper node!! cause of emulator?!? crazy!
+    //return false  //even return false has no effect smdh
+    e.target.classList.add("clickyTest") //test to see if goes here in mobile....smdh
+  },
+  onTouchHStart(e, type, item){
     //console.log('onTouchHStart', e,item,e.target) 
     if(type == 'tree-item'){
       let it = this.daSchedule.getSubGoalByID(item.id)
-      console.log('onTouchHStart::TreeItem '+type, JSON.stringify(item),JSON.stringify(it)) //this.doLog
+      //console.log('onTouchHStart::TreeItem '+type, JSON.stringify(item),JSON.stringify(it)) //this.doLog
       this.selectedItem = {evt:{...it,color:item.color}, type:type} //sheesh BEWARE** passing in color like this smh
 
       //below to show change...test for tree-item-
-      //-should put in touchHold perhaps?!?
       e.target.classList.add("my-header-drag")
       this.touchedItem = e.target  //save to remove css class later
 
@@ -4129,7 +4053,7 @@ methods:{
       //remove css class
       this.touchedItem.classList.contains("my-header-drag") ? this.touchedItem.classList.remove("my-header-drag") : console.log('onTouchHEvt::touchend>>No Header?!?',this.touchedItem)
       
-
+      //close after drag  {onTouchHEvt(e, prop.node); morphClose()}
       this.selectedItem?.type == 'tree-item' ? this.morphClose() : console.log('onTouchHEvt::touchend>>No need to MorphClose?!?',JSON.stringify(this.selectedItem))
 
       if(target.ariaLabel){
@@ -4358,10 +4282,11 @@ methods:{
       //console.log(`scrollToTime::gonna SCROLL`,timey.time, s.time, speed)//,JSON.parse(JSON.stringify(this.$refs)))
       this.$refs.calendar?.scrollToTime(s.time, speed ? speed=='fast'? 400 : 1000 : 500)  //whats point of the second number param?!? >>OH the speed of the scroll!!!
     }else {
-      //bon try again? >>can keep trying >>BAAD! to review**
-      setTimeout(() => { //should prolly clear it!!---assign to a variable first...
+      //bon try again? >>can keep trying even when on other pages!>>BAAD!
+      //---assign to a variable that is cleared on unmount!!
+      this.timeoutId = setTimeout(() => {
         //let newTimey = parseDate(new Date()) //bon bad with overlaps as goes back to current time....
-        console.log(`scrollToTime::NO SCROLLY at`,timey.time,"Trying again....")//"Now going to: "+newTimey.time)
+        //console.log(`scrollToTime::NO SCROLLY at`,timey.time,"Trying again....")//"Now going to: "+newTimey.time)
         this.scrollToTime(timey,'slow') // >> hadO ? 'slow' : 'fast' >> with overlaps, scroll slow, else false! >>meh slow better
       }, 1000 )
     }
@@ -4708,6 +4633,7 @@ methods:{
   border-radius: 10px
   box-sizing: border-box
   box-shadow: 0 0 8px 0 rgba(0,0,0,0.25)
+  overflow: scroll
 
 .sched-btn
   display: block
@@ -4752,6 +4678,9 @@ methods:{
 
 .myNotification
   transition: 0.1s ease all
+
+.clickyTest
+  background-color: rgb(159,138,7)
 
 @media (max-width: 500px)
   .instru

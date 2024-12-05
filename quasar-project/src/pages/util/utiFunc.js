@@ -29,27 +29,28 @@ export function hexColor(c) {
 }
 
 export function pGColors() {
-  return ['blue-grey',
-  //'blue-grey-5', //very close to above
-  'grey-10', //grey
-  'brown',
-  'deep-orange',
-  'orange',
-  'amber',
-  //'yellow', //just ugly...see if could use suffix (7 to 10) for better look?
-  //'yellow-8', //still too close to amber and orange
-  'lime',
-  'light-green',
-  'green-10',
-  'teal',
-  'cyan',
-  'light-blue-3', //oldie >> light-blue
-  'blue',
-  'indigo',
-  'deep-purple-14', //'deep-purple',
-  'purple',
-  'pink',
-  'red']
+  return [
+    'deep-orange',
+    'orange',
+    'amber',
+    'blue-grey',
+    //'blue-grey-5', //very close to above
+    'grey-10', //grey
+    'brown',
+    //'yellow', //just ugly...see if could use suffix (7 to 10) for better look?
+    //'yellow-8', //still too close to amber and orange
+    'lime',
+    'light-green',
+    'green-10',
+    'teal',
+    'cyan',
+    'light-blue-3', //oldie >> light-blue
+    'blue',
+    'indigo',
+    'deep-purple-14', //'deep-purple',
+    'purple',
+    'pink',
+    'red']
 }
 
 export function deepCopy(obj) { //deep copy object

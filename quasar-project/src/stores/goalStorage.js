@@ -581,13 +581,11 @@ export const useGoalStore = defineStore('allGoals', () => {
                     daDs[evID] = []
                 }
                 //console.log(`addin...`,dateKey,onDay[evID].duration)
-                //div by 60 to get hours
-                //let d = onDay[evID].duration / 60
-                let e = { date: dateKey, logged: returnDuration(onDay[evID].duration), atScore: onDay[evID]?.atScore } //|| "" >>better to leave so dont 
+                //toReview** in saveDaySchedule if should save this
+                let e = { date: dateKey, logged: returnDuration(onDay[evID].duration), atScore: onDay[evID]?.atScore }
                 if ('notes' in onDay[evID]) { //for timeline.. pushes to parent too?!? toFix**
                     //console.log(`fetchAllTaskSummary:: notes!!!`,dateKey,onDay[evID])
                     e.notes = onDay[evID].notes
-                    //e.atScore = onDay[evID].atScore
                 }
                 daDs[evID].push(e)//{ date: dateKey, logged: returnDuration(onDay[evID].duration)}) //toFixed(2) >>pad 0's on integer number too smh and this aint better>>.toPrecision(2) 
             }
@@ -623,11 +621,12 @@ export const useGoalStore = defineStore('allGoals', () => {
                 color:task?.bgcolor, //only parents have colors...
                 isChild: withParent ? true : false
             }
+
             if(withParent){ //subgoal
                 let euh = daDs[task.id] || []
                 //console.log(`Subgoals logged for ${task.title}`, euh)
-                aTask.logged = [...euh]  //huh important to unfurl**
-                //aTask.isChild=true //no need as done above
+                //aTask.logged = [...euh]  //huh important to unfurl**
+                aTask.logged.push(...euh) 
             }/* else { //for main parentGoal in order to have them shown! >>no need as logs the child stuff under parent below
                 let loggedSize = getRandomIndex(2) //bon not more than 2 logged events--ToChange
                 console.log(`Logging for Parent G: ${task.title}`, loggedSize)

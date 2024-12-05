@@ -67,6 +67,7 @@ export function createEvent(data,OrigGoal,pGoal=null) { //data is rawMin stored 
     } 
     function atScore() { //huh suprised can still access function params
       //console.log("createEvent::atScore",data.atScore,OrigGoal.score)
+      //return OrigGoal.score || _data.atScore //atScore is previous changed score--should be this but seems no issue!
       return _data.atScore || OrigGoal.score
     }
 
