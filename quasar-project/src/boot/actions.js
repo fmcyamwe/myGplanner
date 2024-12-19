@@ -46,6 +46,14 @@ export class MyNotifActions extends WebPlugin {
         };
     }
 
+    async hasStoredKey(){
+        return { 
+            //{}
+            //what would happen if nothing? can be any object? >>yup set by call 
+            //>>getNotes>> {"notes":[{"id":5,"note":"Test test"}]}
+        };
+    }
+
     async clearStorage() {
         return {
             value: '',

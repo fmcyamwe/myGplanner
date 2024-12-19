@@ -570,7 +570,7 @@ import '@quasar/quasar-ui-qcalendar/src/QCalendarVariables.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarTransitions.sass'
 import '@quasar/quasar-ui-qcalendar/src/QCalendarDay.sass'
 
-import { defineAsyncComponent,ref } from 'vue' //defineComponent
+import { defineAsyncComponent,ref} from 'vue' //defineComponent ,onMounted
 import { isMobile } from '../util/isMobile'
 import { applyClasses, applyStyles, whenFrmtTime,parseScore,deepCopy,hexColor } from '../util/utiFunc'
 import { useQuasar } from 'quasar'  //Platform
@@ -705,6 +705,7 @@ unmounted(){
   this.mobile ? NotifActions.removeAllListeners() : ""
   //do get it on weekView when not removed!!
 },
+//onMounted(){},
 beforeUnmount() {
   clearInterval(this.intervalId)
   clearTimeout(this.timeoutId)

@@ -847,8 +847,10 @@ export default class daySchedule {
         console.log('scheduleLater >>NOT IN PAST',this.currentDate)
         return
       }
-      if(this.isViewingToday()){
+
+      //if(this.isViewingToday()){
         let toSchedLater = []
+        
         const now = parseDate(new Date()) //should be this.currentDate for future...
         //umm too much looping?!? toReview**
         this._dailyScheduled.forEach( (value, key, map) => {
@@ -870,10 +872,10 @@ export default class daySchedule {
        toSchedLater.length > 0 ? LocNotifications.scheduleLater() : '' //console.log("scheduleLater >> nothing to scheduleLater")
        
        console.log("scheduleLater >> #"+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
-      }else{
+      //}else{
         //should do in future?!? >> just push?!?  toReview**..
-        console.log('scheduleLater >>IN FUTURE...what to do?!?',this.currentDate)
-      }
+      //  console.log('scheduleLater >>IN FUTURE...what to do?!?',this.currentDate)
+      //}
     }
     removeScheduledNotif(id){ //removing notification of removed evt
       LocNotifications.cancel(id) //toTest
@@ -923,8 +925,8 @@ export default class daySchedule {
             }
               break
           default: //toMonitor***
-              console.log(`ERROR::filterSchedToCurrentPrio::UNKNOWN sign>>${sign} event added: ${value.title}`,this.chosenPrio)
-              toRet.push(value)
+            console.log(`ERROR::filterSchedToCurrentPrio::UNKNOWN sign>>${sign} event added: ${value.title}`,this.chosenPrio)
+            toRet.push(value)
         }
       })
       return toRet

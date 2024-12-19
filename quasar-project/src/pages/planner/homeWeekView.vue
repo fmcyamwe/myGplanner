@@ -415,11 +415,41 @@ export default {
         //})
        //JSON.stringify(window.screen.orientation.type) //huh works!!
 
-        let mGoals = this.storedGoalsMap
+       
         console.log("dayNotifData",JSON.stringify(this.todayEvts))
 
-        NotifActions.getSkippedNotifs({date:this.currentDate}).then((res)=>{
+        //skip unnecessary invoking plugin methods on empty la la
+        if (Object.keys(this.todayEvts).length < 1){
+          //console.log("dayNotifData::EMPTY day schedule >>Returning...")
+          return
+        }
 
+        NotifActions.hasStoredKey().then((res)=>{
+          console.log("hasStoredKey>>",JSON.stringify(res))
+          let presentKey = []
+          let startEnd = false //both have to be present...redundant
+          for (let key in res){
+            if(res[key]){
+              presentKey.push([key,res[key]])
+              startEnd = key == 'start' || key == 'end' ? res[key] : startEnd 
+              //startEnd || res[key] : startEnd //umm no need for truthy(||) ?
+            }
+          }
+
+          if(presentKey.length < 1){
+            console.log("hasStoredKey>>NO KEY",presentKey,startEnd)
+            return
+          }
+          //otherwise individually fetch each key!--todo***
+          console.log("hasStoredKey>>has KEY",presentKey,startEnd)
+          return this.fetchStoredKeys(presentKey,startEnd)
+        })
+        
+        /*let mGoals = this.storedGoalsMap
+        let doSave = false //saveReload at end instead of between calls?
+
+        NotifActions.getSkippedNotifs({date:this.currentDate}).then((res)=>{
+          console.log("getSkippedNotifs>>",JSON.stringify(res))
           let ids = res["skipped"]
 
           if(Array.isArray(ids) && ids.length > 0){ //Object.keys(ids).length > 0
@@ -434,13 +464,7 @@ export default {
               console.log("WoooResults>> ",JSON.stringify(ids))
               let skipd = []
               
-              /*for (let key in this.todayEvts){ //should prolly loop on ids instead >> yup
-                if(ids.find(item => item === key)){ //hopefully no cast needed?!? >>lool DEF needed or its skipped smh || using  '===' doesnt work either!!
-                  delete this.todayEvts[key]
-                  skipd.push(mGoals.get(parseInt(key))?.title ?? "") 
-                  console.log(`dayNotifData::deleteSkipped WOOO CAST>> `+key) //,JSON.stringify(ids))
-                }
-              }*/
+              
 
               for (let id of ids){
                 if(id in this.todayEvts){
@@ -469,9 +493,10 @@ export default {
               })
               
               NotifActions.clearStoreKey({key:"skip"}).then((res)=>{
-                //console.log("dayNotifData::clearSkipKey",JSON.stringify(res))
-                //reload...
-                this.reload()
+                console.log("dayNotifData::clearSkipKey",JSON.stringify(res))
+                
+                //this.reload() //reload...prolly no need tho due to other calls below?
+                doSave = true //set flag tho...
               })
 
             }else{//prolly clear/erase whole storage!!--toReview but easy for testing
@@ -513,28 +538,31 @@ export default {
               }
 
               //// save 
-              this.store.saveDailySchedule(this.currentDate,this.todayEvts)
+              wnote.length > 0 ? this.store.saveDailySchedule(this.currentDate,this.todayEvts) : console.log("getNotes>>No new Notes..Skip saveSchedule",wnote)
 
               this.$q.notify({
                 color: 'positive',
                 position: 'top',
                 message: `${wnote.join()} Evts had notes added!!`,
                 icon: 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
-                timeout: 5000, // time to display (in milliseconds)>>default is 5000 (5sec)
-                multiLine: true
+                timeout: wnote.length > 1 ? 5000 : 3000, //5000, // time to display (in milliseconds)>>default is 5000 (5sec)
+                multiLine: true,
+                closeBtn: wnote.length > 1 ? 'Okey': null  //dismiss btn for user to view better?
               })
               //console.log("dayNotifData::Saving Schedule>>",JSON.stringify(this.todayEvts))
-            }else{//umm handle?!? do what?!?
+            }else{
               console.log("getNotes>>ERROR not array",JSON.stringify(notes),Array.isArray(notes))
+              return
             }
 
-            //reset storeKey--todo** pass in 
+            //reset storeKey
             NotifActions.clearStoreKey({key:"notey",ids:ids}).then((res)=>{
-              //console.log("dayNotifData::clearNoteKey",JSON.stringify(res))
+              console.log("dayNotifData::clearNoteKey",JSON.stringify(res))
               //should reload...
               //this.loadEvts() // work?!? >>nope smh
-              this.reload() //this works!!
-              })
+              //this.reload() //this works!!
+              ids.length > 0 ? this.reload() : console.log("dayNotifData::clearNoteKey>>no reload",ids)
+            })
           }
         })
 
@@ -589,8 +617,10 @@ export default {
                   //was saved at`,eS.time,"for: "+saved.duration
                   console.log(`getStartEndTimes>> ${inStart.id} was saved at ${eS.time} for ${saved.duration}`)
                   console.log("Actually startedAt and endedAt: "+aty1.time+" > "+atyEnd.time,"startDiff of "+startDiff," with actualDura: "+actualDura)
-                  
-                  if (startDiff >= 3 || actualDura > saved.duration){//no need if was within reminder 3mins BUT should check that duration hasnt changed(add3 atEnd)
+
+                  //no need if was within reminder 3mins BUT should check that duration hasnt changed(add3 atEnd)..
+                  ////should account for user response to notification? i.e actualDura > parseInt(saved.duration)+3
+                  if (startDiff >= 3 || actualDura > saved.duration){
                     let newTime = aty1.time 
                     let clone = Object.assign({},{...saved, time:newTime, duration:actualDura})
                     console.log("getStartEndTimes::Setting Started>> "+key,JSON.stringify(clone))
@@ -614,7 +644,7 @@ export default {
                   
                   let currentTime = addToDate(parseDate(new Date()),{ minute: 0})
                   let diffy = Math.floor(diffTimestamp(eE,currentTime)/1000/60)
-                  let assumption = (saved.duration*2) + startDiff //add startDiff just in case...
+                  let assumption = (parseInt(saved.duration)*2) + startDiff //add startDiff just in case...
                   if(assumption < diffy || saved.notes){
                     console.log(`getStartEndTimes::IN START ERASE `+key,startedAt.time, "vs "+ eS.time,startDiff,"till "+eE.time, diffy,"> than "+assumption,saved.notes)
                     startIDs.push(inStart.id)
@@ -651,9 +681,9 @@ export default {
                   message: info[0] ?? "",  
                   caption: info[1] ?? "",//nullish just in case
                   icon: 'tag_faces',
-                  timeout: modified.length > 1 ? 2000 : 3000,
-                  multiLine: true 
-                  //closeBtn: //dismiss btn for user to view better?  toReview**
+                  timeout: modified.length > 0 ?  0 : 3000, //modified.length > 1 ? 2000 : 3000,
+                  multiLine: true,
+                  closeBtn: modified.length > 0 ? 'Ouii': null //dismiss btn for user to view better?  toReview**
                 })
               })
               
@@ -662,6 +692,11 @@ export default {
 
               modified.length > 0 ? this.reload() : console.log(`getStartEndTimes::No reload needed`) //bon doesnt reload properly or not saving?
             }
+
+            //todo** 
+            // in case nothing modified BUT still have some keys(removed from schedule or other reason)
+            //should clear those keys!!or bof? will get cleared eventually?
+
           }else{
             console.log("dayNotifData::getStartEndTimes::ERROR? no Start or End in response",JSON.stringify(res))
           }
@@ -669,8 +704,302 @@ export default {
           //console.log("dayNotifData::getStartEndTimes...RELOAD")
           //this.reload()
         //})
+        */
         
+        //check doSave to reload()...toReview**
       }
+    },
+    fetchStoredKeys(present,startEnd){
+      let mGoals = this.storedGoalsMap
+      let doSave = false //saveReload at end instead of between calls?
+
+        let getSkipped = () => {
+          NotifActions.getSkippedNotifs({date:this.currentDate}).then((res)=>{
+            console.log("getSkippedNotifs>>",JSON.stringify(res))
+            let ids = res["skipped"]
+
+            if(Array.isArray(ids) && ids.length > 0){ //Object.keys(ids).length > 0
+              
+              //should be array >>below redundant
+              //for (let id of ids){ //oldie >>for (let key in ids){
+                //toArray.push(ids[key]); ////sortable.push([key, sched[key]]);
+                //toArray.push([id.id, id.evt]) //no point for evt as should be empty
+              //}
+
+              if (Object.keys(this.todayEvts).length > 0){
+                console.log("WoooResults>> ",JSON.stringify(ids))
+                let skipd = []
+                
+                /*for (let key in this.todayEvts){ //should prolly loop on ids instead >> yup
+                  if(ids.find(item => item === key)){ //hopefully no cast needed?!? >>lool DEF needed or its skipped smh || using  '===' doesnt work either!!
+                    delete this.todayEvts[key]
+                    skipd.push(mGoals.get(parseInt(key))?.title ?? "") 
+                    console.log(`dayNotifData::deleteSkipped WOOO CAST>> `+key) //,JSON.stringify(ids))
+                  }
+                }*/
+
+                for (let id of ids){
+                  if(id in this.todayEvts){
+                    delete this.todayEvts[id]
+                    skipd.push(mGoals.get(parseInt(id))?.title ?? "") 
+                    console.log(`dayNotifData::deleteSkipped>> `+id,JSON.stringify(skipd))
+                  }else{
+                    console.log(`dayNotifData::Skipped NOT FOUND?!? `+id,JSON.stringify(skipd))
+                  }
+                }
+                //// save 
+                this.store.saveDailySchedule(this.currentDate,this.todayEvts)
+                // alert user //better to show one by one for clarity
+                skipd.forEach(title => {
+                  this.$q.notify({
+                    color: 'warning',
+                    position: 'top',
+                    message:  `'${title}' Was Skipped!`,
+                    caption: `Removed from ${this.currentDate} Schedule`,// '${title}' removal`,
+                    icon: 'thumb_down', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+                    timeout: ids.length > 1 ? 2000 : 3000,  
+                    //closeBtn: //or add dismiss btn?  
+                    multiLine: true
+                    //group?: boolean | string | number;
+                  })
+                })
+                
+                NotifActions.clearStoreKey({key:"skip"}).then((res)=>{
+                  console.log("dayNotifData::clearSkipKey",JSON.stringify(res))
+                  
+                  //this.reload() //reload...prolly no need tho due to other calls below?
+                  doSave = true //set flag tho...
+                })
+
+              }else{//prolly clear/erase whole storage!!--toReview but easy for testing
+                console.log("ERROR::Skipped::storage mismatch",ids.length)//, JSON.stringify(ids), JSON.stringify(this.todayEvts))
+                NotifActions.clearStoreKey({key:"skip"}).then((res)=>{
+                  console.log("Skip key cleared!!")
+                })
+                //NotifActions.clearStorage().then((res)=>{
+                //  console.log("dayNotifData::clearStorage",JSON.stringify(res))
+                //})
+              }
+            }
+          }).catch((err) => {
+              console.log("dayNotifData::getSkippedNotifs>>ERROR",err)
+              //console.log(err)
+          })
+        }
+
+        let getNotes = () => {
+          NotifActions.getNotes().then((res)=>{ //use date too? prolly
+            //console.log("getNotes>>",JSON.stringify(res)) //getNotes>> {"notes":[{"id":5,"note":"Test test"}]}
+            
+            if ("notes" in res){
+              let notes = res["notes"]
+              const ids = []
+              //console.log("getNotes>>",JSON.stringify(notes)) //bon isArray
+              if(Array.isArray(notes)){
+                let wnote = []
+                for (let note of notes){ //object using >>  for (let key in this.todayEvts)
+                  if(note.id in this.todayEvts){ //huh no type issue
+                    let clone = Object.assign({},{...this.todayEvts[note.id], notes:note.note})
+
+                    //console.log("dayNotifData::Setting Note>>",JSON.stringify(clone),JSON.stringify(this.todayEvts[note.id]))
+                    
+                    this.todayEvts[note.id] = clone 
+                    wnote.push(`'${mGoals.get(parseInt(note.id))?.title ?? ""}'`)
+                    ids.push(note.id)
+                  }else{//could happen if evt deleted?!? OR on a different day smh--toReview** using dates!!
+                    console.log("getNotes>>ERROR note Evts not found "+note.id,JSON.stringify(note),JSON.stringify(this.todayEvts))
+                  }
+                }
+
+                //// save 
+                wnote.length > 0 ? this.store.saveDailySchedule(this.currentDate,this.todayEvts) : console.log("getNotes>>No new Notes..Skip saveSchedule",wnote)
+
+                this.$q.notify({
+                  color: 'positive',
+                  position: 'top',
+                  message: `${wnote.join()} Evts had notes added!!`,
+                  icon: 'thumb_up', //oldie >> 'report_problem'  //others >> warning || thumb_up || tag_faces
+                  timeout: wnote.length > 1 ? 5000 : 3000, //5000, // time to display (in milliseconds)>>default is 5000 (5sec)
+                  multiLine: true,
+                  closeBtn: wnote.length > 1 ? 'Okey': null  //dismiss btn for user to view better?
+                })
+                //console.log("dayNotifData::Saving Schedule>>",JSON.stringify(this.todayEvts))
+              }else{
+                console.log("getNotes>>ERROR not array",JSON.stringify(notes),Array.isArray(notes))
+                return
+              }
+
+              //reset storeKey
+              NotifActions.clearStoreKey({key:"notey",ids:ids}).then((res)=>{
+                console.log("dayNotifData::clearNoteKey",JSON.stringify(res))
+                //should reload...
+                //this.loadEvts() // work?!? >>nope smh
+                //this.reload() //this works!!
+                ids.length > 0 ? this.reload() : console.log("dayNotifData::clearNoteKey>>no reload",ids)
+              })
+            }
+          })
+        }
+
+        let getStartEnds = () =>{
+          NotifActions.getStartEndTimes().then((res)=>{
+            
+            if ("started" in res && "ended" in res){
+              let started = res["started"]
+              let ended = res["ended"]
+              //both should be arrays...
+              let bothArrs = Array.isArray(started) && Array.isArray(ended)
+              if(!bothArrs){
+                console.log("getStartEndTimes>>ERROR::not arrays?!?",started, ended)
+                //do anything else?
+                return
+              }
+
+              if(Object.keys(this.todayEvts).length < 1 && (started.length > 0 || ended.length > 0 )){
+                console.log("ERROR::getStartEndTimes >>storage mismatch--CLEARING KEYS!!")
+                NotifActions.clearStoreKey({key:"start",ids:[]}).then((res)=>{ //clear keys...not whole storage //clearStorage
+                  console.log("dayNotifData::clearStoreKey>>Start",JSON.stringify(res))
+                }).then(()=>{//umm shouldnt put above?!?
+                  console.log("dayNotifData::clearStoreKey>>End")
+                  NotifActions.clearStoreKey({key:"end",ids:[]})
+                })
+                return
+              }
+
+              if(started.length > 0 || ended.length > 0){
+                let startIDs = []
+                let endIDs = []
+                let modified = []
+                console.log("getStartEndTimes::",JSON.stringify(started),"ended>> "+JSON.stringify(ended))
+                for (let key in this.todayEvts){
+                  let inStart = started.find(item => item.id == key)
+                  let inEnd = ended.find(item => item.id == key)
+                  let saved = this.todayEvts[key]
+
+                  if(inStart && inEnd){ //received both notifs
+                    //console.log(`getStartEndTimes>> Key: ${key} in BOTH!!`,JSON.stringify(inStart),JSON.stringify(inEnd))
+                    let aty1 = parseDate(new Date(inStart.startedAt))
+                    let atyEnd = parseDate(new Date(inEnd.endedAt))
+                    let eS = addToDate(parsed(this.currentDate), { minute: parseTime(saved.time)})
+                    //let eE = addToDate(eS, { minute: parseInt(saved.duration)})
+                    //console.log(`getStartEndTimes>> ${inStart.id} was saved at`,eS.time,"for: "+saved.duration) //eE.time,
+
+                    //let another = diffTimestamp(eS, parseDate(aty1))
+                    let startDiff = Math.floor((diffTimestamp(eS, aty1))/1000/60) //how far is startedAt from original start
+                    //let endDiff = Math.floor((diffTimestamp(aty1,eE))/1000/60) //diff of actual start with original end
+                    //let actualEndDiff = Math.floor((diffTimestamp(eE,atyEnd))/1000/60)
+                    let actualDura = Math.ceil((inEnd.endedAt - inStart.startedAt)/1000/60)
+                    //was saved at`,eS.time,"for: "+saved.duration
+                    console.log(`getStartEndTimes>> ${inStart.id} was saved at ${eS.time} for ${saved.duration}`)
+                    console.log("Actually startedAt and endedAt: "+aty1.time+" > "+atyEnd.time,"startDiff of "+startDiff," with actualDura: "+actualDura)
+
+                    //no need if was within reminder 3mins BUT should check that duration hasnt changed(add3 atEnd)..
+                    ////should account for user response to notification? i.e actualDura > parseInt(saved.duration)+3
+                    if (startDiff >= 3 || actualDura > saved.duration){
+                      let newTime = aty1.time 
+                      let clone = Object.assign({},{...saved, time:newTime, duration:actualDura})
+                      console.log("getStartEndTimes::Setting Started>> "+key,JSON.stringify(clone))
+                      this.todayEvts[key] = clone
+
+                      modified.push([`'${mGoals.get(parseInt(inStart.id))?.title ?? ""}' was modified!`,`Start time: ${newTime} with duration: ${actualDura}`]) //scheduling
+                    }
+
+                    startIDs.push(inStart.id)
+                    endIDs.push(inEnd.id)
+                    
+                  }else if(inStart){ //got start but not end?
+                    //just check start and leave rest as is...prolly
+                    console.log(`dayNotifData::getStartEndTimes::Evt only IN START?!? `+key,JSON.stringify(inStart))
+                    //startIDs.push(inStart.id) //prolly no erase yet as could be ongoing?!? Or never got the end notif for any reason....toReview**
+                    //yup could check and erase if current time waaay past scheduled time(> duration?)
+                    let startedAt = parseDate(new Date(inStart.startedAt))
+                    let eS = addToDate(parsed(this.currentDate), { minute: parseTime(saved.time)})
+                    let eE = addToDate(eS, { minute: parseInt(saved.duration)})
+                    let startDiff = Math.floor((diffTimestamp(eS, startedAt))/1000/60) //how far is startedAt from original start--just toSee
+                    
+                    let currentTime = addToDate(parseDate(new Date()),{ minute: 0})
+                    let diffy = Math.floor(diffTimestamp(eE,currentTime)/1000/60)
+                    let assumption = (parseInt(saved.duration)*2) + startDiff //add startDiff just in case...
+                    if(assumption < diffy || saved.notes){
+                      console.log(`getStartEndTimes::IN START ERASE `+key,startedAt.time, "vs "+ eS.time,startDiff,"till "+eE.time, diffy,"> than "+assumption,saved.notes)
+                      startIDs.push(inStart.id)
+                    }
+                    //let actualEndDiff = Math.floor((diffTimestamp(eE,atyEnd))/1000/60)
+                  }else if(inEnd) { //got end but not start?
+                    //so check if later than scheduled end--should add duration difference 
+                    //also have to use original time (safe assumption?)
+                    
+                    let eS = addToDate(parsed(this.currentDate), { minute: parseTime(saved.time)})
+                    let atyEnd = parseDate(new Date(inEnd.endedAt))
+                    //let end = new Date(inEnd.endedAt) //>>nope smh
+                    //let mid = new Date(this.currentDate).setMilliseconds(inEnd.endedAt) //no need to set other hours,minutes hopefully?
+                    //let end = parseDate(new Date(this.currentDate).setMilliseconds(inEnd.endedAt)) >>nope
+                    let actualDura = Math.floor((diffTimestamp(eS, atyEnd))/1000/60) //(inEnd.endedAt - inStart.startedAt)
+                    console.log(`dayNotifData::getStartEndTimes::Evt only IN END?! `+key,"dura as "+saved.duration,actualDura,JSON.stringify(inEnd),eS.time,atyEnd.time)
+                    //todo** check dura cause could be veeeery large (skip in that case)
+                    //modified.push([`'${mGoals.get(parseInt(inEnd.id))?.title ?? ""}' has changed duration!`,`Ended at time: ${atyEnd.time} with duration: ${actualDura}`])
+                    endIDs.push(inEnd.id)
+                  }//else{
+                    //no start or end notif received?!? >>leave as is(prolly for upcoming evts?) or those already ended and cleared(likely)
+                  //  console.log(`dayNotifData::getStartEndTimes>> Evt with no start or end!! `+key,JSON.stringify(this.todayEvts[key]))
+                  //}
+                }
+              
+                //save
+                modified.length > 0 ? this.store.saveDailySchedule(this.currentDate,this.todayEvts) : '' //console.log(`getStartEndTimes:: No change to schedule`, startIDs.length, endIDs.length)//umm sometimes doesnt sav
+
+                //notif to user...
+                modified.forEach(info => {
+                  this.$q.notify({
+                    color: 'warning', //see about using custom color? toSee**
+                    position: 'top',
+                    message: info[0] ?? "",  
+                    caption: info[1] ?? "",//nullish just in case
+                    icon: 'tag_faces',
+                    timeout: modified.length > 0 ?  0 : 3000, //modified.length > 1 ? 2000 : 3000,
+                    multiLine: true,
+                    closeBtn: modified.length > 0 ? 'Ouii': null //dismiss btn for user to view better?  toReview**
+                  })
+                })
+                
+                startIDs.length > 0 ? NotifActions.clearStoreKey({key:"start",ids:startIDs}) : ""
+                endIDs.length > 0 ? NotifActions.clearStoreKey({key:"end",ids:endIDs}) : ""
+
+                modified.length > 0 ? this.reload() : console.log(`getStartEndTimes::No reload needed`) //bon doesnt reload properly or not saving?
+              }
+
+              //todo** 
+              // in case nothing modified BUT still have some keys(removed from schedule or other reason)
+              //should clear those keys!!or bof? will get cleared eventually?
+
+            }else{
+              console.log("dayNotifData::getStartEndTimes::ERROR? no Start or End in response",JSON.stringify(res))
+            }
+          })
+        }
+
+      for (let id of present){
+        switch (id[0]) { //first elt...
+          case 'skip':
+            getSkipped()
+            break
+          case 'notey':
+            getNotes()
+            break
+          case 'start':
+            console.log("fetchStoredKeys::got Start",id,startEnd) // monitor that proper sync!!
+            break
+          case 'end':
+            console.log("fetchStoredKeys::got End",id,startEnd) //same as above for start
+            break
+          default: //toMonitor***
+            console.log(`ERROR::fetchStoredKeys::UNKNOWN?!?`,id,startEnd)
+        }
+      }
+
+      //meh even if only one present....
+      startEnd ? getStartEnds() : console.log(`fetchStoredKeys::NoStartEnd?!?`,present,startEnd)
+
     },
     constructTree(){
       this.treeGoals = this.store.fetchGoalsTree()

@@ -331,10 +331,9 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
           types: [startType,endType,navType]
         }
         //let result = await 
-        LocalNotifications.registerActionTypes(toReg).then(() => {
-          console.log('registerActions')//JSON.stringify(result));//toReg
-        })
-        
+        LocalNotifications.registerActionTypes(toReg)//.then(() => {
+          //console.log('registerActions')//JSON.stringify(result));//toReg
+        //})
       }
 
       //not possible for web!
@@ -364,7 +363,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
           skipped.push({id:notif.id}) //[{id:this.lastSeen}]
         }else{
           console.log('getPending:: Notif>>WOULDA>> ',JSON.stringify(notif), JSON.stringify(at),JSON.stringify(new Date(aty)),JSON.stringify(aty1)) //JSON.stringify(aty)
-          this.pending.push({...notif,schedule: { at: aty1 }}); 
+          this.pending.push({...notif,schedule: { at: aty1, allowWhileIdle: true }}); 
           //re-add in case of schedule change
           //LocalNotifications.schedule({notifications:[{...notif,schedule:{at: aty1},actionTypeId:'start'}]});
         }
@@ -431,7 +430,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
         
           let startsAt = whenFrmtTime(e.start.time)
           let endsAt = whenFrmtTime(e.end.time)
-          let inPM = e.start.time.split(':')[0] >=12 ? "PM" : "AM" //just add into extra..redundant? toReview**
+          //let inPM = e.start.time.split(':')[0] >=12 ? "PM" : "AM" //just add into extra..redundant? yup
           //console.log('NotifHelper::addPendingEvts '+e.id,inPM,JSON.stringify(aty1),JSON.stringify(aty1End))
           let notif = {
               title: `'${e.title}' Starting at ${startsAt}`,
@@ -443,7 +442,7 @@ export class CapacitorNotificationsWeb { //extends WebPlugin {// implements Capa
               //attachments: null,
               actionTypeId: 'atStart',
               iconColor:hexColor(e.bgcolor), //!e.bgcolor ? '#9d8802' : e.bgcolor.includes("-") ? '#9d8802' : e.bgcolor, // e.bgcolor ?? 'blue', //can break smh color.includes("-") //even normal named can be invalid color smh
-              extra: {duration:e.duration, scorey:e.score, end: aty1End, endsAt:endsAt, name:e.title, parent:e?.parent,startsAt:startsAt,around:inPM},
+              extra: {duration:e.duration, scorey:e.score, end: aty1End, endsAt:endsAt, name:e.title, parent:e?.parent,startsAt:startsAt}, //,around:inPM
               channelId: platform != "web" ? 'LocNotifs' : ''  //could use default but prolly better to have custom one(for android)
               //autoCancel?(only for mobile)
             }
