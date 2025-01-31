@@ -807,7 +807,7 @@ export default {
                     wnote.push(`'${mGoals.get(parseInt(note.id))?.title ?? ""}'`)
                     ids.push(note.id)
                   }else{//could happen if evt deleted?!? OR on a different day smh--toReview** using dates!!
-                    console.log("getNotes>>ERROR note Evts not found "+note.id,JSON.stringify(note),JSON.stringify(this.todayEvts))
+                    console.log("getNotes>>ERROR note Evts not found "+note.id,JSON.stringify(note))//JSON.stringify(this.todayEvts))
                   }
                 }
 

@@ -37,10 +37,24 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onPause() {
+      Logger.error("FLO-TAG","onPause?!?",null);
+      MyNotifActions notifPlugin = MyNotifActions.getMyNotifActionsInstance();
+      if (notifPlugin != null) {
+        //notifPlugin.notifyListeners("pauseReceived", notification, true);//access issue smh
+        notifPlugin.listenez(); //this works
+      }
+
+      super.onPause();
+     // finish();// Explicitly finish the activity...does call destroy but no time to schedule?
+      // calls onPause() and then onDestroy() so beware!! put super.onPause above?!?--toTest**
+    }
+
+    /*@Override
     public void onResume() {
       Logger.error("FLO-TAG","onResume?!?",null);
       super.onResume();
-    }
+    }*/
 
     /*@Override
     public void onRestart() {
@@ -48,13 +62,21 @@ public class MainActivity extends BridgeActivity {
       super.onRestart();
     }*/
 
+
     @Override
-    public void onDestroy() {
-      Logger.error("FLO-TAG","onDestroy?!?",null);
-      super.onDestroy();
+    public void onStop() {
+      Logger.error("FLO-TAG", "onStop?!? ", null);
+      //// finish();// Explicitly finish the activity
+      super.onStop();
     }
 
     @Override
+    public void onDestroy() {
+      Logger.error("FLO-TAG","onDestroy",null);
+      super.onDestroy();
+    }
+
+    /*@Override
     public void onStop() {
       long earliest = LocalNotificationsPlugin.getLocalNotificationsInstance().earliest();
       Logger.error("FLO-TAG","onStop?!? "+earliest,null);
@@ -74,18 +96,6 @@ public class MainActivity extends BridgeActivity {
       //getApplicationContext().startService()
 
       super.onStop();
-    }
+    }*/
 
-  @Override
-  public void onPause() {
-    Logger.error("FLO-TAG","onPause?!?",null);
-    MyNotifActions.getMyNotifActionsInstance();
-    MyNotifActions notifPlugin = MyNotifActions.getMyNotifActionsInstance();
-    if (notifPlugin != null) {
-      //access issue smh
-      //notifPlugin.notifyListeners("pauseReceived", notification, true);
-      notifPlugin.listenez(); //this works
-    }
-    super.onPause();
-  }
 }

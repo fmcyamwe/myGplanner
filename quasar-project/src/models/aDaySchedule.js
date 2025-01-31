@@ -842,9 +842,10 @@ export default class daySchedule {
       
       return this.loadEvtsForDay(sameDay)
     }
-    scheduleLater(){
+    scheduleLater(doNotify=null){
       if(this.isViewingPast()){
         console.log('scheduleLater >>NOT IN PAST',this.currentDate)
+        if (doNotify){doNotify(`scheduleLater::Nope in PAST '${this.currentDate}'`,'warning') }
         return
       }
 
@@ -870,6 +871,8 @@ export default class daySchedule {
 
        //avoid unnecessary plugin schedule call--toConfirm** that no pending in state?
        toSchedLater.length > 0 ? LocNotifications.scheduleLater() : '' //console.log("scheduleLater >> nothing to scheduleLater")
+
+       if (doNotify){doNotify(`scheduleLater:: '${this.currentDate}' >> ${toSchedLater.length} `,'info') }
        
        console.log("scheduleLater >> #"+toSchedLater.length,JSON.stringify(LocNotifications.getState()))
       //}else{

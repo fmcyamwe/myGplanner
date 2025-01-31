@@ -1425,10 +1425,10 @@ export default {
 }
 
 .atLeft {
-    float:left
+    float: left;
 }
 .atRight {
-    float:right
+    float: right;
 }
 @media (max-width: 500px){
 .atRight {

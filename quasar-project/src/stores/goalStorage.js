@@ -590,55 +590,56 @@ export const useGoalStore = defineStore('allGoals', () => {
                 daDs[evID].push(e)//{ date: dateKey, logged: returnDuration(onDay[evID].duration)}) //toFixed(2) >>pad 0's on integer number too smh and this aint better>>.toPrecision(2) 
             }
         }
+
         //console.log(`DaDs`, daDs)
 
         
-        let findSubGoals = parentID => { //see about moving this outside...toDO***
-            let map = []
-            //let allSubGoals = this.getSubGoals
-            if(!subs) { //allSubGoals
-                //console.log("No subgoals")
-                return map
-            }
-            //map = subs.filter(x => x.parentGoal == parentID)
-
-            subs.forEach(event => {
-                if (event.parentGoal == parentID) {
-                    map.push(event)
+            let findSubGoals = parentID => { //see about moving this outside...toDO***
+                let map = []
+                //let allSubGoals = this.getSubGoals
+                if(!subs) { //allSubGoals
+                    //console.log("No subgoals")
+                    return map
                 }
-            })
-            return map  
-        }
+                //map = subs.filter(x => x.parentGoal == parentID)
 
-        let updateGoal = (task, withParent = null) => {
-            let aTask = {
-                children: [],
-                title: withParent ? `${task.title.trim()} (${task.score})`: `${task.title.trim()} !${task.priority}!`,
-                key: withParent ? `${withParent}-${task.id}` : task.id,
-                logged:[], 
-                //logged: daDs[task.id] || [], //gotta assign empty eh!
-                expanded:true, //meh expand by default...
-                color:task?.bgcolor, //only parents have colors...
-                isChild: withParent ? true : false
+                subs.forEach(event => {
+                    if (event.parentGoal == parentID) {
+                        map.push(event)
+                    }
+                })
+                return map  
             }
 
-            if(withParent){ //subgoal
-                let euh = daDs[task.id] || []
-                //console.log(`Subgoals logged for ${task.title}`, euh)
-                //aTask.logged = [...euh]  //huh important to unfurl**
-                aTask.logged.push(...euh) 
-            }/* else { //for main parentGoal in order to have them shown! >>no need as logs the child stuff under parent below
-                let loggedSize = getRandomIndex(2) //bon not more than 2 logged events--ToChange
-                console.log(`Logging for Parent G: ${task.title}`, loggedSize)
-               do {
-                    let loggedDate = datesTest[getRandomIndex(datesS)]
-                    let loggedDuration = loggedTest[getRandomIndex(loggedS)]
-                    aTask.logged.push({date: loggedDate, logged: loggedDuration})
-                } while (--loggedSize > 0)
-            }*/
+            let updateGoal = (task, withParent = null) => {
+                let aTask = {
+                    children: [],
+                    title: withParent ? `${task.title.trim()} (${task.score})`: `${task.title.trim()} !${task.priority}!`,
+                    key: withParent ? `${withParent}-${task.id}` : task.id,
+                    logged:[], 
+                    //logged: daDs[task.id] || [], //gotta assign empty eh!
+                    expanded:true, //meh expand by default...
+                    color:task?.bgcolor, //only parents have colors...
+                    isChild: withParent ? true : false
+                }
 
-            return aTask
-        }
+                if(withParent){ //subgoal
+                    let euh = daDs[task.id] || []
+                    //console.log(`Subgoals logged for ${task.title}`, euh)
+                    //aTask.logged = [...euh]  //huh important to unfurl**
+                    aTask.logged.push(...euh) 
+                }/* else { //for main parentGoal in order to have them shown! >>no need as logs the child stuff under parent below
+                    let loggedSize = getRandomIndex(2) //bon not more than 2 logged events--ToChange
+                    console.log(`Logging for Parent G: ${task.title}`, loggedSize)
+                do {
+                        let loggedDate = datesTest[getRandomIndex(datesS)]
+                        let loggedDuration = loggedTest[getRandomIndex(loggedS)]
+                        aTask.logged.push({date: loggedDate, logged: loggedDuration})
+                    } while (--loggedSize > 0)
+                }*/
+
+                return aTask
+            }
 
         let tasks = []
         

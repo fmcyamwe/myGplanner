@@ -682,7 +682,7 @@ mounted() {
 
   this.mobile ? NotifActions.addListener("pauseReceived",()=> {
       //console.log(`altDayCalendar::listener work?`) //huh straight invoke of baseclass works!
-      this.daSchedule.scheduleLater() //umm not doing work twice with unmount? >> meh unmount doesnt run on pause
+      this.daSchedule.scheduleLater(this.doNotify) //umm not doing work twice with unmount? >> meh unmount doesnt run on pause
     }) : console.log(`altDayCalendar::Not registering listener as mobile: `+this.mobile)
 
   //document.addEventListener("click",(ev)=> { //just to close that fab esti...works for click but not proper everywhere...
@@ -711,7 +711,7 @@ beforeUnmount() {
   clearTimeout(this.timeoutId)
 
     let doContinue = () => {
-      this.daSchedule.scheduleLater()
+      this.daSchedule.scheduleLater(this.doNotify) //umm this context?
     }
 
     let noSave =() =>{
@@ -719,8 +719,8 @@ beforeUnmount() {
     }
     
     let doSave = () => {
-      setTimeout(doContinue, 500);
       this.daSchedule.saveDaySchedule()
+      setTimeout(doContinue, 500);
     }
 
    //when cx has some unsaved changes!
